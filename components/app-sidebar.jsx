@@ -84,7 +84,7 @@ const data = {
         },
         {
           title: "Returns",
-          url: "/admin/returns",
+          url: "/admin/orders?status=return",
           badge: 2,
         },
       ],
@@ -154,11 +154,6 @@ const data = {
         //   url: "/marketing/notifications",
         // },
       ],
-    },
-    {
-      title: "Analytics",
-      url: "/admin/analytics",
-      icon: IconChartBar,
     },
     {
       title: "Payments",
