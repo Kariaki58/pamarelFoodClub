@@ -104,26 +104,26 @@ const data = {
         },
         {
           title: "Categories",
-          url: "/admin/categories",
+          url: "/admin/products/categories",
           icon: IconCategory,
         },
-        {
-          title: "Brands",
-          url: "/admin/brands",
-          icon: IconBrandAppgallery,
-        },
+        // {
+        //   title: "Brands",
+        //   url: "/admin/brands",
+        //   icon: IconBrandAppgallery,
+        // },
         {
           title: "Inventory",
-          url: "/admin/inventory",
+          url: "/admin/products/inventory",
           icon: IconPackage,
         },
-        {
-          title: "Reviews",
-          url: "/admin/reviews",
-          icon: IconStar,
-          badge: 24,
-        },
       ],
+    },
+    {
+      title: "Reviews",
+      url: "/admin/reviews",
+      icon: IconStar,
+      badge: 24,
     },
     {
       title: "Customers",
@@ -138,12 +138,12 @@ const data = {
       items: [
         {
           title: "Promotions",
-          url: "/admin/marketing/promotions",
+          url: "/admin/promotions",
           icon: IconDiscount,
         },
         {
           title: "Coupons",
-          url: "/admin/marketing/coupons",
+          url: "/admin/coupons",
         },
         // {
         //   title: "Email Campaigns",
@@ -159,20 +159,6 @@ const data = {
       title: "Payments",
       url: "/admin/payments",
       icon: IconCashBanknote,
-      items: [
-        {
-          title: "Transactions",
-          url: "/admin/payments/transactions",
-        },
-        {
-          title: "Withdrawals",
-          url: "/admin/payments/withdrawals",
-        },
-        {
-          title: "Payouts",
-          url: "/admin/payments/payouts",
-        },
-      ],
     },
     {
       title: "Store Setup",
@@ -189,11 +175,6 @@ const data = {
           icon: IconTruckDelivery,
         },
         {
-          title: "Payment Methods",
-          url: "/admin/store/payments",
-          icon: IconWallet,
-        },
-        {
           title: "Tax Settings",
           url: "/admin/store/tax",
         },
@@ -201,22 +182,6 @@ const data = {
     },
   ],
   navSecondary: [
-    {
-      title: "Support",
-      url: "/admin/support",
-      icon: IconMessage,
-      badge: 3,
-    },
-    {
-      title: "Reports",
-      url: "/admin/reports",
-      icon: IconFileReport,
-    },
-    {
-      title: "Search",
-      url: "#search",
-      icon: IconSearch,
-    },
     {
       title: "Account Settings",
       url: "/admin/account",
