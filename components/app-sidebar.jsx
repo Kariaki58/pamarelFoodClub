@@ -174,19 +174,10 @@ const data = {
           url: "/admin/store/shipping",
           icon: IconTruckDelivery,
         },
-        {
-          title: "Tax Settings",
-          url: "/admin/store/tax",
-        },
       ],
     },
   ],
   navSecondary: [
-    {
-      title: "Account Settings",
-      url: "/admin/account",
-      icon: IconUserCog,
-    },
     {
       title: "Help Center",
       url: "/admin/help",
@@ -220,18 +211,6 @@ export function AppSidebar({
       </SidebarContent>
       <SidebarFooter>
         <NavUser user={data.user} />
-        <div className="mt-2">
-          <SidebarMenu>
-            <SidebarMenuItem>
-              <SidebarMenuButton asChild>
-                <a href="/logout" className="text-red-500 hover:bg-red-50">
-                  <IconLogout className="!size-5" />
-                  <span>Logout</span>
-                </a>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-          </SidebarMenu>
-        </div>
       </SidebarFooter>
     </Sidebar>
   );
