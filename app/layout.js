@@ -1,6 +1,7 @@
 import "./globals.css";
 import { cn } from '@/lib/utils';
 import { Inter } from 'next/font/google';
+import ProviderHelper from "./Helper";
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-sans' });
 
@@ -21,7 +22,9 @@ export default function RootLayout({ children }) {
       <body
         className={cn('min-h-screen bg-background font-sans antialiased', inter.variable)}
       >
-        {children}
+        <ProviderHelper>
+          {children}
+        </ProviderHelper>
       </body>
     </html>
   );

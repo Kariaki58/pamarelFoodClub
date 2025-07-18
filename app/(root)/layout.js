@@ -4,6 +4,9 @@ import { Toaster } from '@/components/ui/sonner';
 import { CartProvider } from '@/context/cart-provider';
 
 
+export const dynamic = 'force-dynamic';
+
+
 export default function HomeLayout({ children }) {
     return (
         <CartProvider>

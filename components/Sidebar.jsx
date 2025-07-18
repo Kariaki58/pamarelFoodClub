@@ -20,7 +20,7 @@ export default function Sidebar({ sidebarOpen, setSidebarOpen }) {
   }
 
   const navigateToUserDashboard = () => {
-    router.push('/account') // Changed from '/dashboard' to '/account'
+    router.push('/account')
   }
 
   const navigateToHome = () => {
