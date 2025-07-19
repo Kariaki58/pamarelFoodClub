@@ -8,62 +8,47 @@ import connectToDatabase from "@/lib/dbConnect";
 import User from "@/models/user";
 import { redirect } from "next/navigation";
 
+// Explicitly declare dynamic behavior
+export const dynamic = 'force-dynamic';
+export const revalidate = 0; // Prevent caching
 
-export default async function Page() {
+async function getUserWallets(userId) {
   try {
-    // Get the user session
-    const session = await getServerSession(authOptions);
-
-    if (!session?.user?.id) {
-      redirect('/auth/signin');
-    }
-
-    // Connect to database
     await connectToDatabase();
-
-    // Fetch user data with wallet balances
-    const user = await User.findById(session.user.id)
-      .select('wallets');
-
-    if (!user) {
-      throw new Error('User not found');
-    }
-
-    return (
-      <>
-        <SectionCards />
-        <div className='my-5'>
-          <WalletDisplay wallets={JSON.parse(JSON.stringify(user.wallets))} />
-        </div>
-        
-        <div className="px-4 lg:px-6 py-5">
-          <ChartAreaInteractive />
-        </div>
-        <Transactions />
-      </>
-    );
-
+    const user = await User.findById(userId)
+      .select('wallets')
+      .lean()
+      .exec();
+    return user?.wallets || [];
   } catch (error) {
-    console.error('Dashboard Error:', error);
-    
-    // Handle different error types appropriately
-    if (error instanceof Error) {
-      return (
-        <div className="p-4 text-red-500 bg-red-50 rounded-lg mx-4 my-6">
-          <h2 className="font-bold">Error Loading Dashboard</h2>
-          <p>{error.message}</p>
-          <p className="text-sm mt-2">
-            Please try refreshing the page or contact support if the problem persists.
-          </p>
-        </div>
-      );
-    }
-
-    return (
-      <div className="p-4 text-red-500 bg-red-50 rounded-lg mx-4 my-6">
-        <h2 className="font-bold">Unexpected Error</h2>
-        <p>An unknown error occurred while loading the dashboard.</p>
-      </div>
-    );
+    console.error('Failed to fetch user wallets:', error);
+    return [];
   }
+}
+
+export default async function AdminDashboard() {
+  // Authentication check
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.id) {
+    redirect('/auth/signin');
+  }
+
+  // Data fetching
+  const wallets = await getUserWallets(session.user.id);
+
+  return (
+    <div className="space-y-6">
+      <SectionCards />
+      
+      <div className="my-5">
+        <WalletDisplay wallets={wallets} />
+      </div>
+      
+      <div className="px-4 lg:px-6 py-5">
+        <ChartAreaInteractive />
+      </div>
+      
+      <Transactions />
+    </div>
+  );
 }

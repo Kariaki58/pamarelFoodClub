@@ -10,6 +10,8 @@ import User from "@/models/user";
 import { redirect } from "next/navigation";
 
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
 export default async function AccountPage() {
   let user = null;
@@ -26,7 +28,7 @@ export default async function AccountPage() {
 
     // Fetch user data with wallet balances
     user = await User.findById(session.user.id)
-      .select('wallets');
+      .select('wallets').lean();
 
     if (!user) {
       throw new Error('User not found');
