@@ -1,43 +1,73 @@
+'use client';
+
 import { DashboardSummary } from "@/components/account/dashboard-summary";
 import { OrderHistory } from "@/components/account/order-history";
 import { PendingReviews } from "@/components/account/pending-reviews";
 import { Separator } from "@/components/ui/separator";
 import WalletDisplay from "@/components/wallets/Wallet";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/app/api/auth/options";
-import connectToDatabase from "@/lib/dbConnect";
-import User from "@/models/user";
-import { redirect } from "next/navigation";
+import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 
+export default function AccountPage() {
+  const { data: session, status } = useSession();
+  const router = useRouter();
+  const [wallets, setWallets] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-export const dynamic = 'force-dynamic';
-export const revalidate = 0;
-
-export default async function AccountPage() {
-  let user = null;
-
-  try {
-    const session = await getServerSession(authOptions);
-    
-    if (!session?.user?.id) {
-      redirect('/auth/login');
+  useEffect(() => {
+    if (status === 'unauthenticated') {
+      router.push('/auth/login');
     }
+  }, [status, router]);
 
-    // Connect to database
-    await connectToDatabase();
+  useEffect(() => {
+    if (status !== 'authenticated') return;
 
-    // Fetch user data with wallet balances
-    user = await User.findById(session.user.id)
-      .select('wallets').lean();
+    const fetchWallets = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        
+        const response = await fetch('/api/wallets', {
+          cache: 'no-store'
+        });
 
-    if (!user) {
-      throw new Error('User not found');
-    }
+        if (!response.ok) {
+          throw new Error(`Failed to fetch wallets: ${response.status}`);
+        }
 
-  } catch (error) {
-    console.error('Account Page Error:', error);
-    
-    // Return error UI without throwing to prevent page crash
+        const data = await response.json();
+        setWallets(data.wallets || []);
+      } catch (err) {
+        console.error('Failed to fetch wallets:', err);
+        setError(err instanceof Error ? err.message : 'An unknown error occurred');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchWallets();
+  }, [status]);
+
+  if (status === 'loading' || loading) {
+    return (
+      <div className="space-y-8">
+        <div>
+          <h1 className="text-2xl font-bold">My Account</h1>
+          <p className="text-muted-foreground">
+            Welcome back! Loading your account data...
+          </p>
+        </div>
+        <div className="flex justify-center items-center h-64">
+          <p>Loading wallets...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
     return (
       <div className="space-y-8">
         <div>
@@ -49,12 +79,16 @@ export default async function AccountPage() {
         
         <div className="p-4 text-red-500 bg-red-50 rounded-lg">
           <h2 className="font-bold">Error Loading Account Data</h2>
-          <p>
-            {error instanceof Error ? error.message : 'An unknown error occurred'}
-          </p>
+          <p>{error}</p>
           <p className="text-sm mt-2">
             Please try refreshing the page or contact support if the problem persists.
           </p>
+          <button
+            onClick={() => window.location.reload()}
+            className="mt-2 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+          >
+            Refresh Page
+          </button>
         </div>
       </div>
     );
@@ -72,7 +106,7 @@ export default async function AccountPage() {
       <DashboardSummary />
       
       <div className="my-5">
-        <WalletDisplay wallets={user.wallets} />
+        <WalletDisplay wallets={wallets} />
       </div>
       
       <Separator />

@@ -1,40 +1,76 @@
+'use client';
+
 import { ChartAreaInteractive } from "@/components/chart-area-interactive";
 import { SectionCards } from "@/components/section-cards";
 import Transactions from "@/components/transaction";
 import WalletDisplay from '@/components/wallets/Wallet';
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/app/api/auth/options";
-import connectToDatabase from "@/lib/dbConnect";
-import User from "@/models/user";
-import { redirect } from "next/navigation";
+import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 
-// Explicitly declare dynamic behavior
-export const dynamic = 'force-dynamic';
-export const revalidate = 0; // Prevent caching
+export default function AdminDashboard() {
+  const { data: session, status } = useSession();
+  const router = useRouter();
+  const [wallets, setWallets] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-async function getUserWallets(userId) {
-  try {
-    await connectToDatabase();
-    const user = await User.findById(userId)
-      .select('wallets')
-      .lean()
-      .exec();
-    return user?.wallets || [];
-  } catch (error) {
-    console.error('Failed to fetch user wallets:', error);
-    return [];
+  useEffect(() => {
+    // Redirect if not authenticated
+    if (status === 'unauthenticated') {
+      router.push('/auth/signin');
+    }
+  }, [status, router]);
+
+  useEffect(() => {
+    if (status !== 'authenticated') return;
+
+    const fetchAdminWallets = async () => {
+      try {
+        setLoading(true);
+        const response = await fetch('/api/wallets', {
+          cache: 'no-store'
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const data = await response.json();
+        setWallets(data.wallets || []);
+      } catch (err) {
+        console.error('Failed to fetch admin wallets:', err);
+        setError(err instanceof Error ? err.message : 'An unknown error occurred');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchAdminWallets();
+  }, [status]);
+
+  if (status === 'loading' || loading) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <p>Loading dashboard...</p>
+      </div>
+    );
   }
-}
 
-export default async function AdminDashboard() {
-  // Authentication check
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.id) {
-    redirect('/auth/signin');
+  if (error) {
+    return (
+      <div className="p-4 text-red-500 bg-red-50 rounded-lg">
+        <h2 className="font-bold">Error Loading Dashboard Data</h2>
+        <p>{error}</p>
+        <button 
+          onClick={() => window.location.reload()}
+          className="mt-2 px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600"
+        >
+          Retry
+        </button>
+      </div>
+    );
   }
-
-  // Data fetching
-  const wallets = await getUserWallets(session.user.id);
 
   return (
     <div className="space-y-6">
