@@ -3,7 +3,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import dynamic from 'next/dynamic';
 import 'quill/dist/quill.snow.css';
 import { useDropzone } from 'react-dropzone';
-import { FaTrash, FaPlus, FaMinus } from 'react-icons/fa';
+import { FaTrash, FaPlus, FaMinus, FaEdit } from 'react-icons/fa';
 import { Toaster, toast } from 'react-hot-toast';
 
 // Dynamically import components with SSR disabled
@@ -16,18 +16,38 @@ const CreatableSelect = dynamic(
   }
 );
 
+async function uploadImages(images) {
+  const formData = new FormData();
+  images.forEach(file => formData.append("images", file));
+
+  const response = await fetch("/api/upload", {
+    method: "POST",
+    body: formData,
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    console.error("Upload failed:", data.error || "Unknown error");
+    throw new Error(data.error || "Upload failed");
+  }
+
+  return data.urls || [];
+}
+
 const ProductUploadDashboard = () => {
   // State management
   const [productName, setProductName] = useState('');
-  const [variants, setVariants] = useState([
-    { id: Date.now(), color: '', size: '', stock: '', price: '' }
-  ]);
+  const [price, setPrice] = useState(0);
+  const [stock, setStock] = useState(0);
   const [category, setCategory] = useState({
     name: '',
     image: null,
     imagePreview: '',
-    description: ''
+    description: '',
+    isNew: true // Track if creating new category
   });
+  const [databaseCategories, setDatabaseCategories] = useState([]);
   const [description, setDescription] = useState('');
   const [productImages, setProductImages] = useState([]);
   const [imagePreviews, setImagePreviews] = useState([]);
@@ -37,7 +57,7 @@ const ProductUploadDashboard = () => {
   const editorRef = useRef(null);
   const quillInstance = useRef(null);
 
-  // Initialize Quill editor
+  // Initialize Quill editor and fetch categories
   useEffect(() => {
     const loadQuill = async () => {
       const Quill = (await import('quill')).default;
@@ -65,12 +85,37 @@ const ProductUploadDashboard = () => {
       }
     };
 
+    const fetchCategories = async () => {
+      try {
+        const response = await fetch("/api/category", {
+          method: "GET"
+        });
+        const data = await response.json();
+        
+        if (response.ok) {
+          const formattedCategories = data.message.map(cat => ({
+            value: cat._id,
+            label: cat.name,
+            description: cat.description,
+            image: cat.image
+          }));
+          setDatabaseCategories(formattedCategories);
+        } else {
+          throw new Error(data.message || "Failed to fetch categories");
+        }
+      } catch (error) {
+        console.error("Error fetching categories:", error);
+        toast.error("Failed to load categories");
+      }
+    };
+
+    fetchCategories();
+
     if (typeof window !== 'undefined') {
       loadQuill();
     }
   }, []);
 
-  // Handle form submission
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -85,14 +130,14 @@ const ProductUploadDashboard = () => {
       setLoading(false);
       return;
     } else if (!category.name) {
-      toast.error("Category name is required");
+      toast.error("Category is required");
       setLoading(false);
       return;
-    } else if (!category.image) {
-      toast.error("Category image is required");
+    } else if (category.isNew && !category.image) {
+      toast.error("Category image is required for new categories");
       setLoading(false);
       return;
-    } else if (category.description.length > 50) {
+    } else if (category.isNew && category.description.length > 50) {
       toast.error("Category description must be 50 characters or less");
       setLoading(false);
       return;
@@ -100,49 +145,69 @@ const ProductUploadDashboard = () => {
       toast.error("Product images are required");
       setLoading(false);
       return;
-    } else if (variants.some(v => !v.color || !v.size || !v.stock || !v.price)) {
-      toast.error("All variant fields are required");
+    } else if (price < 0) {
+      toast.error("Price must be a positive number");
+      setLoading(false);
+      return;
+    } else if (stock < 0) {
+      toast.error("Stock must be a positive number");
       setLoading(false);
       return;
     }
 
     try {
-      const productData = {
-        name: productName,
-        variants,
+      // Upload product images
+      const productImageUrls = await uploadImages(productImages);
+      
+      // For new categories, upload category image
+      let categoryImageUrl = '';
+      if (category.isNew) {
+        const categoryImageUrls = await uploadImages([category.image]);
+        categoryImageUrl = categoryImageUrls[0];
+      } else {
+        // Find the selected category to get its existing image
+        const selectedCategory = databaseCategories.find(cat => cat.label === category.name);
+        if (selectedCategory) {
+          categoryImageUrl = selectedCategory.image;
+        }
+      }
+
+      const payload = {
+        product: {
+          name: productName,
+          description: description,
+          images: productImageUrls,
+          specifications: specifications.filter(spec => spec.key && spec.value),
+          price: parseFloat(price),
+          stock: parseInt(stock),
+        },
         category: {
           name: category.name,
           description: category.description,
-          image: category.image
-        },
-        description,
-        images: productImages,
-        specifications
+          image: categoryImageUrl,
+          isNew: category.isNew
+        }
       };
-      
-      console.log('Product submitted:', productData);
+
+      const response = await fetch('/api/product/upload', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Failed to upload product');
+      }
+
       toast.success("Product uploaded successfully!");
       
-      // Reset form
-      setProductName('');
-      setVariants([{ id: Date.now(), color: '', size: '', stock: '', price: '' }]);
-      setCategory({
-        name: '',
-        image: null,
-        imagePreview: '',
-        description: ''
-      });
-      setDescription('');
-      setProductImages([]);
-      setImagePreviews([]);
-      setSpecifications([]);
-      
-      if (quillInstance.current) {
-        quillInstance.current.root.innerHTML = '';
-      }
     } catch (error) {
-      toast.error("Error uploading product");
-      console.error(error);
+      toast.error(error.message || "Error uploading product");
+      console.error("Error details:", error);
     } finally {
       setLoading(false);
     }
@@ -197,23 +262,37 @@ const ProductUploadDashboard = () => {
     });
   };
 
-  // Variant management
-  const addVariant = () => {
-    setVariants([...variants, { id: Date.now(), color: '', size: '', stock: '', price: '' }]);
-  };
-
-  const removeVariant = (id) => {
-    if (variants.length > 1) {
-      setVariants(variants.filter(v => v.id !== id));
-    } else {
-      toast.error("At least one variant is required");
+  // Handle category selection change
+  const handleCategoryChange = (selectedOption, actionMeta) => {
+    if (actionMeta.action === 'create-option') {
+      // Creating a new category
+      setCategory({
+        name: selectedOption.label,
+        image: null,
+        imagePreview: '',
+        description: '',
+        isNew: true
+      });
+    } else if (actionMeta.action === 'select-option') {
+      // Selecting an existing category
+      const selectedCategory = databaseCategories.find(cat => cat.value === selectedOption.value);
+      setCategory({
+        name: selectedOption.label,
+        image: null,
+        imagePreview: selectedCategory.image,
+        description: selectedCategory.description || '',
+        isNew: false
+      });
+    } else if (actionMeta.action === 'clear') {
+      // Clearing the selection
+      setCategory({
+        name: '',
+        image: null,
+        imagePreview: '',
+        description: '',
+        isNew: true
+      });
     }
-  };
-
-  const updateVariant = (id, field, value) => {
-    setVariants(variants.map(v => 
-      v.id === id ? { ...v, [field]: value } : v
-    ));
   };
 
   // Specifications management
@@ -239,13 +318,36 @@ const ProductUploadDashboard = () => {
         {/* Basic Information Section */}
         <div className="bg-gray-50 p-4 rounded-lg">
           <h3 className="text-lg font-semibold mb-4 text-gray-700">Basic Information</h3>
-          <div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Product Name*</label>
               <input
                 type="text"
                 value={productName}
                 onChange={(e) => setProductName(e.target.value)}
+                className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Price*</label>
+              <input
+                type="number"
+                min="0"
+                step="0.01"
+                value={price}
+                onChange={(e) => setPrice(e.target.value)}
+                className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Stock*</label>
+              <input
+                type="number"
+                min="0"
+                value={stock}
+                onChange={(e) => setStock(e.target.value)}
                 className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 required
               />
@@ -257,145 +359,75 @@ const ProductUploadDashboard = () => {
         <div className="bg-gray-50 p-4 rounded-lg">
           <h3 className="text-lg font-semibold mb-4 text-gray-700">Category Information</h3>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Category Name*</label>
-              <input
-                type="text"
-                value={category.name}
-                onChange={(e) => setCategory({...category, name: e.target.value})}
-                className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                required
-              />
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Category Description (max 50 chars)*
-                <span className="text-xs text-gray-500 ml-1">
-                  {category.description.length}/50
-                </span>
-              </label>
-              <input
-                type="text"
-                value={category.description}
-                onChange={(e) => {
-                  if (e.target.value.length <= 50) {
-                    setCategory({...category, description: e.target.value})
-                  }
-                }}
-                className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                maxLength={50}
-                required
-              />
-            </div>
-          </div>
-          
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Category Image*</label>
-            {category.imagePreview ? (
-              <div className="relative w-32 h-32">
-                <img 
-                  src={category.imagePreview} 
-                  alt="Category preview" 
-                  className="w-full h-full object-cover rounded-md border border-gray-200"
-                />
-                <button
-                  type="button"
-                  onClick={removeCategoryImage}
-                  className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 transition-colors"
-                >
-                  <FaTrash className="w-3 h-3" />
-                </button>
-              </div>
-            ) : (
-              <div 
-                {...getCategoryImageRootProps()} 
-                className="border-2 border-dashed border-gray-300 rounded-md p-4 text-center cursor-pointer hover:border-blue-500 transition-colors bg-white"
-              >
-                <input {...getCategoryImageInputProps()} />
-                <p className="text-gray-600">Click to upload category image</p>
-                <p className="text-sm text-gray-500 mt-1">Single image required</p>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Variants Section */}
-        <div className="bg-gray-50 p-4 rounded-lg">
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="text-lg font-semibold text-gray-700">Product Variants</h3>
-            <button
-              type="button"
-              onClick={addVariant}
-              className="flex items-center text-sm bg-yellow-500 text-white px-3 py-1 rounded hover:bg-yellow-600"
-            >
-              <FaPlus className="mr-1" /> Add Variant
-            </button>
+          <div className="mb-4">
+            <label className="block text-sm font-medium text-gray-700 mb-1">Category*</label>
+            <CreatableSelect
+              options={databaseCategories}
+              onChange={handleCategoryChange}
+              value={category.name ? { label: category.name, value: category.name } : null}
+              isClearable
+              placeholder="Select or create a category..."
+              className="react-select-container"
+              classNamePrefix="react-select"
+              formatCreateLabel={(inputValue) => `Create "${inputValue}"`}
+            />
           </div>
 
-          {variants.map((variant, index) => (
-            <div key={variant.id} className="mb-4 p-3 border border-gray-200 rounded-md bg-white">
-              <div className="flex justify-between items-center mb-2">
-                <span className="text-sm font-medium text-gray-600">Variant {index + 1}</span>
-                <button
-                  type="button"
-                  onClick={() => removeVariant(variant.id)}
-                  className="text-red-500 hover:text-red-700"
-                >
-                  <FaMinus />
-                </button>
+          {category.isNew && (
+            <>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Category Description (max 50 chars)*
+                    <span className="text-xs text-gray-500 ml-1">
+                      {category.description.length}/50
+                    </span>
+                  </label>
+                  <input
+                    type="text"
+                    value={category.description}
+                    onChange={(e) => {
+                      if (e.target.value.length <= 50) {
+                        setCategory({...category, description: e.target.value})
+                      }
+                    }}
+                    className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    maxLength={50}
+                    required={category.isNew}
+                  />
+                </div>
               </div>
               
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-                <div>
-                  <label className="block text-xs font-medium text-gray-500 mb-1">Color*</label>
-                  <input
-                    type="text"
-                    value={variant.color}
-                    onChange={(e) => updateVariant(variant.id, 'color', e.target.value)}
-                    className="w-full p-2 border border-gray-300 rounded-md text-sm"
-                    placeholder="e.g. Red"
-                    required
-                  />
-                </div>
-                
-                <div>
-                  <label className="block text-xs font-medium text-gray-500 mb-1">Size*</label>
-                  <input
-                    type="text"
-                    value={variant.size}
-                    onChange={(e) => updateVariant(variant.id, 'size', e.target.value)}
-                    className="w-full p-2 border border-gray-300 rounded-md text-sm"
-                    placeholder="e.g. M"
-                    required
-                  />
-                </div>
-                
-                <div>
-                  <label className="block text-xs font-medium text-gray-500 mb-1">Stock*</label>
-                  <input
-                    type="number"
-                    value={variant.stock}
-                    onChange={(e) => updateVariant(variant.id, 'stock', e.target.value)}
-                    className="w-full p-2 border border-gray-300 rounded-md text-sm"
-                    required
-                  />
-                </div>
-                
-                <div>
-                  <label className="block text-xs font-medium text-gray-500 mb-1">Price (₦)*</label>
-                  <input
-                    type="number"
-                    value={variant.price}
-                    onChange={(e) => updateVariant(variant.id, 'price', e.target.value)}
-                    className="w-full p-2 border border-gray-300 rounded-md text-sm"
-                    required
-                  />
-                </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Category Image*</label>
+                {category.imagePreview ? (
+                  <div className="relative w-32 h-32">
+                    <img 
+                      src={category.imagePreview} 
+                      alt="Category preview" 
+                      className="w-full h-full object-cover rounded-md border border-gray-200"
+                    />
+                    <button
+                      type="button"
+                      onClick={removeCategoryImage}
+                      className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 transition-colors"
+                    >
+                      <FaTrash className="w-3 h-3" />
+                    </button>
+                  </div>
+                ) : (
+                  <div 
+                    {...getCategoryImageRootProps()} 
+                    className="border-2 border-dashed border-gray-300 rounded-md p-4 text-center cursor-pointer hover:border-blue-500 transition-colors bg-white"
+                  >
+                    <input {...getCategoryImageInputProps()} />
+                    <p className="text-gray-600">Click to upload category image</p>
+                    <p className="text-sm text-gray-500 mt-1">Single image required</p>
+                  </div>
+                )}
               </div>
-            </div>
-          ))}
+            </>
+          )}
         </div>
 
         {/* Product Images Section */}

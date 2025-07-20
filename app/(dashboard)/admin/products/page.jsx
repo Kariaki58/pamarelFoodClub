@@ -1,17 +1,7 @@
-"use client"
-import { useState } from 'react';
+"use client";
+import { useState, useEffect } from 'react';
 
 const ProductDisplay = () => {
-  // Sample product data with Nigeria-specific details
-  const sampleProducts = Array.from({ length: 50 }, (_, i) => ({
-    id: i + 1,
-    name: `Product ${i + 1}`,
-    description: `Premium quality product ${i + 1} with amazing features that Nigerians love.`,
-    price: Math.floor(Math.random() * 100000) + 5000, // Random price between ₦5,000 and ₦100,000
-    stock: Math.floor(Math.random() * 100),
-    image: `https://placehold.co/100x100/e5e7eb/6b7280?text=Product+${i+1}`
-  }));
-
   // Format price in Nigerian Naira
   const formatNaira = (amount) => {
     return new Intl.NumberFormat('en-NG', {
@@ -22,15 +12,39 @@ const ProductDisplay = () => {
     }).format(amount);
   };
 
-  // Pagination state
+  // State for products and pagination
+  const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
   const productsPerPage = 10;
 
-  // Calculate pagination
-  const indexOfLastProduct = currentPage * productsPerPage;
-  const indexOfFirstProduct = indexOfLastProduct - productsPerPage;
-  const currentProducts = sampleProducts.slice(indexOfFirstProduct, indexOfLastProduct);
-  const totalPages = Math.ceil(sampleProducts.length / productsPerPage);
+  // Fetch products from API
+  const fetchProducts = async () => {
+    setLoading(true);
+    try {
+      const response = await fetch(`/api/product/inventory?page=${currentPage}&limit=${productsPerPage}`);
+      const data = await response.json();
+      
+      if (data.success) {
+        setProducts(data.data);
+        setTotalPages(data.pagination.totalPages);
+        setTotalItems(data.pagination.totalItems);
+      } else {
+        console.error('Failed to fetch products:', data.message);
+      }
+    } catch (error) {
+      console.error('Error fetching products:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Fetch products when page changes
+  useEffect(() => {
+    fetchProducts();
+  }, [currentPage]);
 
   // Change page
   const paginate = (pageNumber) => setCurrentPage(pageNumber);
@@ -78,6 +92,14 @@ const ProductDisplay = () => {
     return pageNumbers;
   };
 
+  if (loading) {
+    return (
+      <div className="w-full p-5 bg-gray-50 flex justify-center items-center h-64">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-amber-500"></div>
+      </div>
+    );
+  }
+
   return (
     <div className="w-full overflow-x-auto p-5 bg-gray-50">
       <div className="w-full overflow-x-auto mb-5 shadow-sm rounded-lg bg-white">
@@ -92,11 +114,11 @@ const ProductDisplay = () => {
             </tr>
           </thead>
           <tbody>
-            {currentProducts.map((product) => (
-              <tr key={product.id} className="hover:bg-gray-50 transition-colors">
+            {products.map((product) => (
+              <tr key={product._id} className="hover:bg-gray-50 transition-colors">
                 <td className="px-4 py-3 border-b border-gray-100">
                   <img 
-                    src={product.image} 
+                    src={product.images?.find(img => img.isDefault)?.url || '/placeholder-product.jpg'} 
                     alt={product.name} 
                     className="w-16 h-16 sm:w-20 sm:h-20 object-cover rounded-md"
                     loading="lazy"
@@ -125,7 +147,11 @@ const ProductDisplay = () => {
       </div>
 
       {/* Pagination - Yellow Accent */}
-      <div className="flex justify-center mt-5">
+      <div className="flex justify-between items-center mt-5">
+        <div className="text-sm text-gray-600">
+          Showing {((currentPage - 1) * productsPerPage) + 1} to {Math.min(currentPage * productsPerPage, totalItems)} of {totalItems} products
+        </div>
+        
         <nav>
           <ul className="flex flex-wrap gap-1 list-none p-0">
             <li className={`${currentPage === 1 ? 'opacity-50 pointer-events-none' : ''}`}>

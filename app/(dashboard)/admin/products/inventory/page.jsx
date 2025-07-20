@@ -19,57 +19,77 @@ const ITEMS_PER_PAGE = 10;
 
 // Format numbers as Nigerian Naira with commas
 const formatNaira = (amount) => {
-  return `₦${amount.toLocaleString('en-NG')}`;
-};
-
-// Generate dummy products data
-const generateDummyProducts = () => {
-  const categories = ['Electronics', 'Clothing', 'Home & Kitchen', 'Beauty', 'Sports'];
-  const statuses = ['In Stock', 'Low Stock', 'Out of Stock'];
-  
-  return Array.from({ length: 45 }, (_, i) => {
-    const price = Math.floor(Math.random() * 50000) + 1000; // Prices in Naira
-    const unitsSold = Math.floor(Math.random() * 100);
-    const stock = Math.floor(Math.random() * 50);
-    
-    return {
-      id: `prod_${i + 1}`,
-      name: `Product ${i + 1}`,
-      category: categories[Math.floor(Math.random() * categories.length)],
-      price,
-      dateUploaded: new Date(Date.now() - Math.floor(Math.random() * 30 * 24 * 60 * 60 * 1000)).toISOString().split('T')[0],
-      unitsSold,
-      stock,
-      revenue: price * unitsSold,
-      status: stock > 10 ? statuses[0] : (stock > 0 ? statuses[1] : statuses[2]),
-      image: `https://picsum.photos/200/200?random=${i}`
-    };
-  });
+  return `₦${amount?.toLocaleString('en-NG') || '₦0'}`;
 };
 
 export default function InventoryDashboard() {
   const [products, setProducts] = useState([]);
-  const [filteredProducts, setFilteredProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
   const [searchQuery, setSearchQuery] = useState('');
-  const [sortOption, setSortOption] = useState('dateUploaded');
+  const [sortOption, setSortOption] = useState('createdAt');
   const [filterOption, setFilterOption] = useState('all');
   const [isMobile, setIsMobile] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [productToDelete, setProductToDelete] = useState(null);
+  const [categories, setCategories] = useState([]);
 
-  // Load dummy products and check mobile status
-  useEffect(() => {
+  // Fetch products from API
+  const fetchProducts = async () => {
     setLoading(true);
-    setTimeout(() => {
-      const data = generateDummyProducts();
-      setProducts(data);
-      setFilteredProducts(data);
+    try {
+      let url = `/api/product/inventory?page=${currentPage}&limit=${ITEMS_PER_PAGE}`;
+      
+      if (searchQuery) {
+        url += `&search=${searchQuery}`;
+      }
+      
+      if (filterOption !== 'all') {
+        url += `&category=${filterOption}`;
+      }
+      
+      url += `&sortBy=${sortOption}`;
+      
+      const response = await fetch(url);
+      const data = await response.json();
+      
+      if (data.success) {
+        setProducts(data.data);
+        setTotalPages(data.pagination.totalPages);
+        setTotalCount(data.pagination.totalItems);
+      } else {
+        toast.error('Failed to fetch products');
+      }
+    } catch (error) {
+      console.error('Error fetching products:', error);
+      toast.error('Error fetching products');
+    } finally {
       setLoading(false);
-    }, 800);
+    }
+  };
 
+  // Fetch categories for filter dropdown
+  const fetchCategories = async () => {
+    try {
+      const response = await fetch('/api/category');
+      const data = await response.json();
+      if (data.message) {
+        setCategories(data.message);
+      }
+    } catch (error) {
+      console.error('Error fetching categories:', error);
+    }
+  };
+
+
+  // Initial load and check mobile status
+  useEffect(() => {
+    fetchProducts();
+    fetchCategories();
+    
     const handleResize = () => {
       setIsMobile(window.innerWidth < 768);
     };
@@ -79,62 +99,22 @@ export default function InventoryDashboard() {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // Apply filters and search
+  // Refetch when filters or pagination changes
   useEffect(() => {
-    let result = [...products];
-    
-    // Apply search
-    if (searchQuery) {
-      result = result.filter(product => 
-        product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        product.category.toLowerCase().includes(searchQuery.toLowerCase())
-      );
-    }
-    
-    // Apply category filter
-    if (filterOption !== 'all') {
-      result = result.filter(product => product.category === filterOption);
-    }
-    
-    // Apply sorting
-    switch (sortOption) {
-      case 'dateUploaded':
-        result.sort((a, b) => new Date(b.dateUploaded) - new Date(a.dateUploaded));
-        break;
-      case 'highestSelling':
-        result.sort((a, b) => b.unitsSold - a.unitsSold);
-        break;
-      case 'lowestStock':
-        result.sort((a, b) => a.stock - b.stock);
-        break;
-      case 'revenue':
-        result.sort((a, b) => b.revenue - a.revenue);
-        break;
-      case 'category':
-        result.sort((a, b) => a.category.localeCompare(b.category));
-        break;
-      default:
-        break;
-    }
-    
-    setFilteredProducts(result);
-    setCurrentPage(1); // Reset to first page when filters change
-  }, [products, searchQuery, sortOption, filterOption]);
+    fetchProducts();
+  }, [currentPage, searchQuery, sortOption, filterOption]);
+
+  // console.log(products[0].unitsSold)
+
+  // console.log(products[0].price)
 
   // Calculate summary metrics
   const summaryMetrics = {
-    totalProducts: products.length,
-    totalRevenue: products.reduce((sum, product) => sum + product.revenue, 0),
+    totalProducts: totalCount,
+    totalRevenue: products.reduce((sum, product) => sum + (product.price * product.unitsSold), 0),
     totalUnitsSold: products.reduce((sum, product) => sum + product.unitsSold, 0),
-    totalOutOfStock: products.filter(product => product.status === 'Out of Stock').length
+    totalOutOfStock: products.filter(product => product.stock <= 0).length
   };
-
-  // Pagination logic
-  const totalPages = Math.ceil(filteredProducts.length / ITEMS_PER_PAGE);
-  const paginatedProducts = filteredProducts.slice(
-    (currentPage - 1) * ITEMS_PER_PAGE,
-    currentPage * ITEMS_PER_PAGE
-  );
 
   // Generate pagination items with ellipsis
   const getPaginationItems = () => {
@@ -169,7 +149,6 @@ export default function InventoryDashboard() {
   const handleEdit = (product) => {
     setEditingProduct({...product});
     toast.success(`Editing ${product.name}`);
-    // In a real app, you would open a modal/form for editing
   };
 
   // Delete product confirmation
@@ -179,11 +158,25 @@ export default function InventoryDashboard() {
   };
 
   // Delete product
-  const handleDelete = () => {
-    setProducts(products.filter(p => p.id !== productToDelete.id));
-    setShowDeleteModal(false);
-    toast.success(`${productToDelete.name} deleted successfully`);
-    setProductToDelete(null);
+  const handleDelete = async () => {
+    try {
+      const response = await fetch(`/api/product/${productToDelete._id}`, {
+        method: 'DELETE'
+      });
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        toast.success(`${productToDelete.name} deleted successfully`);
+        fetchProducts(); // Refresh the list
+        setShowDeleteModal(false);
+      } else {
+        toast.error(data.message || 'Failed to delete product');
+      }
+    } catch (error) {
+      console.error('Error deleting product:', error);
+      toast.error('Error deleting product');
+    }
   };
 
   return (
@@ -200,67 +193,66 @@ export default function InventoryDashboard() {
         
         {/* Summary Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-            {/* Total Products */}
-            <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-100">
-                <div className="flex items-center">
-                <div className="p-3 rounded-full bg-yellow-50 text-yellow-600">
-                    <FiPackage size={20} />
-                </div>
-                <div className="ml-4">
-                    <p className="text-sm text-gray-500">Total Products</p>
-                    <p className="text-2xl font-semibold truncate max-w-full break-words">
-                    {summaryMetrics.totalProducts}
-                    </p>
-                </div>
-                </div>
+          {/* Total Products */}
+          <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-100">
+            <div className="flex items-center">
+              <div className="p-3 rounded-full bg-yellow-50 text-yellow-600">
+                <FiPackage size={20} />
+              </div>
+              <div className="ml-4">
+                <p className="text-sm text-gray-500">Total Products</p>
+                <p className="text-2xl font-semibold truncate max-w-full break-words">
+                  {summaryMetrics.totalProducts}
+                </p>
+              </div>
             </div>
+          </div>
 
-            {/* Total Revenue */}
-            <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-100">
-                <div className="flex items-center">
-                <div className="p-3 rounded-full bg-yellow-50 text-yellow-600">
-                    <FiDollarSign size={20} />
-                </div>
-                <div className="ml-4">
-                    <p className="text-sm text-gray-500">Total Revenue</p>
-                    <p className="text-2xl font-semibold truncate max-w-full break-words">
-                    {formatNaira(summaryMetrics.totalRevenue)}
-                    </p>
-                </div>
-                </div>
+          {/* Total Revenue */}
+          <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-100">
+            <div className="flex items-center">
+              <div className="p-3 rounded-full bg-yellow-50 text-yellow-600">
+                <FiDollarSign size={20} />
+              </div>
+              <div className="ml-4">
+                <p className="text-sm text-gray-500">Total Revenue</p>
+                <p className="text-2xl font-semibold truncate max-w-full break-words">
+                  {formatNaira(summaryMetrics.totalRevenue)}
+                </p>
+              </div>
             </div>
+          </div>
 
-            {/* Total Units Sold */}
-            <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-100">
-                <div className="flex items-center">
-                <div className="p-3 rounded-full bg-yellow-50 text-yellow-600">
-                    <FiTrendingUp size={20} />
-                </div>
-                <div className="ml-4">
-                    <p className="text-sm text-gray-500">Total Units Sold</p>
-                    <p className="text-2xl font-semibold truncate max-w-full break-words">
-                    {summaryMetrics.totalUnitsSold.toLocaleString()}
-                    </p>
-                </div>
-                </div>
+          {/* Total Units Sold */}
+          <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-100">
+            <div className="flex items-center">
+              <div className="p-3 rounded-full bg-yellow-50 text-yellow-600">
+                <FiTrendingUp size={20} />
+              </div>
+              <div className="ml-4">
+                <p className="text-sm text-gray-500">Total Units Sold</p>
+                <p className="text-2xl font-semibold truncate max-w-full break-words">
+                  {summaryMetrics.totalUnitsSold.toLocaleString()}
+                </p>
+              </div>
             </div>
+          </div>
 
-            {/* Out of Stock */}
-            <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-100">
-                <div className="flex items-center">
-                <div className="p-3 rounded-full bg-red-50 text-red-600">
-                    <FiAlertCircle size={20} />
-                </div>
-                <div className="ml-4">
-                    <p className="text-sm text-gray-500">Out of Stock</p>
-                    <p className="text-2xl font-semibold truncate max-w-full break-words">
-                    {summaryMetrics.totalOutOfStock}
-                    </p>
-                </div>
-                </div>
+          {/* Out of Stock */}
+          <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-100">
+            <div className="flex items-center">
+              <div className="p-3 rounded-full bg-red-50 text-red-600">
+                <FiAlertCircle size={20} />
+              </div>
+              <div className="ml-4">
+                <p className="text-sm text-gray-500">Out of Stock</p>
+                <p className="text-2xl font-semibold truncate max-w-full break-words">
+                  {summaryMetrics.totalOutOfStock}
+                </p>
+              </div>
             </div>
-            </div>
-
+          </div>
+        </div>
         
         {/* Filters and Search */}
         <div className="bg-white p-4 md:p-6 rounded-lg shadow-sm border border-gray-100 mb-8">
@@ -271,7 +263,7 @@ export default function InventoryDashboard() {
               </div>
               <input
                 type="text"
-                placeholder="Search products by name or category..."
+                placeholder="Search products by name or description..."
                 className="pl-10 pr-4 py-2 w-full border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
@@ -287,11 +279,11 @@ export default function InventoryDashboard() {
                   onChange={(e) => setFilterOption(e.target.value)}
                 >
                   <option value="all">All Categories</option>
-                  <option value="Electronics">Electronics</option>
-                  <option value="Clothing">Clothing</option>
-                  <option value="Home & Kitchen">Home & Kitchen</option>
-                  <option value="Beauty">Beauty</option>
-                  <option value="Sports">Sports</option>
+                  {categories.map(category => (
+                    <option key={category._id} value={category._id}>
+                      {category.name}
+                    </option>
+                  ))}
                 </select>
               </div>
               
@@ -300,11 +292,11 @@ export default function InventoryDashboard() {
                 value={sortOption}
                 onChange={(e) => setSortOption(e.target.value)}
               >
-                <option value="dateUploaded">Date Uploaded</option>
-                <option value="highestSelling">Highest Selling</option>
-                <option value="lowestStock">Lowest Stock</option>
-                <option value="revenue">Revenue Generated</option>
-                <option value="category">Category</option>
+                <option value="createdAt">Date Uploaded</option>
+                <option value="unitsSold">Highest Selling</option>
+                <option value="stock">Lowest Stock</option>
+                <option value="price">Price</option>
+                <option value="name">Name</option>
               </select>
             </div>
           </div>
@@ -318,14 +310,14 @@ export default function InventoryDashboard() {
         ) : (
           <>
             {isMobile ? (
-              // Mobile Cards View - Improved responsive layout
+              // Mobile Cards View
               <div className="grid grid-cols-1 gap-4 mb-8">
-                {paginatedProducts.map((product) => (
-                  <div key={product.id} className="bg-white p-4 rounded-lg shadow-sm border border-gray-100 overflow-hidden">
+                {products.map((product) => (
+                  <div key={product._id} className="bg-white p-4 rounded-lg shadow-sm border border-gray-100 overflow-hidden">
                     <div className="flex flex-col sm:flex-row gap-4">
                       <div className="flex-shrink-0">
                         <img 
-                          src={product.image} 
+                          src={product.images?.find(img => img.isDefault)?.url || '/placeholder-product.jpg'} 
                           alt={product.name} 
                           className="h-20 w-20 rounded-md object-cover"
                         />
@@ -334,14 +326,14 @@ export default function InventoryDashboard() {
                         <div className="flex justify-between items-start">
                           <div className="min-w-0">
                             <h3 className="font-medium text-gray-900 truncate">{product.name}</h3>
-                            <p className="text-sm text-gray-500 truncate">{product.category}</p>
+                            <p className="text-sm text-gray-500 truncate">{product.category?.name}</p>
                           </div>
                           <span className={`px-2 py-1 text-xs rounded-full flex-shrink-0 ${
-                            product.status === 'In Stock' ? 'bg-green-100 text-green-800' :
-                            product.status === 'Low Stock' ? 'bg-yellow-100 text-yellow-800' :
+                            product.stock > 10 ? 'bg-green-100 text-green-800' :
+                            product.stock > 0 ? 'bg-yellow-100 text-yellow-800' :
                             'bg-red-100 text-red-800'
                           }`}>
-                            {product.status}
+                            {product.stock > 10 ? 'In Stock' : product.stock > 0 ? 'Low Stock' : 'Out of Stock'}
                           </span>
                         </div>
                         <div className="mt-2 grid grid-cols-2 gap-2 text-sm">
@@ -351,22 +343,26 @@ export default function InventoryDashboard() {
                           </div>
                           <div>
                             <p className="text-xs text-gray-400">Uploaded</p>
-                            <p className="truncate">{product.dateUploaded}</p>
+                            <p className="truncate">
+                              {new Date(product.createdAt).toLocaleDateString()}
+                            </p>
                           </div>
                           <div>
                             <p className="text-xs text-gray-400">Sold</p>
-                            <p>{product.unitsSold.toLocaleString()}</p>
+                            <p>{product.unitsSold?.toLocaleString() || '0'}</p>
                           </div>
                           <div>
                             <p className="text-xs text-gray-400">Stock</p>
-                            <p>{product.stock.toLocaleString()}</p>
+                            <p>{product.stock?.toLocaleString() || '0'}</p>
                           </div>
                         </div>
                         
                         <div className="mt-3 flex justify-between items-center">
                           <div>
                             <p className="text-xs text-gray-400">Revenue</p>
-                            <p className="font-medium truncate">{formatNaira(product.revenue)}</p>
+                            <p className="font-medium truncate">
+                              {formatNaira(product.price * (product.unitsSold || 0))}
+                            </p>
                           </div>
                           <div className="flex space-x-2">
                             <button 
@@ -406,31 +402,43 @@ export default function InventoryDashboard() {
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
-                    {paginatedProducts.map((product) => (
-                      <tr key={product.id} className="hover:bg-gray-50">
+                    {products.map((product) => (
+                      <tr key={product._id} className="hover:bg-gray-50">
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="flex items-center">
                             <img 
-                              src={product.image} 
+                              src={product.images?.find(img => img.isDefault)?.url || '/placeholder-product.jpg'} 
                               alt={product.name} 
                               className="h-10 w-10 rounded-md object-cover mr-3"
                             />
                             <div className="font-medium text-gray-900">{product.name}</div>
                           </div>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{product.category}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold">{formatNaira(product.price)}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{product.dateUploaded}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{product.unitsSold.toLocaleString()}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{product.stock.toLocaleString()}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold">{formatNaira(product.revenue)}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {product.category?.name}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold">
+                          {formatNaira(product.price)}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {new Date(product.createdAt).toLocaleDateString()}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {product.unitsSold?.toLocaleString() || '0'}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {product.stock?.toLocaleString() || '0'}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold">
+                          {formatNaira(product.price * (product.unitsSold || 0))}
+                        </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <span className={`px-2 py-1 text-xs rounded-full ${
-                            product.status === 'In Stock' ? 'bg-green-100 text-green-800' :
-                            product.status === 'Low Stock' ? 'bg-yellow-100 text-yellow-800' :
+                            product.stock > 10 ? 'bg-green-100 text-green-800' :
+                            product.stock > 0 ? 'bg-yellow-100 text-yellow-800' :
                             'bg-red-100 text-red-800'
                           }`}>
-                            {product.status}
+                            {product.stock > 10 ? 'In Stock' : product.stock > 0 ? 'Low Stock' : 'Out of Stock'}
                           </span>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
@@ -457,10 +465,10 @@ export default function InventoryDashboard() {
             )}
             
             {/* Pagination */}
-            {filteredProducts.length > ITEMS_PER_PAGE && (
+            {totalCount > ITEMS_PER_PAGE && (
               <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
                 <div className="text-sm text-gray-500">
-                  Showing {((currentPage - 1) * ITEMS_PER_PAGE) + 1} to {Math.min(currentPage * ITEMS_PER_PAGE, filteredProducts.length)} of {filteredProducts.length} products
+                  Showing {((currentPage - 1) * ITEMS_PER_PAGE) + 1} to {Math.min(currentPage * ITEMS_PER_PAGE, totalCount)} of {totalCount} products
                 </div>
                 <div className="flex items-center space-x-1">
                   <button
@@ -506,13 +514,13 @@ export default function InventoryDashboard() {
             <h3 className="text-lg font-medium text-gray-900 mb-4">Confirm Deletion</h3>
             <div className="flex items-center mb-4">
               <img 
-                src={productToDelete?.image} 
+                src={productToDelete?.images?.find(img => img.isDefault)?.url || '/placeholder-product.jpg'} 
                 alt={productToDelete?.name} 
                 className="h-16 w-16 rounded-full object-cover mr-4"
               />
               <div>
                 <p className="font-medium">{productToDelete?.name}</p>
-                <p className="text-sm text-gray-500">{productToDelete?.category}</p>
+                <p className="text-sm text-gray-500">{productToDelete?.category?.name}</p>
               </div>
             </div>
             <p className="text-gray-600 mb-6">

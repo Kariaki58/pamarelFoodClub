@@ -28,6 +28,7 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar"
+import { signOut } from "next-auth/react"
 
 export function NavUser({
   user
@@ -76,8 +77,11 @@ export function NavUser({
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuItem>
-              <IconLogout />
-              Log out
+              <button className="flex gap-2" onClick={() => signOut({ callbackUrl: "/auth/login" })}>
+                <IconLogout />
+                Log out
+              </button>
+              
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
