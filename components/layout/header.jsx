@@ -23,6 +23,8 @@ export function Header() {
   const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
   const { data: session }  = useSession();
   const { cartCount } = useCart()
+
+  console.log({session})
   
 
   console.log({cartCount})
@@ -51,7 +53,7 @@ export function Header() {
                     <Link href="/category" className="text-muted-foreground hover:text-primary">Shop</Link>
                     <Link href="/category" className="text-muted-foreground hover:text-primary">Deals</Link>
                     <Link href="#" className="text-muted-foreground hover:text-primary">Support</Link>
-                    <Link href={session.user.role === "admin" ? "/admin" : "/account"} className="text-muted-foreground hover:text-primary">My Account</Link>
+                    <Link href={session?.user?.role === "admin" ? "/admin" : "/account"} className="text-muted-foreground hover:text-primary">My Account</Link>
                 </nav>
             </SheetContent>
           </Sheet>
