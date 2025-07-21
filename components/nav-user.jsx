@@ -76,13 +76,16 @@ export function NavUser({
               </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuItem>
-              <button className="flex gap-2" onClick={() => signOut({ callbackUrl: "/auth/login" })}>
+            <DropdownMenuItem asChild>
+              <button
+                className="flex w-full items-center gap-2 px-2 py-1.5 text-sm"
+                onClick={() => signOut({ callbackUrl: "/auth/login" })}
+              >
                 <IconLogout />
                 Log out
               </button>
-              
             </DropdownMenuItem>
+
           </DropdownMenuContent>
         </DropdownMenu>
       </SidebarMenuItem>
