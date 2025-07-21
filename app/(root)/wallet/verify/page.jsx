@@ -44,14 +44,11 @@ export default function WalletVerifyPage() {
   const startRedirectTimer = () => {
     console.log(callbackUrl)
     setTimeout(() => {
-      console.log(callbackUrl)
-      console.log('line 45')
-      if (callbackUrl) {
-        console.log(callbackUrl)
+      if (callbackUrl !== "undefined") {
         router.push(callbackUrl)
-      } else {
-        router.push('/account');
+        return;
       }
+      router.push('/account');
     }, 5000); // 5 seconds
   };
 

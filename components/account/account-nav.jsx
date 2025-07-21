@@ -5,6 +5,8 @@ import { usePathname } from 'next/navigation';
 import { Home, Package, Star, User, LogOut, BookUser } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
+import { signOut } from 'next-auth/react';
+
 
 const navItems = [
     { href: '/account', label: 'Dashboard', icon: Home, exact: true },
@@ -38,7 +40,7 @@ export function AccountNav() {
                     {item.label}
                 </Link>
             ))}
-             <Button variant="ghost" className="mt-4 justify-start text-muted-foreground hover:text-primary">
+             <Button onClick={() => signOut({ callbackUrl: '/auth/login' })} variant="ghost" className="mt-4 justify-start text-muted-foreground hover:text-primary">
                 <LogOut className="mr-3 h-4 w-4" />
                 Logout
             </Button>
