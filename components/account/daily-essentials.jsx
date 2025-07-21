@@ -46,7 +46,7 @@ export function DailyEssentials() {
             <div className="flex justify-between items-center mb-6">
                 <h2 className="text-2xl font-bold">Daily Essentials</h2>
                 <Button asChild variant="outline">
-                    <Link href="/category?cat=groceries">View All</Link>
+                    <Link href="/category">View All</Link>
                 </Button>
             </div>
             <div className="grid grid-cols-2 gap-2 md:grid-cols-3 lg:grid-cols-4">

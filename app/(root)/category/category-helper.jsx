@@ -1,9 +1,7 @@
-
 "use client"
 
-import React, { useState, useMemo, useEffect } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useSearchParams } from 'next/navigation'
-import { products, categories } from '@/lib/mock-data'
 import { ProductCard } from '@/components/account/product-card'
 import {
   Accordion,
@@ -25,11 +23,10 @@ import {
 import Link from 'next/link'
 import { Pagination } from '@/components/account/pagination'
 
-const BRANDS = ["Apple", "Generic", "Official Stores"]
 const DISCOUNT_PERCENTAGES = [50, 40, 30, 20, 10]
-const SHIPPED_FROM_OPTIONS = [
-    { id: 'shipped-abroad', label: 'Shipped from abroad', value: 'abroad'},
-    { id: 'shipped-nigeria', label: 'Shipped from Nigeria', value: 'nigeria'}
+const SECTIONS = [
+  { id: 'food', label: 'Food' },
+  { id: 'gadget', label: 'Gadgets' }
 ]
 
 export default function CategoryPage() {
@@ -41,13 +38,96 @@ export default function CategoryPage() {
   const [priceRange, setPriceRange] = useState({ min: '', max: '' })
   const [tempPriceRange, setTempPriceRange] = useState({ min: '', max: '' })
   const [selectedDiscounts, setSelectedDiscounts] = useState([])
-  const [selectedBrands, setSelectedBrands] = useState([])
-  const [selectedShippedFrom, setSelectedShippedFrom] = useState([])
+  const [selectedSections, setSelectedSections] = useState([])
+  const [minRating, setMinRating] = useState(0)
   const [sortOption, setSortOption] = useState('popular')
   const [currentPage, setCurrentPage] = useState(1)
-  const [searchQuery, setSearchQuery] = useState(initialSearchQuery || '');
+  const [searchQuery, setSearchQuery] = useState(initialSearchQuery || '')
+  const [products, setProducts] = useState([])
+  const [categories, setCategories] = useState([])
+  const [totalProducts, setTotalProducts] = useState(0)
+  const [isLoading, setIsLoading] = useState(true)
 
   const productsPerPage = 12
+
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const response = await fetch('/api/categories')
+        const data = await response.json()
+        if (data.success) {
+            setCategories(data.categories)
+            
+            // Check if URL has a numeric category (for ratings)
+            if (initialCategory && !isNaN(initialCategory)) {
+              setMinRating(parseInt(initialCategory))
+            }
+        }
+      } catch (error) {
+        console.error('Error fetching categories:', error)
+      }
+    }
+
+    fetchCategories()
+  }, [initialCategory])
+
+  useEffect(() => {
+    const fetchProducts = async () => {
+      setIsLoading(true)
+      try {
+        let url = `/api/products?page=${currentPage}&limit=${productsPerPage}`
+        
+        // Handle category filter (either category slug or rating)
+        if (selectedCategories.length > 0) {
+          const isRatingFilter = !isNaN(selectedCategories[0])
+          if (isRatingFilter) {
+            url += `&minRating=${selectedCategories[0]}`
+          } else {
+            url += `&cat=${selectedCategories[0]}`
+          }
+        }
+        
+        if (searchQuery) {
+          url += `&q=${searchQuery}`
+        }
+
+        // Add price filter if set
+        if (priceRange.min) {
+          url += `&minPrice=${priceRange.min}`
+        }
+        if (priceRange.max) {
+          url += `&maxPrice=${priceRange.max}`
+        }
+
+        // Add discount filter if set
+        if (selectedDiscounts.length > 0) {
+          url += `&minDiscount=${Math.min(...selectedDiscounts)}`
+        }
+
+        // Add section filter if set
+        if (selectedSections.length > 0) {
+          url += `&sections=${selectedSections.join(',')}`
+        }
+
+        // Add sort option
+        url += `&sort=${sortOption}`
+
+        const response = await fetch(url)
+        const data = await response.json()
+        
+        if (data.success) {
+          setProducts(data.products)
+          setTotalProducts(data.total)
+        }
+      } catch (error) {
+        console.error('Error fetching products:', error)
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    fetchProducts()
+  }, [selectedCategories, currentPage, searchQuery, priceRange, selectedDiscounts, selectedSections, sortOption])
 
   const handleCategoryChange = (slug, checked) => {
     setSelectedCategories(prev =>
@@ -63,16 +143,9 @@ export default function CategoryPage() {
     setCurrentPage(1)
   }
 
-  const handleBrandChange = (brand, checked) => {
-    setSelectedBrands(prev =>
-        checked ? [...prev, brand] : prev.filter(b => b !== brand)
-    )
-    setCurrentPage(1)
-  }
-
-  const handleShippedFromChange = (value, checked) => {
-    setSelectedShippedFrom(prev =>
-        checked ? [...prev, value] : prev.filter(s => s !== value)
+  const handleSectionChange = (section, checked) => {
+    setSelectedSections(prev =>
+      checked ? [...prev, section] : prev.filter(s => s !== section)
     )
     setCurrentPage(1)
   }
@@ -82,98 +155,11 @@ export default function CategoryPage() {
     setCurrentPage(1)
   }
 
-  useEffect(() => {
-    const categorySlug = searchParams.get('cat');
-    if (categorySlug) {
-      const category = categories.find(c => c.slug === categorySlug);
-      if (category) {
-        setSelectedCategories([category.slug]);
-      }
-    }
-    const query = searchParams.get('q');
-    if (query) {
-      setSearchQuery(query);
-    }
-  }, [searchParams]);
-
-  const filteredAndSortedProducts = useMemo(() => {
-    let filtered = [...products]
-
-    // Search filter
-    if (searchQuery) {
-        filtered = filtered.filter(p => 
-            p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            p.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            p.category.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            p.brand.toLowerCase().includes(searchQuery.toLowerCase())
-        );
-    }
-
-    // Category filter
-    if (selectedCategories.length > 0) {
-        const categoryNames = categories.filter(c => selectedCategories.includes(c.slug)).map(c => c.name)
-        filtered = filtered.filter(p => categoryNames.includes(p.category))
-    }
-
-    // Price filter
-    const minPrice = parseFloat(priceRange.min)
-    const maxPrice = parseFloat(priceRange.max)
-    if (!isNaN(minPrice)) {
-        filtered = filtered.filter(p => p.price >= minPrice)
-    }
-    if (!isNaN(maxPrice)) {
-        filtered = filtered.filter(p => p.price <= maxPrice)
-    }
-
-    // Discount filter
-    if (selectedDiscounts.length > 0) {
-        const minDiscount = Math.min(...selectedDiscounts)
-        filtered = filtered.filter(p => {
-            if (!p.originalPrice) return false;
-            const discount = ((p.originalPrice - p.price) / p.originalPrice) * 100;
-            return discount >= minDiscount
-        })
-    }
-
-    // Brand filter
-    if (selectedBrands.length > 0) {
-        filtered = filtered.filter(p => selectedBrands.includes(p.brand))
-    }
-    
-    // Shipped From filter (assuming product has a `shippedFrom` property, e.g., 'nigeria' or 'abroad')
-    // We'll add this to mock data if it doesn't exist, for now we will randomize it
-    if (selectedShippedFrom.length > 0) {
-        filtered = filtered.filter(p => {
-            const shippedFrom = p.id.charCodeAt(0) % 2 === 0 ? 'nigeria' : 'abroad' // dummy data
-            return selectedShippedFrom.includes(shippedFrom)
-        });
-    }
-
-    // Sorting
-    switch (sortOption) {
-        case 'newest':
-            filtered.sort((a, b) => (b.reviews?.[0]?.date > a.reviews?.[0]?.date) ? 1 : -1) // simplistic date sort
-            break;
-        case 'price-low-high':
-            filtered.sort((a, b) => a.price - b.price);
-            break;
-        case 'price-high-low':
-            filtered.sort((a, b) => b.price - a.price);
-            break;
-        case 'popular':
-        default:
-            filtered.sort((a, b) => b.reviewCount - a.reviewCount);
-            break;
-    }
-
-    return filtered;
-  }, [selectedCategories, priceRange, selectedDiscounts, selectedBrands, selectedShippedFrom, sortOption, searchQuery])
-
-
-  const totalPages = Math.ceil(filteredAndSortedProducts.length / productsPerPage)
-  const currentProducts = filteredAndSortedProducts.slice((currentPage - 1) * productsPerPage, currentPage * productsPerPage)
-  
-  const pageTitle = searchQuery ? `Search results for "${searchQuery}"` : "Products";
+  const pageTitle = searchQuery 
+    ? `Search results for "${searchQuery}"`
+    : selectedCategories.length > 0 && !isNaN(selectedCategories[0])
+      ? `Products with ${selectedCategories[0]}+ stars`
+      : "Products";
 
   return (
     <div className="container mx-auto px-4 py-8 md:px-6 md:py-12">
@@ -187,7 +173,7 @@ export default function CategoryPage() {
                 <AccordionContent>
                   <ul className="space-y-2">
                     {categories.map(category => (
-                        <li key={category.id} className="flex items-center space-x-2">
+                        <li key={category._id} className="flex items-center space-x-2">
                            <Checkbox
                                 id={`cat-${category.slug}`}
                                 checked={selectedCategories.includes(category.slug)}
@@ -198,19 +184,69 @@ export default function CategoryPage() {
                             </Label>
                         </li>
                     ))}
+                    {/* Rating filter */}
+                    <li className="flex items-center space-x-2">
+                      <Checkbox
+                          id="rating-4"
+                          checked={selectedCategories.includes('4')}
+                          onCheckedChange={(checked) => handleCategoryChange('4', !!checked)}
+                      />
+                      <Label htmlFor="rating-4" className="text-sm font-normal hover:text-primary transition-colors cursor-pointer">
+                          4+ Star Rated
+                      </Label>
+                    </li>
                   </ul>
                 </AccordionContent>
               </AccordionItem>
+
+              <AccordionItem value="section">
+                <AccordionTrigger className="text-lg font-semibold">Section</AccordionTrigger>
+                <AccordionContent>
+                  <ul className="space-y-2">
+                    {SECTIONS.map(section => (
+                        <li key={section.id} className="flex items-center space-x-2">
+                           <Checkbox
+                                id={`section-${section.id}`}
+                                checked={selectedSections.includes(section.id)}
+                                onCheckedChange={(checked) => handleSectionChange(section.id, !!checked)}
+                            />
+                            <Label htmlFor={`section-${section.id}`} className="text-sm font-normal hover:text-primary transition-colors cursor-pointer">
+                                {section.label}
+                            </Label>
+                        </li>
+                    ))}
+                  </ul>
+                </AccordionContent>
+              </AccordionItem>
+
               <AccordionItem value="price">
                 <AccordionTrigger className="text-lg font-semibold">Price (₦)</AccordionTrigger>
                 <AccordionContent>
                   <div className="flex items-center space-x-2">
-                    <Input type="number" placeholder="₦ Min" className="w-full" value={tempPriceRange.min} onChange={(e) => setTempPriceRange(prev => ({ ...prev, min: e.target.value }))} />
-                    <Input type="number" placeholder="₦ Max" className="w-full" value={tempPriceRange.max} onChange={(e) => setTempPriceRange(prev => ({ ...prev, max: e.target.value }))} />
+                    <Input 
+                      type="number" 
+                      placeholder="₦ Min" 
+                      className="w-full" 
+                      value={tempPriceRange.min} 
+                      onChange={(e) => setTempPriceRange(prev => ({ ...prev, min: e.target.value }))} 
+                    />
+                    <Input 
+                      type="number" 
+                      placeholder="₦ Max" 
+                      className="w-full" 
+                      value={tempPriceRange.max} 
+                      onChange={(e) => setTempPriceRange(prev => ({ ...prev, max: e.target.value }))} 
+                    />
                   </div>
-                  <Button className="mt-2 w-full bg-accent text-accent-foreground" onClick={applyPriceFilter}>Apply</Button>
+                  <Button 
+                    className="mt-2 w-full bg-accent text-accent-foreground" 
+                    onClick={applyPriceFilter}
+                  >
+                    Apply
+                  </Button>
                 </AccordionContent>
               </AccordionItem>
+
               <AccordionItem value="discount">
                 <AccordionTrigger className="text-lg font-semibold">Discount Percentage</AccordionTrigger>
                 <AccordionContent>
@@ -222,41 +258,9 @@ export default function CategoryPage() {
                                     checked={selectedDiscounts.includes(discount)}
                                     onCheckedChange={(checked) => handleDiscountChange(discount, !!checked)}
                                 />
-                                <Label htmlFor={`discount-${discount}`} className="text-sm font-normal cursor-pointer">{discount}% or more</Label>
-                            </div>
-                        ))}
-                    </div>
-                </AccordionContent>
-              </AccordionItem>
-              <AccordionItem value="brand">
-                <AccordionTrigger className="text-lg font-semibold">Brand</AccordionTrigger>
-                <AccordionContent>
-                    <div className="space-y-2">
-                        {BRANDS.map(brand => (
-                            <div key={brand} className="flex items-center space-x-2">
-                                <Checkbox
-                                    id={`brand-${brand}`}
-                                    checked={selectedBrands.includes(brand)}
-                                    onCheckedChange={(checked) => handleBrandChange(brand, !!checked)}
-                                />
-                                <Label htmlFor={`brand-${brand}`} className="text-sm font-normal cursor-pointer">{brand}</Label>
-                            </div>
-                        ))}
-                    </div>
-                </AccordionContent>
-              </AccordionItem>
-               <AccordionItem value="shipped-from">
-                <AccordionTrigger className="text-lg font-semibold">Shipped From</AccordionTrigger>
-                <AccordionContent>
-                    <div className="space-y-2">
-                        {SHIPPED_FROM_OPTIONS.map(option => (
-                             <div key={option.id} className="flex items-center space-x-2">
-                                <Checkbox
-                                    id={option.id}
-                                    checked={selectedShippedFrom.includes(option.value)}
-                                    onCheckedChange={(checked) => handleShippedFromChange(option.value, !!checked)}
-                                />
-                                <Label htmlFor={option.id} className="text-sm font-normal cursor-pointer">{option.label}</Label>
+                                <Label htmlFor={`discount-${discount}`} className="text-sm font-normal cursor-pointer">
+                                    {discount}% or more
+                                </Label>
                             </div>
                         ))}
                     </div>
@@ -271,7 +275,7 @@ export default function CategoryPage() {
             <div className="flex flex-col sm:flex-row justify-between items-baseline mb-6 border-b pb-4">
                 <div>
                     <h1 className="text-3xl font-bold">{pageTitle}</h1>
-                    <p className="text-muted-foreground mt-1">{filteredAndSortedProducts.length} items found</p>
+                    <p className="text-muted-foreground mt-1">{totalProducts} items found</p>
                 </div>
                 <div className="flex items-center space-x-2 mt-4 sm:mt-0">
                     <Label htmlFor="sort" className="hidden sm:block">Sort by:</Label>
@@ -281,6 +285,7 @@ export default function CategoryPage() {
                         </SelectTrigger>
                         <SelectContent>
                             <SelectItem value="popular">Most Popular</SelectItem>
+                            <SelectItem value="best-rated">Best Rated</SelectItem>
                             <SelectItem value="newest">Newest</SelectItem>
                             <SelectItem value="price-low-high">Price: Low to High</SelectItem>
                             <SelectItem value="price-high-low">Price: High to Low</SelectItem>
@@ -289,16 +294,20 @@ export default function CategoryPage() {
                 </div>
             </div>
 
-            {currentProducts.length > 0 ? (
+            {isLoading ? (
+                <div className="text-center py-20">
+                    <p>Loading products...</p>
+                </div>
+            ) : products.length > 0 ? (
                 <>
                     <div className="grid grid-cols-2 gap-2 md:grid-cols-3 lg:grid-cols-4">
-                        {currentProducts.map((product) => (
-                        <ProductCard key={product.id} product={product} />
+                        {products.map((product) => (
+                        <ProductCard key={product._id} product={product} />
                         ))}
                     </div>
                     <Pagination
                         currentPage={currentPage}
-                        totalPages={totalPages}
+                        totalPages={Math.ceil(totalProducts / productsPerPage)}
                         onPageChange={setCurrentPage}
                     />
                 </>
