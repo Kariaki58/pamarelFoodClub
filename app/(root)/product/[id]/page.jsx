@@ -166,15 +166,23 @@ export default function ProductDetailPage() {
     fetchProduct();
   }, [id]);
 
-  const handleAddToCart = () => {
-    addToCart({
-      id: product._id,
-      name: product.name,
-      price: product.price,
-      imageUrl: activeImage,
-      quantity,
-    });
-  };
+  // const handleAddToCart = () => {
+  //   addToCart({
+  //     id: product._id,
+  //     name: product.name,
+  //     price: product.price,
+  //     imageUrl: activeImage,
+  //     quantity,
+  //   });
+  // };
+
+  // const { addToCart } = useCart();
+
+  const handleAddToCart = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    addToCart(product);
+  }
 
   if (loading) {
     return (
@@ -258,13 +266,13 @@ export default function ProductDetailPage() {
         <ShoppingCart className="mr-2 h-5 w-5" />
         {product.stock > 0 ? "Add to Cart" : "Out of Stock"}
       </Button>
-      <Button
+      {/* <Button
         size="lg"
         className="flex-1 bg-orange-500 text-white hover:bg-amber-800"
         disabled={product.stock <= 0}
       >
         Buy Now
-      </Button>
+      </Button> */}
     </>
   );
 
