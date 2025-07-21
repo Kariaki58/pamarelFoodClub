@@ -17,81 +17,27 @@ import {
   Users,
   Repeat2
 } from 'lucide-react';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
+import useSWR from 'swr';
 
-// Generate MLM-focused order data
-const generateOrders = () => {
-  const statuses = [
-    { name: 'pending', icon: Clock, color: 'bg-yellow-100 text-yellow-800' },
-    { name: 'processing', icon: Clock, color: 'bg-blue-100 text-blue-800' },
-    { name: 'delivered', icon: CheckCircle2, color: 'bg-green-100 text-green-800' },
-    { name: 'cancelled', icon: XCircle, color: 'bg-red-100 text-red-800' },
-    { name: 'return', icon: Repeat2, color: 'bg-orange-100 text-orange-800' }
-  ];
-  
-  const products = [
-    { name: 'Starter Kit', category: 'MLM Package', price: 15000 },
-    { name: 'Premium Bundle', category: 'MLM Package', price: 35000 },
-    { name: 'Business Pack', category: 'MLM Package', price: 75000 },
-    { name: 'Organic Coconut Oil', category: 'Product', price: 5000 },
-    { name: 'Herbal Tea Set', category: 'Product', price: 8000 },
-    { name: 'Vitamin C Serum', category: 'Product', price: 12000 }
-  ];
-  
-  // MLM members with their level in the network
-  const mlmMembers = [
-    { id: 'MLM001', name: 'John Smith', email: 'john.smith@example.com', level: 3, joinDate: '2023-01-15', isMlm: true },
-    { id: 'MLM002', name: 'Sarah Johnson', email: 'sarah.j@example.com', level: 5, joinDate: '2023-02-10', isMlm: true },
-    { id: 'MLM003', name: 'Michael Brown', email: 'michael.b@example.com', level: 2, joinDate: '2023-03-22', isMlm: true },
-    { id: 'MLM004', name: 'Emily Davis', email: 'emily.d@example.com', level: 4, joinDate: '2023-04-05', isMlm: true }
-  ];
-  
-  // Regular customers
-  const regularCustomers = [
-    { id: 'CUST001', name: 'Alex Wilson', email: 'alex.w@example.com', isMlm: false },
-    { id: 'CUST002', name: 'Jessica Taylor', email: 'jessica.t@example.com', isMlm: false },
-    { id: 'CUST003', name: 'David Miller', email: 'david.m@example.com', isMlm: false }
-  ];
-  
-  const allCustomers = [...mlmMembers, ...regularCustomers];
-  
-  const orders = [];
-  
-  for (let i = 1; i <= 125; i++) {
-    const randomProduct = products[Math.floor(Math.random() * products.length)];
-    const randomCustomer = allCustomers[Math.floor(Math.random() * allCustomers.length)];
-    const randomStatus = statuses[Math.floor(Math.random() * statuses.length)];
-    const quantity = Math.floor(Math.random() * 5) + 1;
-    const date = new Date(Date.now() - Math.floor(Math.random() * 90) * 24 * 60 * 60 * 1000);
-    
-    // Calculate commission for MLM members (10% of product price)
-    const commission = randomCustomer.isMlm ? Math.floor(randomProduct.price * quantity * 0.1) : 0;
-    
-    orders.push({
-      id: `ORD${10000 + i}`,
-      date: date.toISOString(),
-      customer: randomCustomer,
-      product: randomProduct,
-      quantity,
-      amount: randomProduct.price,
-      total: randomProduct.price * quantity,
-      status: randomStatus,
-      payment: Math.random() > 0.3 ? 'Paid' : 'Pending', // 70% paid
-      shipping: 'Standard',
-      commission,
-      isMlmOrder: randomCustomer.isMlm
-    });
-  }
-  
-  return orders;
+const statusMap = {
+  'pending': { icon: Clock, color: 'bg-yellow-100 text-yellow-800' },
+  'processing': { icon: Clock, color: 'bg-blue-100 text-blue-800' },
+  'delivered': { icon: CheckCircle2, color: 'bg-green-100 text-green-800' },
+  'cancelled': { icon: XCircle, color: 'bg-red-100 text-red-800' },
+  'return': { icon: Repeat2, color: 'bg-orange-100 text-orange-800' }
 };
 
+const fetcher = (url) => fetch(url).then((res) => res.json());
+
 const OrderStatusBadge = ({ status }) => {
-  const StatusIcon = status.icon;
+  const StatusIcon = statusMap[status]?.icon || Clock;
+  const statusInfo = statusMap[status] || { color: 'bg-gray-100 text-gray-800' };
+  
   return (
-    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${status.color}`}>
+    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${statusInfo.color}`}>
       <StatusIcon className="mr-1 h-3 w-3" />
-      {status.name}
+      {status}
     </span>
   );
 };
@@ -134,7 +80,7 @@ const LevelIndicator = ({ level }) => {
 const OrderDetailsModal = ({ order, onClose, onUpdate }) => {
   const [editing, setEditing] = useState(false);
   const [formData, setFormData] = useState({
-    status: order.status.name,
+    status: order.orderStatus,
     notes: ''
   });
 
@@ -150,19 +96,32 @@ const OrderDetailsModal = ({ order, onClose, onUpdate }) => {
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    const updatedStatus = statusOptions.find(s => s.name === formData.status);
-    onUpdate(order.id, {
-      ...order,
-      status: {
-        name: updatedStatus.name,
-        icon: updatedStatus.icon,
-        color: order.status.color // Keep the same color or update based on new status
+    try {
+      const response = await fetch('/api/admin/orders', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          orderId: order._id,
+          status: formData.status
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to update order');
       }
-    });
-    setEditing(false);
-    onClose();
+
+      const updatedOrder = await response.json();
+      onUpdate(updatedOrder);
+      setEditing(false);
+      onClose();
+    } catch (error) {
+      console.error('Error updating order:', error);
+      alert('Failed to update order status');
+    }
   };
 
   return (
@@ -171,9 +130,9 @@ const OrderDetailsModal = ({ order, onClose, onUpdate }) => {
         <div className="p-6">
           <div className="flex justify-between items-start">
             <div>
-              <h2 className="text-xl font-semibold">Order #{order.id}</h2>
+              <h2 className="text-xl font-semibold">Order #{order._id.toString().slice(-6).toUpperCase()}</h2>
               <p className="text-sm text-gray-500">
-                Placed on {new Date(order.date).toLocaleDateString()}
+                Placed on {new Date(order.createdAt).toLocaleDateString()}
               </p>
             </div>
             <button 
@@ -189,14 +148,14 @@ const OrderDetailsModal = ({ order, onClose, onUpdate }) => {
               <h3 className="font-medium text-gray-900">Customer Information</h3>
               <div className="mt-2 space-y-1 text-sm">
                 <div className="flex items-center gap-2">
-                  <p className="font-medium">{order.customer.name}</p>
-                  <CustomerTypeBadge isMlm={order.customer.isMlm} />
+                  <p className="font-medium">{order.user.firstName} {order.user.lastName}</p>
+                  <CustomerTypeBadge isMlm={!!order.user.referralCode} />
                 </div>
-                <p className="text-gray-500">{order.customer.email}</p>
-                {order.customer.isMlm && (
+                <p className="text-gray-500">{order.user.email}</p>
+                {order.user.referralCode && (
                   <>
-                    <p className="text-gray-500">Member ID: {order.customer.id}</p>
-                    <LevelIndicator level={order.customer.level} />
+                    <p className="text-gray-500">Member ID: {order.user.referralCode}</p>
+                    {/* You can add level indicator if available */}
                   </>
                 )}
               </div>
@@ -205,9 +164,10 @@ const OrderDetailsModal = ({ order, onClose, onUpdate }) => {
             <div>
               <h3 className="font-medium text-gray-900">Shipping Information</h3>
               <div className="mt-2 space-y-1 text-sm">
-                <p>123 Main Street</p>
-                <p className="text-gray-500">Lagos, Nigeria</p>
-                <p className="text-gray-500">{order.shipping} Shipping</p>
+                <p>{order.shippingInfo.address}</p>
+                <p className="text-gray-500">{order.shippingInfo.city}, {order.shippingInfo.zip}</p>
+                <p className="text-gray-500">{order.shippingInfo.email}</p>
+                <p className="text-gray-500">{order.deliveryMethod} Shipping</p>
               </div>
             </div>
           </div>
@@ -215,20 +175,22 @@ const OrderDetailsModal = ({ order, onClose, onUpdate }) => {
           <div className="mt-6">
             <h3 className="font-medium text-gray-900">Order Items</h3>
             <div className="mt-4 border rounded-lg divide-y">
-              <div className="p-4 flex justify-between">
-                <div>
-                  <p className="font-medium">{order.product.name}</p>
-                  <p className="text-sm text-gray-500">
-                    {order.product.category} • Qty: {order.quantity}
+              {order.items.map((item, index) => (
+                <div key={index} className="p-4 flex justify-between">
+                  <div>
+                    <p className="font-medium">{item.name}</p>
+                    <p className="text-sm text-gray-500">
+                      {item.product?.category || 'Product'} • Qty: {item.quantity}
+                    </p>
+                  </div>
+                  <p className="font-medium">
+                    {new Intl.NumberFormat('en-NG', {
+                      style: 'currency',
+                      currency: 'NGN'
+                    }).format(item.price)}
                   </p>
                 </div>
-                <p className="font-medium">
-                  {new Intl.NumberFormat('en-NG', {
-                    style: 'currency',
-                    currency: 'NGN'
-                  }).format(order.amount)}
-                </p>
-              </div>
+              ))}
             </div>
           </div>
 
@@ -249,12 +211,12 @@ const OrderDetailsModal = ({ order, onClose, onUpdate }) => {
                   ))}
                 </select>
               ) : (
-                <OrderStatusBadge status={order.status} />
+                <OrderStatusBadge status={order.orderStatus} />
               )}
             </div>
           </div>
 
-          {order.isMlmOrder && (
+          {order.user.referralCode && (
             <div className="mt-6">
               <h3 className="font-medium text-gray-900">MLM Commission</h3>
               <div className="mt-2 p-3 bg-purple-50 rounded-lg">
@@ -267,7 +229,7 @@ const OrderDetailsModal = ({ order, onClose, onUpdate }) => {
                     {new Intl.NumberFormat('en-NG', {
                       style: 'currency',
                       currency: 'NGN'
-                    }).format(order.commission)}
+                    }).format(order.subtotal * 0.1)}
                   </p>
                 </div>
               </div>
@@ -283,21 +245,37 @@ const OrderDetailsModal = ({ order, onClose, onUpdate }) => {
                   {new Intl.NumberFormat('en-NG', {
                     style: 'currency',
                     currency: 'NGN'
-                  }).format(order.total)}
+                  }).format(order.subtotal)}
                 </span>
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-500">Shipping</span>
-                <span>₦1,500.00</span>
+                <span>
+                  {new Intl.NumberFormat('en-NG', {
+                    style: 'currency',
+                    currency: 'NGN'
+                  }).format(order.deliveryPrice)}
+                </span>
               </div>
-              {order.isMlmOrder && (
+              {order.user.referralCode && (
                 <div className="flex justify-between">
                   <span className="text-gray-500">MLM Commission</span>
                   <span className="text-purple-600">
                     -{new Intl.NumberFormat('en-NG', {
                       style: 'currency',
                       currency: 'NGN'
-                    }).format(order.commission)}
+                    }).format(order.subtotal * 0.1)}
+                  </span>
+                </div>
+              )}
+              {order.walletBalanceUsed > 0 && (
+                <div className="flex justify-between">
+                  <span className="text-gray-500">Wallet Used</span>
+                  <span className="text-purple-600">
+                    -{new Intl.NumberFormat('en-NG', {
+                      style: 'currency',
+                      currency: 'NGN'
+                    }).format(order.walletBalanceUsed)}
                   </span>
                 </div>
               )}
@@ -307,7 +285,7 @@ const OrderDetailsModal = ({ order, onClose, onUpdate }) => {
                   {new Intl.NumberFormat('en-NG', {
                     style: 'currency',
                     currency: 'NGN'
-                  }).format(order.total + 1500 - (order.isMlmOrder ? order.commission : 0))}
+                  }).format(order.total)}
                 </span>
               </div>
             </div>
@@ -457,84 +435,90 @@ const Pagination = ({ currentPage, totalPages, onPageChange }) => {
 };
 
 export default function Orders() {
-  const [orders, setOrders] = useState(generateOrders());
-  const [selectedOrder, setSelectedOrder] = useState(null);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' });
-  const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 10;
-
+  const router = useRouter();
   const searchParams = useSearchParams();
   const statusFilter = searchParams.get('status');
-
-  useEffect(() => {
-    // Reset to first page when status filter changes
-    setCurrentPage(1);
-  }, [statusFilter]);
-
-  const filteredOrders = orders.filter(order => {
-    const matchesSearch = 
-      order.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      order.customer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      order.product.name.toLowerCase().includes(searchTerm.toLowerCase());
-    
-    const matchesStatus = !statusFilter || order.status.name === statusFilter;
-    
-    return matchesSearch && matchesStatus;
-  });
-
-  const sortedOrders = [...filteredOrders].sort((a, b) => {
-    if (sortConfig.key) {
-      if (a[sortConfig.key] < b[sortConfig.key]) {
-        return sortConfig.direction === 'asc' ? -1 : 1;
-      }
-      if (a[sortConfig.key] > b[sortConfig.key]) {
-        return sortConfig.direction === 'asc' ? 1 : -1;
-      }
-    }
-    return 0;
-  });
-
-  // Pagination logic
-  const totalPages = Math.ceil(sortedOrders.length / itemsPerPage);
-  const currentItems = sortedOrders.slice(
-    (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
+  const page = searchParams.get('page') || 1;
+  const searchTerm = searchParams.get('search') || '';
+  
+  const [selectedOrder, setSelectedOrder] = useState(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' });
+  
+  // Fetch orders data
+  const { data: ordersData, error, isLoading } = useSWR(
+    `/api/admin/orders?status=${statusFilter || 'all'}&page=${page}&search=${searchTerm}`,
+    fetcher
   );
-
+  
+  // Fetch status counts
+  const { data: statusCounts } = useSWR(
+    '/api/admin/orders/stats',
+    fetcher
+  );
+  
+  const handleOrderClick = (order) => {
+    setSelectedOrder(order);
+    setIsModalOpen(true);
+  };
+  
+  const handleUpdateOrder = (updatedOrder) => {
+    // In a real app, we would update the SWR cache here
+    // For now, we'll just close the modal and let SWR revalidate
+    setIsModalOpen(false);
+    // You might want to trigger a revalidation here
+  };
+  
+  const handlePageChange = (newPage) => {
+    const params = new URLSearchParams(searchParams);
+    params.set('page', newPage);
+    router.push(`?${params.toString()}`);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+  
+  const handleSearch = (term) => {
+    const params = new URLSearchParams(searchParams);
+    if (term) {
+      params.set('search', term);
+      params.set('page', 1); // Reset to first page when searching
+    } else {
+      params.delete('search');
+    }
+    router.push(`?${params.toString()}`);
+  };
+  
   const requestSort = (key) => {
     let direction = 'asc';
     if (sortConfig.key === key && sortConfig.direction === 'asc') {
       direction = 'desc';
     }
     setSortConfig({ key, direction });
-    setCurrentPage(1); // Reset to first page when sorting
+    // Note: Sorting is currently handled client-side
+    // For large datasets, you'd want to pass this to the API
   };
-
-  const handleOrderClick = (order) => {
-    setSelectedOrder(order);
-    setIsModalOpen(true);
-  };
-
-  const handleUpdateOrder = (orderId, updatedOrder) => {
-    setOrders(prevOrders => 
-      prevOrders.map(order => 
-        order.id === orderId ? updatedOrder : order
-      )
-    );
-    setIsModalOpen(false);
-  };
-
-  const handlePageChange = (page) => {
-    setCurrentPage(page);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
-
-  // Get badge counts for each status
-  const getStatusCount = (status) => {
-    return orders.filter(order => order.status.name === status).length;
-  };
+  
+  // Sort the data client-side (for small datasets)
+  const sortedOrders = ordersData?.data ? [...ordersData.data].sort((a, b) => {
+    if (sortConfig.key) {
+      // Handle nested properties
+      const keyParts = sortConfig.key.split('.');
+      let valueA = a;
+      let valueB = b;
+      
+      for (const part of keyParts) {
+        valueA = valueA[part];
+        valueB = valueB[part];
+      }
+      
+      if (valueA < valueB) {
+        return sortConfig.direction === 'asc' ? -1 : 1;
+      }
+      if (valueA > valueB) {
+        return sortConfig.direction === 'asc' ? 1 : -1;
+      }
+    }
+    return 0;
+  }) : [];
 
   return (
     <div className="p-4 sm:p-6">
@@ -552,11 +536,8 @@ export default function Orders() {
             type="text"
             placeholder="Search orders..."
             className="pl-10 pr-4 py-2 w-full border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-            value={searchTerm}
-            onChange={(e) => {
-              setSearchTerm(e.target.value);
-              setCurrentPage(1); // Reset to first page when searching
-            }}
+            defaultValue={searchTerm}
+            onChange={(e) => handleSearch(e.target.value)}
           />
         </div>
       </div>
@@ -582,9 +563,9 @@ export default function Orders() {
                 : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
             }`}
           >
-            Pending {getStatusCount('pending') > 0 && (
+            Pending {statusCounts?.pending > 0 && (
               <span className="ml-1 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
-                {getStatusCount('pending')}
+                {statusCounts.pending}
               </span>
             )}
           </a>
@@ -596,9 +577,9 @@ export default function Orders() {
                 : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
             }`}
           >
-            Processing {getStatusCount('processing') > 0 && (
+            Processing {statusCounts?.processing > 0 && (
               <span className="ml-1 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                {getStatusCount('processing')}
+                {statusCounts.processing}
               </span>
             )}
           </a>
@@ -610,7 +591,11 @@ export default function Orders() {
                 : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
             }`}
           >
-            Delivered
+            Delivered {statusCounts?.delivered > 0 && (
+              <span className="ml-1 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                {statusCounts.delivered}
+              </span>
+            )}
           </a>
           <a
             href="/admin/orders?status=cancelled"
@@ -620,9 +605,9 @@ export default function Orders() {
                 : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
             }`}
           >
-            Cancelled {getStatusCount('cancelled') > 0 && (
+            Cancelled {statusCounts?.cancelled > 0 && (
               <span className="ml-1 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
-                {getStatusCount('cancelled')}
+                {statusCounts.cancelled}
               </span>
             )}
           </a>
@@ -634,170 +619,182 @@ export default function Orders() {
                 : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
             }`}
           >
-            Return {getStatusCount('return') > 0 && (
+            Return {statusCounts?.return > 0 && (
               <span className="ml-1 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-800">
-                {getStatusCount('return')}
+                {statusCounts.return}
               </span>
             )}
           </a>
-
         </nav>
       </div>
 
-      <div className="bg-white rounded-lg shadow overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th 
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
-                  onClick={() => requestSort('id')}
-                >
-                  <div className="flex items-center">
-                    Order ID
-                    {sortConfig.key === 'id' && (
-                      sortConfig.direction === 'asc' ? 
-                        <ChevronUp className="ml-1 h-4 w-4" /> : 
-                        <ChevronDown className="ml-1 h-4 w-4" />
-                    )}
-                  </div>
-                </th>
-                <th 
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
-                  onClick={() => requestSort('date')}
-                >
-                  <div className="flex items-center">
-                    Date
-                    {sortConfig.key === 'date' && (
-                      sortConfig.direction === 'asc' ? 
-                        <ChevronUp className="ml-1 h-4 w-4" /> : 
-                        <ChevronDown className="ml-1 h-4 w-4" />
-                    )}
-                  </div>
-                </th>
-                <th 
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
-                  onClick={() => requestSort('customer.name')}
-                >
-                  <div className="flex items-center">
-                    Customer
-                    {sortConfig.key === 'customer.name' && (
-                      sortConfig.direction === 'asc' ? 
-                        <ChevronUp className="ml-1 h-4 w-4" /> : 
-                        <ChevronDown className="ml-1 h-4 w-4" />
-                    )}
-                  </div>
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Type
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Product
-                </th>
-                <th 
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
-                  onClick={() => requestSort('total')}
-                >
-                  <div className="flex items-center">
-                    Total
-                    {sortConfig.key === 'total' && (
-                      sortConfig.direction === 'asc' ? 
-                        <ChevronUp className="ml-1 h-4 w-4" /> : 
-                        <ChevronDown className="ml-1 h-4 w-4" />
-                    )}
-                  </div>
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Status
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {currentItems.length > 0 ? (
-                currentItems.map((order) => (
-                  <tr 
-                    key={order.id} 
-                    className="hover:bg-gray-50 cursor-pointer"
-                    onClick={() => handleOrderClick(order)}
+      {isLoading ? (
+        <div className="flex justify-center items-center h-64">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+        </div>
+      ) : error ? (
+        <div className="text-center py-10 text-red-500">
+          Failed to load orders. Please try again.
+        </div>
+      ) : (
+        <div className="bg-white rounded-lg shadow overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th 
+                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
+                    onClick={() => requestSort('_id')}
                   >
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-medium text-blue-600">{order.id}</div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-500">
-                        {new Date(order.date).toLocaleDateString()}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-medium">{order.customer.name}</div>
-                      <div className="text-xs text-gray-500">{order.customer.email}</div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <CustomerTypeBadge isMlm={order.customer.isMlm} />
-                      {order.customer.isMlm && (
-                        <div className="text-xs text-gray-500 mt-1">
-                          Level {order.customer.level}
-                        </div>
+                    <div className="flex items-center">
+                      Order ID
+                      {sortConfig.key === '_id' && (
+                        sortConfig.direction === 'asc' ? 
+                          <ChevronUp className="ml-1 h-4 w-4" /> : 
+                          <ChevronDown className="ml-1 h-4 w-4" />
                       )}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">{order.product.name}</div>
-                      <div className="text-xs text-gray-500">
-                        {order.product.category} • Qty: {order.quantity}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-medium">
-                        {new Intl.NumberFormat('en-NG', {
-                          style: 'currency',
-                          currency: 'NGN'
-                        }).format(order.total)}
-                      </div>
-                      {order.isMlmOrder && (
-                        <div className="text-xs text-purple-600">
-                          +{new Intl.NumberFormat('en-NG', {
+                    </div>
+                  </th>
+                  <th 
+                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
+                    onClick={() => requestSort('createdAt')}
+                  >
+                    <div className="flex items-center">
+                      Date
+                      {sortConfig.key === 'createdAt' && (
+                        sortConfig.direction === 'asc' ? 
+                          <ChevronUp className="ml-1 h-4 w-4" /> : 
+                          <ChevronDown className="ml-1 h-4 w-4" />
+                      )}
+                    </div>
+                  </th>
+                  <th 
+                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
+                    onClick={() => requestSort('user.firstName')}
+                  >
+                    <div className="flex items-center">
+                      Customer
+                      {sortConfig.key === 'user.firstName' && (
+                        sortConfig.direction === 'asc' ? 
+                          <ChevronUp className="ml-1 h-4 w-4" /> : 
+                          <ChevronDown className="ml-1 h-4 w-4" />
+                      )}
+                    </div>
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Type
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Product
+                  </th>
+                  <th 
+                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
+                    onClick={() => requestSort('total')}
+                  >
+                    <div className="flex items-center">
+                      Total
+                      {sortConfig.key === 'total' && (
+                        sortConfig.direction === 'asc' ? 
+                          <ChevronUp className="ml-1 h-4 w-4" /> : 
+                          <ChevronDown className="ml-1 h-4 w-4" />
+                      )}
+                    </div>
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Status
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Actions
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {sortedOrders.length > 0 ? (
+                  sortedOrders.map((order) => (
+                    <tr 
+                      key={order._id} 
+                      className="hover:bg-gray-50 cursor-pointer"
+                      onClick={() => handleOrderClick(order)}
+                    >
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm font-medium text-blue-600">
+                          {order._id.toString().slice(-6).toUpperCase()}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm text-gray-500">
+                          {new Date(order.createdAt).toLocaleDateString()}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm font-medium">
+                          {order.user.firstName} {order.user.lastName}
+                        </div>
+                        <div className="text-xs text-gray-500">{order.user.email}</div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <CustomerTypeBadge isMlm={!!order.user.referralCode} />
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm text-gray-900">
+                          {order.items[0]?.name || 'Product'}
+                        </div>
+                        <div className="text-xs text-gray-500">
+                          {order.items[0]?.product?.category || 'Product'} • Qty: {order.items[0]?.quantity || 1}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm font-medium">
+                          {new Intl.NumberFormat('en-NG', {
                             style: 'currency',
                             currency: 'NGN'
-                          }).format(order.commission)}
+                          }).format(order.total)}
                         </div>
-                      )}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <OrderStatusBadge status={order.status} />
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                      <button 
-                        className="text-gray-400 hover:text-gray-600"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleOrderClick(order);
-                        }}
-                      >
-                        <MoreVertical className="h-5 w-5" />
-                      </button>
+                        {order.user.referralCode && (
+                          <div className="text-xs text-purple-600">
+                            +{new Intl.NumberFormat('en-NG', {
+                              style: 'currency',
+                              currency: 'NGN'
+                            }).format(order.subtotal * 0.1)}
+                          </div>
+                        )}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <OrderStatusBadge status={order.orderStatus} />
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                        <button 
+                          className="text-gray-400 hover:text-gray-600"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleOrderClick(order);
+                          }}
+                        >
+                          <MoreVertical className="h-5 w-5" />
+                        </button>
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan="8" className="px-6 py-4 text-center text-sm text-gray-500">
+                      No orders found matching your criteria.
                     </td>
                   </tr>
-                ))
-              ) : (
-                <tr>
-                  <td colSpan="8" className="px-6 py-4 text-center text-sm text-gray-500">
-                    No orders found matching your criteria.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
+                )}
+              </tbody>
+            </table>
+          </div>
 
-        <Pagination 
-          currentPage={currentPage} 
-          totalPages={totalPages} 
-          onPageChange={handlePageChange} 
-        />
-      </div>
+          {ordersData && (
+            <Pagination 
+              currentPage={ordersData.page} 
+              totalPages={ordersData.pages} 
+              onPageChange={handlePageChange} 
+            />
+          )}
+        </div>
+      )}
 
       {isModalOpen && selectedOrder && (
         <OrderDetailsModal 
