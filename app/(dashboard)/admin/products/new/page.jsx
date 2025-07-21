@@ -3,10 +3,9 @@ import React, { useState, useEffect, useRef } from 'react';
 import dynamic from 'next/dynamic';
 import 'quill/dist/quill.snow.css';
 import { useDropzone } from 'react-dropzone';
-import { FaTrash, FaPlus, FaMinus, FaEdit } from 'react-icons/fa';
+import { FaTrash, FaPlus, FaMinus, FaEdit, FaTimes } from 'react-icons/fa';
 import { Toaster, toast } from 'react-hot-toast';
 
-// Dynamically import components with SSR disabled
 const Quill = typeof window === 'object' ? require('quill') : () => false;
 const CreatableSelect = dynamic(
   () => import('react-select/creatable').then(mod => mod.default),
@@ -40,12 +39,24 @@ const ProductUploadDashboard = () => {
   const [productName, setProductName] = useState('');
   const [price, setPrice] = useState(0);
   const [stock, setStock] = useState(0);
+  const [percentOff, setPercentOff] = useState(0);
+  const [section, setSection] = useState('food');
+  const [tags, setTags] = useState([]);
+  const [newTag, setNewTag] = useState('');
+  const [isTopDeal, setIsTopDeal] = useState(false);
+  const [isFeatured, setIsFeatured] = useState(false);
+  const [flashSale, setFlashSale] = useState({
+    active: false,
+    start: '',
+    end: '',
+    discountPercent: 0
+  });
   const [category, setCategory] = useState({
     name: '',
     image: null,
     imagePreview: '',
     description: '',
-    isNew: true // Track if creating new category
+    isNew: true
   });
   const [databaseCategories, setDatabaseCategories] = useState([]);
   const [description, setDescription] = useState('');
@@ -153,6 +164,10 @@ const ProductUploadDashboard = () => {
       toast.error("Stock must be a positive number");
       setLoading(false);
       return;
+    } else if (flashSale.active && (!flashSale.start || !flashSale.end)) {
+      toast.error("Flash sale requires both start and end dates");
+      setLoading(false);
+      return;
     }
 
     try {
@@ -180,6 +195,16 @@ const ProductUploadDashboard = () => {
           specifications: specifications.filter(spec => spec.key && spec.value),
           price: parseFloat(price),
           stock: parseInt(stock),
+          percentOff: parseFloat(percentOff),
+          section: section,
+          tags: tags,
+          isTopDeal: isTopDeal,
+          isFeatured: isFeatured,
+          flashSale: flashSale.active ? {
+            start: new Date(flashSale.start),
+            end: new Date(flashSale.end),
+            discountPercent: parseFloat(flashSale.discountPercent)
+          } : null
         },
         category: {
           name: category.name,
@@ -205,6 +230,35 @@ const ProductUploadDashboard = () => {
 
       toast.success("Product uploaded successfully!");
       
+      // Reset form after successful submission
+      setProductName('');
+      setPrice(0);
+      setStock(0);
+      setPercentOff(0);
+      setSection('food');
+      setTags([]);
+      setIsTopDeal(false);
+      setIsFeatured(false);
+      setFlashSale({
+        active: false,
+        start: '',
+        end: '',
+        discountPercent: 0
+      });
+      setCategory({
+        name: '',
+        image: null,
+        imagePreview: '',
+        description: '',
+        isNew: true
+      });
+      setDescription('');
+      setProductImages([]);
+      setImagePreviews([]);
+      setSpecifications([]);
+      if (quillInstance.current) {
+        quillInstance.current.root.innerHTML = '';
+      }
     } catch (error) {
       toast.error(error.message || "Error uploading product");
       console.error("Error details:", error);
@@ -215,6 +269,10 @@ const ProductUploadDashboard = () => {
 
   // Handle product image upload
   const onDrop = (acceptedFiles) => {
+    if (productImages.length + acceptedFiles.length > 10) {
+      toast.error("Maximum 10 images allowed");
+      return;
+    }
     const newPreviews = acceptedFiles.map(file => URL.createObjectURL(file));
     setImagePreviews([...imagePreviews, ...newPreviews]);
     setProductImages([...productImages, ...acceptedFiles]);
@@ -312,8 +370,22 @@ const ProductUploadDashboard = () => {
     setSpecifications(updatedSpecs);
   };
 
+  // Tags management
+  const addTag = () => {
+    if (newTag.trim() && !tags.includes(newTag.trim())) {
+      setTags([...tags, newTag.trim()]);
+      setNewTag('');
+    }
+  };
+
+  const removeTag = (index) => {
+    const updatedTags = [...tags];
+    updatedTags.splice(index, 1);
+    setTags(updatedTags);
+  };
+
   return (
-    <div className="max-w-4xl mx-auto p-6 bg-white rounded-lg shadow-md">
+    <div className="max-w-6xl mx-auto p-6 bg-white rounded-lg shadow-md">
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Basic Information Section */}
         <div className="bg-gray-50 p-4 rounded-lg">
@@ -351,6 +423,29 @@ const ProductUploadDashboard = () => {
                 className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 required
               />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Discount Percentage</label>
+              <input
+                type="number"
+                min="0"
+                max="100"
+                value={percentOff}
+                onChange={(e) => setPercentOff(e.target.value)}
+                className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Section*</label>
+              <select
+                value={section}
+                onChange={(e) => setSection(e.target.value)}
+                className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                required
+              >
+                <option value="food">Food</option>
+                <option value="gadget">Gadget</option>
+              </select>
             </div>
           </div>
         </div>
@@ -474,6 +569,130 @@ const ProductUploadDashboard = () => {
             ref={editorRef} 
             className="h-64 border border-gray-300 rounded-md bg-white focus-within:ring-2 focus-within:ring-blue-500"
           />
+        </div>
+
+        {/* Tags Section */}
+        <div className="bg-gray-50 p-4 rounded-lg">
+          <h3 className="text-lg font-semibold mb-4 text-gray-700">Product Tags</h3>
+          <div className="flex items-center mb-2">
+            <input
+              type="text"
+              value={newTag}
+              onChange={(e) => setNewTag(e.target.value)}
+              className="flex-1 p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              placeholder="Add a tag"
+            />
+            <button
+              type="button"
+              onClick={addTag}
+              className="ml-2 px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600"
+            >
+              Add
+            </button>
+          </div>
+          {tags.length > 0 ? (
+            <div className="flex flex-wrap gap-2">
+              {tags.map((tag, index) => (
+                <span key={index} className="inline-flex items-center bg-gray-200 px-3 py-1 rounded-full text-sm">
+                  {tag}
+                  <button
+                    type="button"
+                    onClick={() => removeTag(index)}
+                    className="ml-2 text-gray-600 hover:text-red-500"
+                  >
+                    <FaTimes className="w-3 h-3" />
+                  </button>
+                </span>
+              ))}
+            </div>
+          ) : (
+            <p className="text-sm text-gray-500">No tags added yet</p>
+          )}
+        </div>
+
+        {/* Promotional Options Section */}
+        <div className="bg-gray-50 p-4 rounded-lg">
+          <h3 className="text-lg font-semibold mb-4 text-gray-700">Promotional Options</h3>
+          
+          <div className="space-y-4">
+            <div className="flex items-center">
+              <input
+                type="checkbox"
+                id="isTopDeal"
+                checked={isTopDeal}
+                onChange={(e) => setIsTopDeal(e.target.checked)}
+                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+              />
+              <label htmlFor="isTopDeal" className="ml-2 block text-sm text-gray-700">
+                Mark as Top Deal
+              </label>
+            </div>
+            
+            <div className="flex items-center">
+              <input
+                type="checkbox"
+                id="isFeatured"
+                checked={isFeatured}
+                onChange={(e) => setIsFeatured(e.target.checked)}
+                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+              />
+              <label htmlFor="isFeatured" className="ml-2 block text-sm text-gray-700">
+                Mark as Featured Product
+              </label>
+            </div>
+            
+            <div className="space-y-2">
+              <div className="flex items-center">
+                <input
+                  type="checkbox"
+                  id="flashSale"
+                  checked={flashSale.active}
+                  onChange={(e) => setFlashSale({...flashSale, active: e.target.checked})}
+                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                />
+                <label htmlFor="flashSale" className="ml-2 block text-sm text-gray-700">
+                  Enable Flash Sale
+                </label>
+              </div>
+              
+              {flashSale.active && (
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 ml-6">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Start Date*</label>
+                    <input
+                      type="datetime-local"
+                      value={flashSale.start}
+                      onChange={(e) => setFlashSale({...flashSale, start: e.target.value})}
+                      className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      required={flashSale.active}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">End Date*</label>
+                    <input
+                      type="datetime-local"
+                      value={flashSale.end}
+                      onChange={(e) => setFlashSale({...flashSale, end: e.target.value})}
+                      className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      required={flashSale.active}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Discount %*</label>
+                    <input
+                      type="number"
+                      min="0"
+                      max="100"
+                      value={flashSale.discountPercent}
+                      onChange={(e) => setFlashSale({...flashSale, discountPercent: e.target.value})}
+                      className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      required={flashSale.active}
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
 
         {/* Specifications Section */}

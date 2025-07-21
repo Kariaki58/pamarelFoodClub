@@ -6,10 +6,13 @@ export default function WalletVerifyPage() {
   const [status, setStatus] = useState('Verifying...');
   const searchParams = useSearchParams();
   const router = useRouter();
+  const callbackUrl = searchParams.get('callbackUrl')
+
 
   useEffect(() => {
     const reference = searchParams.get('reference');
     const trxref = searchParams.get('trxref');
+
 
     if (!reference || !trxref) {
       setStatus('Missing reference');
@@ -39,8 +42,16 @@ export default function WalletVerifyPage() {
   }, [searchParams, router]);
 
   const startRedirectTimer = () => {
+    console.log(callbackUrl)
     setTimeout(() => {
-      router.push('/account');
+      console.log(callbackUrl)
+      console.log('line 45')
+      if (callbackUrl) {
+        console.log(callbackUrl)
+        router.push(callbackUrl)
+      } else {
+        router.push('/account');
+      }
     }, 5000); // 5 seconds
   };
 

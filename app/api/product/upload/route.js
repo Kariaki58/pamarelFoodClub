@@ -33,7 +33,7 @@ export async function POST(req) {
 
         // Check if category exists or create new one
         let categoryDoc = await Category.findOne({ name: categoryData.name });
-        if (!categoryDoc) {
+        if (!categoryDoc && categoryData.isNew) {
             categoryDoc = new Category({
                 name: categoryData.name,
                 slug: categoryData.name.toLowerCase().replace(/ /g, '-'),
@@ -44,23 +44,38 @@ export async function POST(req) {
                 },
             });
             await categoryDoc.save();
+        } else if (!categoryDoc && !categoryData.isNew) {
+            return NextResponse.json({ error: "Category not found" }, { status: 404 });
         }
 
-        // Create the product
+        // Create the product with all schema fields
         const productDoc = new Product({
             name: productData.name,
             slug: productData.name.toLowerCase().replace(/ /g, '-'),
             description: productData.description,
             category: categoryDoc._id,
-            specifications: productData.specifications,
+            section: productData.section, // Added section field
+            specifications: productData.specifications || [],
             images: productData.images.map((img, index) => ({
                 url: img,
                 publicId: `product-${Date.now()}-${index}`,
-                isDefault: index === 0
+                isDefault: index === 0,
+                altText: productData.name
             })),
-            status: 'active',
             price: productData.price || 0,
-            stock: productData.stock || 0
+            stock: productData.stock || 0,
+            unitsSold: 0,
+            percentOff: productData.percentOff || 0,
+            tags: productData.tags,
+            isTopDeal: productData.isTopDeal,
+            isFeatured: productData.isFeatured,
+            flashSale: productData.flashSale,
+            rating: 0,
+            numReviews: 0,
+            metadata: {
+                views: 0,
+                purchases: 0
+            }
         });
 
         await productDoc.save();

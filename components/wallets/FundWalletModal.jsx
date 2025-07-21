@@ -1,8 +1,7 @@
 "use client";
 import { useState } from 'react';
-// import { useSession } from 'next-auth/react';
 
-export const FundWalletModal = ({ walletType, onClose, onSuccess }) => {
+export const FundWalletModal = ({ walletType, onClose, onSuccess, callbackUrl }) => {
 //   const { data: session } = useSession();
   const [amount, setAmount] = useState('');
   const [loading, setLoading] = useState(false);
@@ -29,7 +28,7 @@ export const FundWalletModal = ({ walletType, onClose, onSuccess }) => {
         body: JSON.stringify({
           amount: parseFloat(amount),
           walletType,
-          // optionally add email or user ID here
+          callbackUrl
         }),
       });
 

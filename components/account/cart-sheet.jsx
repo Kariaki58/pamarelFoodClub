@@ -7,15 +7,16 @@ import { Button } from "@/components/ui/button";
 import { useCart } from "@/context/cart-provider";
 import { ShoppingCart, Plus, Minus, Trash2 } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
-// import { Separator } from "./ui/separator";
-import { formatPrice } from "@/lib/utils";
 import { Separator } from "../ui/separator";
+import { formatPrice } from "@/lib/utils";
+import { useState } from "react"; // Add this import
 
 export function CartSheet() {
   const { cartItems, cartCount, totalPrice, updateQuantity, removeFromCart } = useCart();
+  const [open, setOpen] = useState(false); // Add state for controlling sheet
 
   return (
-    <Sheet>
+    <Sheet open={open} onOpenChange={setOpen}> {/* Add controlled state */}
       <SheetTrigger asChild>
         <Button variant="ghost" size="icon" className="relative">
           <ShoppingCart className="h-6 w-6" />
@@ -87,7 +88,11 @@ export function CartSheet() {
                   <span>Subtotal</span>
                   <span>₦{formatPrice(totalPrice)}</span>
                 </div>
-                <Button asChild className="w-full bg-orange-600 text-white hover:bg-orange-800">
+                <Button 
+                  asChild 
+                  className="w-full bg-orange-600 text-white hover:bg-orange-800"
+                  onClick={() => setOpen(false)} // Close the sheet when clicked
+                >
                   <Link href="/checkout">Proceed to Checkout</Link>
                 </Button>
               </div>

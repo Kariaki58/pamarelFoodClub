@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Search, User, Menu, ShoppingCart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { useCart } from "@/context/cart-provider";
 // import { CartSheet } from "@/components/cart-sheet";
 import {
   Sheet,
@@ -19,7 +20,10 @@ export function Header() {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState("");
   const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
+  const { cartCount } = useCart()
+  
 
+  console.log({cartCount})
   const handleSearch = (e) => {
     e.preventDefault();
     if (!searchQuery.trim()) return;

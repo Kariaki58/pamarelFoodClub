@@ -1,7 +1,6 @@
 "use client";
 
-import { useState } from 'react';
-import { orders } from '@/lib/mock-data';
+import { useState, useEffect } from 'react';
 import { OrderCard } from './order-card';
 import { Button } from '@/components/ui/button';
 import {
@@ -12,16 +11,49 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import Link from 'next/link';
-
+import { useSession } from 'next-auth/react';
+import { Skeleton } from '@/components/ui/skeleton';
 
 export function OrderHistory({ showAll = false }) {
     const [filter, setFilter] = useState('all');
+    const [orders, setOrders] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const { data: session } = useSession();
+    
+    useEffect(() => {
+        if (session) {
+            fetchOrders();
+        }
+    }, [filter, session]);
+    
+    const fetchOrders = async () => {
+        try {
+            setLoading(true);
+            const res = await fetch(`/api/orders?status=${filter === 'all' ? 'all' : filter}`);
+            if (!res.ok) throw new Error('Failed to fetch orders');
+            const data = await res.json();
+            setOrders(data);
+        } catch (error) {
+            console.error("Error fetching orders:", error);
+        } finally {
+            setLoading(false);
+        }
+    };
     
     const filteredOrders = orders
-        .filter(order => filter === 'all' || order.status === filter)
-        .sort((a, b) => new Date(b.orderDate).getTime() - new Date(a.orderDate).getTime());
+        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
     const displayedOrders = showAll ? filteredOrders : filteredOrders.slice(0, 3); 
+
+    if (loading) {
+        return (
+            <div className="space-y-4">
+                {[...Array(3)].map((_, i) => (
+                    <Skeleton key={i} className="h-32 w-full rounded-lg" />
+                ))}
+            </div>
+        );
+    }
 
     return (
         <div>
@@ -34,10 +66,10 @@ export function OrderHistory({ showAll = false }) {
                         </SelectTrigger>
                         <SelectContent>
                             <SelectItem value="all">All Orders</SelectItem>
-                            <SelectItem value="Pending">Pending</SelectItem>
-                            <SelectItem value="Shipped">Shipped</SelectItem>
-                            <SelectItem value="Delivered">Delivered</SelectItem>
-                            <SelectItem value="Cancelled">Cancelled</SelectItem>
+                            <SelectItem value="processing">Processing</SelectItem>
+                            <SelectItem value="shipped">Shipped</SelectItem>
+                            <SelectItem value="delivered">Delivered</SelectItem>
+                            <SelectItem value="cancelled">Cancelled</SelectItem>
                         </SelectContent>
                     </Select>
                  </div>
@@ -45,7 +77,7 @@ export function OrderHistory({ showAll = false }) {
             {displayedOrders.length > 0 ? (
                 <div className="space-y-4">
                     {displayedOrders.map(order => (
-                        <OrderCard key={order.id} order={order} />
+                        <OrderCard key={order._id} order={order} />
                     ))}
                 </div>
             ) : (

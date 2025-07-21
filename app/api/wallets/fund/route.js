@@ -16,7 +16,8 @@ export async function POST(req) {
   }
 
   try {
-    const { amount, walletType } = await req.json();
+    const { amount, walletType, callbackUrl } = await req.json();
+
 
     // Validate amount
     if (!amount || isNaN(amount) || amount <= 0) {
@@ -58,7 +59,7 @@ export async function POST(req) {
         email: user.email,
         amount: amount * 100, // Convert to kobo
         reference,
-        callback_url: `${process.env.NEXTAUTH_URL}/wallet/verify`,
+        callback_url: `${process.env.NEXTAUTH_URL}/wallet/verify?callbackUrl=${callbackUrl}`,
         metadata: {
           walletType,
           userId: user._id.toString(),
