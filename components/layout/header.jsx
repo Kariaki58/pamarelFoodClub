@@ -6,6 +6,7 @@ import { Search, User, Menu, ShoppingCart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useCart } from "@/context/cart-provider";
+import { useSession } from "next-auth/react";
 // import { CartSheet } from "@/components/cart-sheet";
 import {
   Sheet,
@@ -20,6 +21,7 @@ export function Header() {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState("");
   const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
+  const { data: session }  = useSession();
   const { cartCount } = useCart()
   
 
@@ -44,12 +46,12 @@ export function Header() {
               </Button>
             </SheetTrigger>
             <SheetContent side="left">
-                <nav className="grid gap-6 text-lg font-medium mt-6">
+                <nav className="grid gap-6 text-lg font-medium mt-6 pl-5">
                     <Link href="/" className="hover:text-primary">Home</Link>
                     <Link href="/category" className="text-muted-foreground hover:text-primary">Shop</Link>
                     <Link href="/category" className="text-muted-foreground hover:text-primary">Deals</Link>
                     <Link href="#" className="text-muted-foreground hover:text-primary">Support</Link>
-                    <Link href="/account" className="text-muted-foreground hover:text-primary">My Account</Link>
+                    <Link href={session.user.role === "admin" ? "/admin" : "/account"} className="text-muted-foreground hover:text-primary">My Account</Link>
                 </nav>
             </SheetContent>
           </Sheet>
