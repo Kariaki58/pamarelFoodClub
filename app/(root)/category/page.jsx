@@ -4,7 +4,8 @@ import { Suspense } from "react"
 export default function CategoryDisplay() {
   return (
     <Suspense fallback={<div>loading...</div>}>
-      <CategoryPage />
+      {/* <CategoryPage /> */}
+      <div>category page</div>
     </Suspense>
   )
 }
