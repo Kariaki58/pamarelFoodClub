@@ -7,12 +7,14 @@ import { FlashSales } from "@/components/account/flash-sales";
 import { HeroSection } from "@/components/account/hero-section";
 import TopDeals from "@/components/account/top-deals";
 import { GadgetEssentails } from "@/components/account/gadget-essentails";
+import { EarnWithUsSection } from "@/components/account/EarnWithUsSection";
 
 export default function Home() {
 
   return (
     <>
       <HeroSection />
+      <EarnWithUsSection />
       <div className="container mx-auto px-4 md:px-6">
         <CategorySection />
       </div>
