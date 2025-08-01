@@ -122,7 +122,7 @@ export default function JoinMember() {
               </div>
               <div className="p-6 bg-amber-100">
                 <h3 className="text-lg font-bold text-amber-900 mb-2">Classic</h3>
-                <p className="text-amber-700 font-medium">₦25,000</p>
+                <p className="text-amber-700 font-medium">₦35,000</p>
               </div>
               <div className="p-6 bg-gray-800 text-white">
                 <h3 className="text-lg font-bold mb-2">Premium</h3>
