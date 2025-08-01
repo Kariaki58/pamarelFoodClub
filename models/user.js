@@ -1,7 +1,29 @@
 import mongoose from 'mongoose';
 
+// Helper function to generate unique referral code
+async function generateUniqueReferralCode(username) {
+  let randomSuffix = Math.floor(1000 + Math.random() * 9000); // 4-digit random number
+  let referralCode = `${username.slice(0, 3)}${randomSuffix}`.toUpperCase();
+  
+  // Check if code exists and regenerate if needed
+  let exists = true;
+  let attempts = 0;
+  const maxAttempts = 5;
+  
+  while (exists && attempts < maxAttempts) {
+    const user = await mongoose.model('User').findOne({ referralCode });
+    exists = !!user;
+    if (exists) {
+      randomSuffix = Math.floor(1000 + Math.random() * 9000);
+      referralCode = `${username.slice(0, 3)}${randomSuffix}`.toUpperCase();
+      attempts++;
+    }
+  }
+  
+  return referralCode;
+}
+
 const userSchema = new mongoose.Schema({
-  // Basic Information
   username: {
     type: String,
     required: [true, 'Username is required'],
@@ -60,14 +82,14 @@ const userSchema = new mongoose.Schema({
     ref: 'User'
   }],
 
-  // Board Progress - Starts with no board
+  // Updated Board Progress - Starts with basic
   currentBoard: {
     type: String,
     enum: ['basic', 'bronze', 'silver', 'gold', 'platinum'],
     default: 'basic'
   },
   boardProgress: {
-    none: {
+    basic: {
       membersRecruited: { type: Number, default: 0 }
     },
     bronze: { 
@@ -79,22 +101,23 @@ const userSchema = new mongoose.Schema({
       completed: { type: Boolean, default: false },
       completionDate: Date,
       level1Recruited: { type: Number, default: 0 }, // Direct
-      level2Recruited: { type: Number, default: 0 }  // Indirect (7x7)
+      level2Recruited: { type: Number, default: 0 }  // Indirect (your downlines' downlines)
     },
     gold: { 
       completed: { type: Boolean, default: false },
       completionDate: Date,
       level1Recruited: { type: Number, default: 0 }, // Direct
-      level2Recruited: { type: Number, default: 0 }  // Indirect (7x7)
+      level2Recruited: { type: Number, default: 0 }  // Indirect
     },
     platinum: { 
       completed: { type: Boolean, default: false },
       completionDate: Date,
-      membersRecruited: { type: Number, default: 0 }
+      level1Recruited: { type: Number, default: 0 }, // Direct
+      level2Recruited: { type: Number, default: 0 }, // Indirect
+      level3Recruited: { type: Number, default: 0 }  // 3rd level
     }
   },
 
-  // Earnings and Rewards
   earnings: {
     total: { type: Number, default: 0 },
     foodWallet: { type: Number, default: 0 },
@@ -121,7 +144,7 @@ const userSchema = new mongoose.Schema({
   toObject: { virtuals: true }
 });
 
-// Generate referral code before saving
+
 userSchema.pre('save', async function(next) {
   if (!this.referralCode) {
     this.referralCode = await generateUniqueReferralCode(this.username);
@@ -129,46 +152,145 @@ userSchema.pre('save', async function(next) {
   next();
 });
 
-// Method to check if user qualifies for Bronze board
+
+// Board Qualification Methods
 userSchema.methods.checkBronzeQualification = function() {
-  return this.boardProgress.none.membersRecruited >= 7;
+  return this.boardProgress.basic.membersRecruited >= 7;
 };
 
-// Method to promote to Bronze board
+userSchema.methods.checkSilverQualification = function() {
+  return (
+    this.currentBoard === 'bronze' &&
+    this.boardProgress.bronze.membersRecruited >= 7 &&
+    this.directDownlines.length >= 7 &&
+    this.networkDownlines.length >= 49 // 7x7 structure
+  );
+};
+
+userSchema.methods.checkGoldQualification = function() {
+  return (
+    this.currentBoard === 'silver' &&
+    this.boardProgress.silver.level1Recruited >= 7 &&
+    this.boardProgress.silver.level2Recruited >= 49 &&
+    this.directDownlines.filter(d => d.currentBoard === 'silver').length >= 7
+  );
+};
+
+userSchema.methods.checkPlatinumQualification = function() {
+  return (
+    this.currentBoard === 'gold' &&
+    this.boardProgress.gold.level1Recruited >= 7 &&
+    this.boardProgress.gold.level2Recruited >= 49 &&
+    this.directDownlines.filter(d => d.currentBoard === 'gold').length >= 7
+  );
+};
+
+// Promotion Methods
 userSchema.methods.promoteToBronze = function() {
-  if (this.checkBronzeQualification() && this.currentBoard === 'none') {
+  if (this.checkBronzeQualification() && this.currentBoard === 'basic') {
     this.currentBoard = 'bronze';
     this.boardProgress.bronze = {
       completed: true,
       completionDate: new Date(),
-      membersRecruited: this.boardProgress.none.membersRecruited
+      membersRecruited: this.boardProgress.basic.membersRecruited
     };
     return true;
   }
   return false;
 };
 
-// Method to add new recruit
+userSchema.methods.promoteToSilver = function() {
+  if (this.checkSilverQualification() && this.currentBoard === 'bronze') {
+    this.currentBoard = 'silver';
+    this.boardProgress.silver = {
+      completed: true,
+      completionDate: new Date(),
+      level1Recruited: this.directDownlines.length,
+      level2Recruited: this.networkDownlines.length
+    };
+    return true;
+  }
+  return false;
+};
+
+userSchema.methods.promoteToGold = function() {
+  if (this.checkGoldQualification() && this.currentBoard === 'silver') {
+    this.currentBoard = 'gold';
+    this.boardProgress.gold = {
+      completed: true,
+      completionDate: new Date(),
+      level1Recruited: this.boardProgress.silver.level1Recruited,
+      level2Recruited: this.boardProgress.silver.level2Recruited
+    };
+    return true;
+  }
+  return false;
+};
+
+userSchema.methods.promoteToPlatinum = function() {
+  if (this.checkPlatinumQualification() && this.currentBoard === 'gold') {
+    this.currentBoard = 'platinum';
+    this.boardProgress.platinum = {
+      completed: true,
+      completionDate: new Date(),
+      level1Recruited: this.boardProgress.gold.level1Recruited,
+      level2Recruited: this.boardProgress.gold.level2Recruited,
+      level3Recruited: this.networkDownlines.reduce((acc, downline) => {
+        return acc + (downline.networkDownlines?.length || 0);
+      }, 0)
+    };
+    return true;
+  }
+  return false;
+};
+
+// Method to add new recruit with automatic promotions
 userSchema.methods.addRecruit = async function(recruitId, isDirect = true) {
   if (isDirect) {
-    // Add to direct downlines if not already there
     if (!this.directDownlines.includes(recruitId)) {
       this.directDownlines.push(recruitId);
     }
     
-    // Update recruitment counts
-    if (this.currentBoard === 'none') {
-      this.boardProgress.none.membersRecruited += 1;
-      
-      // Auto-promote to Bronze if qualified
-      if (this.checkBronzeQualification()) {
-        await this.promoteToBronze();
-      }
+    // Update counts based on current board
+    switch(this.currentBoard) {
+      case 'basic':
+        this.boardProgress.basic.membersRecruited += 1;
+        if (this.checkBronzeQualification()) await this.promoteToBronze();
+        break;
+      case 'bronze':
+        this.boardProgress.bronze.membersRecruited += 1;
+        if (this.checkSilverQualification()) await this.promoteToSilver();
+        break;
+      case 'silver':
+        this.boardProgress.silver.level1Recruited += 1;
+        if (this.checkGoldQualification()) await this.promoteToGold();
+        break;
+      case 'gold':
+        this.boardProgress.gold.level1Recruited += 1;
+        if (this.checkPlatinumQualification()) await this.promoteToPlatinum();
+        break;
+      case 'platinum':
+        this.boardProgress.platinum.level1Recruited += 1;
+        break;
     }
   } else {
-    // Add to network downlines if not already there
     if (!this.networkDownlines.includes(recruitId)) {
       this.networkDownlines.push(recruitId);
+    }
+    
+    // Update indirect recruitment counts
+    switch(this.currentBoard) {
+      case 'silver':
+        this.boardProgress.silver.level2Recruited += 1;
+        if (this.checkGoldQualification()) await this.promoteToGold();
+        break;
+      case 'gold':
+        this.boardProgress.gold.level2Recruited += 1;
+        if (this.checkPlatinumQualification()) await this.promoteToPlatinum();
+        break;
+      case 'platinum':
+        this.boardProgress.platinum.level2Recruited += 1;
+        break;
     }
   }
   
