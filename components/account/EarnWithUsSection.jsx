@@ -143,7 +143,7 @@ export function EarnWithUsSection() {
               </Button>
               
               <Button asChild variant="outline" className="px-10 py-7 text-lg font-semibold border-2 border-gray-300 hover:bg-white/90">
-                <Link href="/compensation-plan">
+                <Link href="/visual">
                   <span className="text-gray-800">How It Works</span>
                 </Link>
               </Button>

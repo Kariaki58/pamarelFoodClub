@@ -31,6 +31,8 @@ export default function JoinMember() {
           "Food Wallet: ₦30,000",
           "Gadgets Wallet: ₦10,000",
           "Cash Wallet: ₦20,000",
+          "CSR Donation : ₦5,000",
+          "Arising Leader Bonus ( Complete your Silver Board within 30 days to qualify) : Mini Breakfast Fody Bag valued at ₦10,000",
           "Access to Gold Board"
         ],
         color: "bg-gray-100",
@@ -46,6 +48,8 @@ export default function JoinMember() {
           "Food Wallet: ₦300,000",
           "Gadgets Wallet: ₦120,000",
           "Cash Wallet: ₦300,000",
+          "Automatic Registration into PLATINUM FOOD PLAN : ₦80,000",
+          "HSF Project :  ₦500. 000",
           "Access to Platinum Board"
         ],
         color: "bg-yellow-100",
@@ -61,7 +65,8 @@ export default function JoinMember() {
           "Food Wallet: ₦2,000,000",
           "Gadgets Wallet: ₦1,000,000",
           "Cash Wallet: ₦4,000,000",
-          "Car Award: ₦5,000,000"
+          "Car Award: ₦5,000,000",
+          "HSF Project :  ₦2,00,000"
         ],
         color: "bg-blue-100",
         border: "border-blue-300",
