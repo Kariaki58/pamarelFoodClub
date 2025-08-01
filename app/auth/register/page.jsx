@@ -104,7 +104,7 @@ export default function RegistrationPage() {
         <div className="flex justify-center">
           <div className="w-20 h-20 relative">
             <Image
-              src="/logo.png"
+              src="/pamarel-logo.jpeg"
               alt="Pamarel Logo"
               fill
               className="object-contain"

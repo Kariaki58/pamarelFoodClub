@@ -44,7 +44,7 @@ export default function AccountPage() {
         setWallets(data.wallets || []);
       } catch (err) {
         console.error('Failed to fetch wallets:', err);
-        setError(err instanceof Error ? err.message : 'An unknown error occurred');
+        setError(`${JSON.stringify(err)}`);
       } finally {
         setLoading(false);
       }
