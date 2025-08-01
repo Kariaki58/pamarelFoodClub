@@ -106,55 +106,91 @@ export default function JoinMember() {
           </motion.div>
         </motion.div>
 
-        {/* Plan Comparison Section */}
-        <div id="plan-comparison" className="mt-24">
-          <h2 className="text-3xl font-bold text-center text-gray-900 mb-12">Plan Comparison</h2>
+        <div id="plan-comparison" className="mt-16 px-4 sm:px-6">
+          <h2 className="text-2xl sm:text-3xl font-bold text-center text-gray-900 mb-8 sm:mb-12">Plan Comparison</h2>
           
-          <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-0 divide-y md:divide-y-0 md:divide-x divide-gray-200">
-              {/* Header Row */}
-              <div className="p-6 bg-gray-50">
-                <h3 className="text-lg font-bold text-gray-900 mb-4">Features</h3>
-              </div>
-              <div className="p-6 bg-amber-50">
-                <h3 className="text-lg font-bold text-amber-800 mb-2">Basic</h3>
-                <p className="text-amber-600 font-medium">₦4,000</p>
-              </div>
-              <div className="p-6 bg-amber-100">
-                <h3 className="text-lg font-bold text-amber-900 mb-2">Classic</h3>
-                <p className="text-amber-700 font-medium">₦35,000</p>
-              </div>
-              <div className="p-6 bg-gray-800 text-white">
-                <h3 className="text-lg font-bold mb-2">Premium</h3>
-                <p className="text-gray-300 font-medium">₦80,000</p>
-              </div>
+          <div className="relative">
+            {/* Scrollable container */}
+            <div className="overflow-x-auto pb-4">
+              <div className="inline-block min-w-full rounded-xl shadow-lg">
+                <div className="min-w-[700px] md:min-w-full bg-white rounded-xl overflow-hidden">
+                  {/* Header Row */}
+                  <div className="grid grid-cols-4 min-w-full">
+                    <div className="p-4 sm:p-6 bg-gray-50 sticky left-0 z-10">
+                      <h3 className="text-sm sm:text-base font-bold text-gray-900">Features</h3>
+                    </div>
+                    <div className="p-4 sm:p-6 bg-amber-50">
+                      <h3 className="text-sm sm:text-base font-bold text-amber-800">Basic</h3>
+                      <p className="text-xs sm:text-sm text-amber-600 font-medium mt-1">₦4,000</p>
+                    </div>
+                    <div className="p-4 sm:p-6 bg-amber-100">
+                      <h3 className="text-sm sm:text-base font-bold text-amber-900">Classic</h3>
+                      <p className="text-xs sm:text-sm text-amber-700 font-medium mt-1">₦35,000</p>
+                    </div>
+                    <div className="p-4 sm:text-sm sm:p-6 bg-gray-800 text-white">
+                      <h3 className="text-sm sm:text-base font-bold">Premium</h3>
+                      <p className="text-xs sm:text-sm text-gray-300 font-medium mt-1">₦80,000</p>
+                    </div>
+                  </div>
 
-              {/* Comparison Rows */}
-              {[
-                { feature: "Registration Fee", basic: "₦4,000", classic: "₦25,000", premium: "₦80,000" },
-                { feature: "Max Potential Earnings", basic: "₦14,000,000", classic: "₦30,000,000", premium: "₦100,000,000" },
-                { feature: "Food Wallet", basic: "Yes", classic: "Yes", premium: "Yes" },
-                { feature: "Cash Wallet", basic: "Yes", classic: "Yes", premium: "Yes" },
-                { feature: "Gadget Wallet", basic: "Yes", classic: "Yes", premium: "Yes" },
-                { feature: "Car Incentive", basic: "Platinum Only", classic: "Levels 3-4", premium: "Levels 2-4" },
-                { feature: "International Travel", basic: "No", classic: "Level 4", premium: "Levels 3-4" },
-                { feature: "Housing Incentive", basic: "No", classic: "No", premium: "Level 4" },
-              ].map((row, index) => (
-                <div key={index} className="contents group">
-                  <div className="p-4 bg-gray-50 group-hover:bg-gray-100 transition-colors">
-                    <p className="font-medium text-gray-700">{row.feature}</p>
-                  </div>
-                  <div className="p-4 bg-white group-hover:bg-amber-50 transition-colors">
-                    <p className="text-gray-800">{row.basic}</p>
-                  </div>
-                  <div className="p-4 bg-white group-hover:bg-amber-100 transition-colors">
-                    <p className="text-gray-800">{row.classic}</p>
-                  </div>
-                  <div className="p-4 bg-gray-900 group-hover:bg-gray-800 transition-colors">
-                    <p className="text-gray-200">{row.premium}</p>
-                  </div>
+                  {/* Comparison Rows */}
+                  {[
+                    { feature: "Registration Fee", basic: "₦4,000", classic: "₦35,000", premium: "₦80,000" },
+                    { feature: "Max Earnings", basic: "₦14M", classic: "₦30M", premium: "₦100M" },
+                    { feature: "Food Wallet", basic: "✓", classic: "✓", premium: "✓" },
+                    { feature: "Cash Wallet", basic: "✓", classic: "✓", premium: "✓" },
+                    { feature: "Gadget Wallet", basic: "✓", classic: "✓", premium: "✓" },
+                    { feature: "Car Incentive", basic: "Platinum", classic: "Levels 3-4", premium: "Levels 2-4" },
+                    { feature: "Travel", basic: "✗", classic: "Level 4", premium: "Levels 3-4" },
+                    { feature: "Housing", basic: "✗", classic: "✗", premium: "Level 4" },
+                  ].map((row, index) => (
+                    <div key={index} className="grid grid-cols-4 min-w-full border-t border-gray-200 hover:bg-gray-50 transition-colors">
+                      <div className="p-3 sm:p-4 bg-gray-50 sticky left-0 z-10">
+                        <p className="text-xs sm:text-sm font-medium text-gray-700">{row.feature}</p>
+                      </div>
+                      <div className="p-3 sm:p-4 bg-white">
+                        <p className="text-xs sm:text-sm text-gray-800">{row.basic}</p>
+                      </div>
+                      <div className="p-3 sm:p-4 bg-white">
+                        <p className="text-xs sm:text-sm text-gray-800">{row.classic}</p>
+                      </div>
+                      <div className="p-3 sm:p-4 bg-gray-900">
+                        <p className="text-xs sm:text-sm text-gray-200">{row.premium}</p>
+                      </div>
+                    </div>
+                  ))}
                 </div>
-              ))}
+              </div>
+            </div>
+
+            {/* Scroll indicator for mobile */}
+            <div className="md:hidden absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400">
+              <svg className="w-6 h-6 animate-bounce-x" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+            </div>
+          </div>
+
+          {/* Mobile-friendly key */}
+          <div className="mt-6 md:hidden bg-gray-50 p-4 rounded-lg">
+            <h4 className="text-sm font-bold text-gray-700 mb-2">Key:</h4>
+            <div className="grid grid-cols-2 gap-2 text-xs">
+              <div className="flex items-center">
+                <span className="mr-2">✓</span>
+                <span>Included</span>
+              </div>
+              <div className="flex items-center">
+                <span className="mr-2">✗</span>
+                <span>Not Included</span>
+              </div>
+              <div className="flex items-center">
+                <span className="mr-2">₦</span>
+                <span>Naira Value</span>
+              </div>
+              <div className="flex items-center">
+                <span className="mr-2">M</span>
+                <span>Million</span>
+              </div>
             </div>
           </div>
         </div>

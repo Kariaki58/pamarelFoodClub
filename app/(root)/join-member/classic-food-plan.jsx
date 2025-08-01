@@ -136,7 +136,7 @@ export default function ClassicFoodPlan() {
               <div>
                 <h3 className="text-lg font-semibold text-gray-900">Classic Food Plan</h3>
                 <p className="text-gray-600 mt-1">Premium rewards with our gold-tier plan</p>
-                <div className="mt-4 text-amber-600 font-bold text-xl">₦25,000 Registration</div>
+                <div className="mt-4 text-amber-600 font-bold text-xl">₦35,000 Registration</div>
               </div>
               <Button 
                 href="/register/classic" 
