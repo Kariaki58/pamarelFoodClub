@@ -2,7 +2,7 @@
 import { ArrowLeft, ArrowRight, ChevronDown, ChevronUp } from 'lucide-react';
 import React, { useState } from 'react';
 
-// Generate dummy transaction data with both MLM members and regular customers
+// Generate dummy transaction data with MLM members only
 const generateTransactions = () => {
   const statuses = ['delivered', 'pending', 'failed', 'refunded'];
   const products = [
@@ -16,26 +16,21 @@ const generateTransactions = () => {
     'Essential Oil Bundle'
   ];
   const mlmMembers = [
-    { name: 'John Smith', level: 3, isMlm: true },
-    { name: 'Sarah Johnson', level: 5, isMlm: true },
-    { name: 'Michael Brown', level: 2, isMlm: true },
-    { name: 'Emily Davis', level: 4, isMlm: true }
-  ];
-  const regularCustomers = [
-    { name: 'Alex Wilson', isMlm: false },
-    { name: 'Jessica Taylor', isMlm: false },
-    { name: 'David Miller', isMlm: false },
-    { name: 'Sophia Anderson', isMlm: false }
+    { name: 'John Smith', level: 3 },
+    { name: 'Sarah Johnson', level: 5 },
+    { name: 'Michael Brown', level: 2 },
+    { name: 'Emily Davis', level: 4 },
+    { name: 'David Wilson', level: 1 },
+    { name: 'Jessica Taylor', level: 3 },
+    { name: 'Robert Miller', level: 4 },
+    { name: 'Sophia Anderson', level: 2 }
   ];
   
   const transactions = [];
   
   for (let i = 1; i <= 50; i++) {
     const randomProduct = products[Math.floor(Math.random() * products.length)];
-    const isMlmTransaction = Math.random() > 0.3; // 70% MLM, 30% regular
-    const customer = isMlmTransaction 
-      ? mlmMembers[Math.floor(Math.random() * mlmMembers.length)]
-      : regularCustomers[Math.floor(Math.random() * regularCustomers.length)];
+    const customer = mlmMembers[Math.floor(Math.random() * mlmMembers.length)];
     
     const randomStatus = statuses[Math.floor(Math.random() * statuses.length)];
     const amount = Math.floor(Math.random() * 50000) + 1000;
@@ -48,13 +43,12 @@ const generateTransactions = () => {
       date: date.toISOString(),
       product: randomProduct,
       customer: customer.name,
-      isMlmMember: customer.isMlm,
-      mlmLevel: customer.level || null,
+      mlmLevel: customer.level,
       amount: amount,
       quantity: quantity,
       total: amount * quantity,
       status: randomStatus,
-      commission: customer.isMlm ? Math.floor(amount * quantity * 0.1) : 0, // 10% commission for MLM only
+      commission: Math.floor(amount * quantity * 0.1), // 10% commission
     });
   }
   
@@ -68,15 +62,6 @@ const Transactions = () => {
   const [itemsPerPage] = useState(8);
   const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' });
   const [expandedRow, setExpandedRow] = useState(null);
-  const [filter, setFilter] = useState('all'); // 'all', 'mlm', 'regular'
-
-  // Filter transactions based on selected filter
-  const filteredData = transactionsData.filter(transaction => {
-    if (filter === 'all') return true;
-    if (filter === 'mlm') return transaction.isMlmMember;
-    if (filter === 'regular') return !transaction.isMlmMember;
-    return true;
-  });
 
   // Format date
   const formatDate = (dateString) => {
@@ -100,7 +85,7 @@ const Transactions = () => {
   };
 
   // Sort data
-  const sortedData = [...filteredData].sort((a, b) => {
+  const sortedData = [...transactionsData].sort((a, b) => {
     if (sortConfig.key) {
       if (a[sortConfig.key] < b[sortConfig.key]) {
         return sortConfig.direction === 'asc' ? -1 : 1;
@@ -160,20 +145,8 @@ const Transactions = () => {
     );
   };
 
-  // Customer type badge
-  const CustomerTypeBadge = ({ isMlmMember }) => {
-    return (
-      <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-        isMlmMember ? 'bg-purple-100 text-purple-800' : 'bg-gray-100 text-gray-800'
-      }`}>
-        {isMlmMember ? 'MLM Member' : 'Regular Customer'}
-      </span>
-    );
-  };
-
   // Level indicator for MLM members
   const LevelIndicator = ({ level }) => {
-    if (!level) return null;
     return (
       <div className="flex items-center mt-1">
         <span className="text-xs text-gray-500 mr-2">Level:</span>
@@ -345,37 +318,9 @@ const Transactions = () => {
     <div className="container mx-auto px-4 py-6">
       <div className="bg-white shadow-xl rounded-xl overflow-hidden">
         <div className="px-6 py-4 border-b border-gray-200 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <h2 className="text-xl font-semibold text-gray-800">Transaction History</h2>
+          <h2 className="text-xl font-semibold text-gray-800">MLM Transactions</h2>
           
           <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
-            {/* Filter tabs */}
-            <div className="flex border border-gray-200 rounded-lg overflow-hidden">
-              <button
-                onClick={() => { setFilter('all'); setCurrentPage(1); }}
-                className={`px-3 py-2 text-sm font-medium ${
-                  filter === 'all' ? 'bg-purple-100 text-purple-800' : 'bg-white text-gray-500 hover:bg-gray-50'
-                }`}
-              >
-                All
-              </button>
-              <button
-                onClick={() => { setFilter('mlm'); setCurrentPage(1); }}
-                className={`px-3 py-2 text-sm font-medium ${
-                  filter === 'mlm' ? 'bg-purple-100 text-purple-800' : 'bg-white text-gray-500 hover:bg-gray-50'
-                }`}
-              >
-                MLM Members
-              </button>
-              <button
-                onClick={() => { setFilter('regular'); setCurrentPage(1); }}
-                className={`px-3 py-2 text-sm font-medium ${
-                  filter === 'regular' ? 'bg-purple-100 text-purple-800' : 'bg-white text-gray-500 hover:bg-gray-50'
-                }`}
-              >
-                Regular Customers
-              </button>
-            </div>
-            
             <div className="text-sm text-gray-500">
               Showing {indexOfFirstItem + 1}-{Math.min(indexOfLastItem, sortedData.length)} of {sortedData.length} transactions
             </div>
@@ -478,12 +423,9 @@ const Transactions = () => {
                       <td colSpan="6" className="px-6 py-4">
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                           <div>
-                            <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Customer Details</h4>
+                            <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Member Details</h4>
                             <p className="mt-1 text-sm font-medium text-gray-900">{transaction.customer}</p>
-                            <CustomerTypeBadge isMlmMember={transaction.isMlmMember} />
-                            {transaction.isMlmMember && (
-                              <LevelIndicator level={transaction.mlmLevel} />
-                            )}
+                            <LevelIndicator level={transaction.mlmLevel} />
                           </div>
                           <div>
                             <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Transaction Details</h4>
@@ -503,19 +445,11 @@ const Transactions = () => {
                             </div>
                           </div>
                           <div>
-                            <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                              {transaction.isMlmMember ? 'Commission' : 'Customer Type'}
-                            </h4>
-                            {transaction.isMlmMember ? (
-                              <>
-                                <p className="mt-1 text-sm font-medium text-purple-600">
-                                  {formatCurrency(transaction.commission)}
-                                </p>
-                                <p className="mt-1 text-xs text-gray-500">10% of transaction value</p>
-                              </>
-                            ) : (
-                              <p className="mt-1 text-sm text-gray-700">Regular retail customer</p>
-                            )}
+                            <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Commission</h4>
+                            <p className="mt-1 text-sm font-medium text-purple-600">
+                              {formatCurrency(transaction.commission)}
+                            </p>
+                            <p className="mt-1 text-xs text-gray-500">10% of transaction value</p>
                           </div>
                         </div>
                       </td>

@@ -1,8 +1,10 @@
 'use client';
 
+import AffiliateDashboard from "@/app/(affilate)/affiliate/page";
 import { DashboardSummary } from "@/components/account/dashboard-summary";
 import { OrderHistory } from "@/components/account/order-history";
 import { PendingReviews } from "@/components/account/pending-reviews";
+import { AffiliateProgress } from "@/components/layout/AffiliateProgress";
 import { Separator } from "@/components/ui/separator";
 import WalletDisplay from "@/components/wallets/Wallet";
 import { useSession } from "next-auth/react";
@@ -104,6 +106,9 @@ export default function AccountPage() {
       </div>
       
       <DashboardSummary />
+
+      <AffiliateProgress />
+
       
       <div className="my-5">
         <WalletDisplay wallets={wallets} />

@@ -3,24 +3,24 @@ import User from '@/models/user';
 import dbConnect from '@/lib/dbConnect';
 import bcrypt from 'bcryptjs';
 
-
 export const authOptions = {
   providers: [
     CredentialsProvider({
       name: 'Credentials',
       credentials: {
-        email: { label: 'Email', type: 'email' },
+        username: { label: 'Username', type: 'text' },
         password: { label: 'Password', type: 'password' }
       },
       async authorize(credentials, req) {
         try {
           await dbConnect();
           
-          // 1. Find user by email
-          const user = await User.findOne({ email: credentials.email }).select('+password +isActive');
-          console.log({user})
+          // 1. Find user by username
+          const user = await User.findOne({ username: credentials.username })
+                              .select('+password +isActive');
+          
           if (!user) {
-            throw new Error('No user found with this email address');
+            throw new Error('No user found with this username');
           }
 
           // 2. Check if account is active
@@ -29,10 +29,6 @@ export const authOptions = {
           }
 
           // 3. Verify password
-          console.log("#########")
-          console.log(credentials.password)
-          console.log("#########")
-
           const isValid = await bcrypt.compare(credentials.password, user.password);
           if (!isValid) {
             throw new Error('Incorrect password');
@@ -41,8 +37,9 @@ export const authOptions = {
           // 4. Return user object if everything is valid
           return {
             id: user._id.toString(),
-            name: `${user.firstName} ${user.lastName}`,
-            email: user.email,
+            name: user.username,
+            email: user.email, // Still include email in case it's needed
+            username: user.username, // Add username to the session
             role: user.role
           };
 
@@ -58,12 +55,14 @@ export const authOptions = {
       if (user) {
         token.role = user.role;
         token.id = user.id;
+        token.username = user.username; // Add username to JWT
       }
       return token;
     },
     async session({ session, token }) {
       session.user.role = token.role;
       session.user.id = token.id;
+      session.user.username = token.username; // Add username to session
       return session;
     }
   },

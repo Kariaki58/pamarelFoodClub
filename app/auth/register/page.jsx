@@ -2,12 +2,13 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import Image from 'next/image';
+import { Eye, EyeOff } from 'lucide-react';
 
 export default function RegistrationPage() {
   const router = useRouter();
   const [formData, setFormData] = useState({
-    firstName: '',
-    lastName: '',
+    username: '',
     email: '',
     phone: '',
     password: '',
@@ -17,6 +18,8 @@ export default function RegistrationPage() {
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
   const [apiError, setApiError] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -24,7 +27,6 @@ export default function RegistrationPage() {
       ...prev,
       [name]: value
     }));
-    // Clear error when user types
     if (errors[name]) {
       setErrors(prev => ({ ...prev, [name]: '' }));
     }
@@ -33,19 +35,23 @@ export default function RegistrationPage() {
   const validateForm = () => {
     const newErrors = {};
     
-    if (!formData.firstName.trim()) newErrors.firstName = 'First name is required';
-    if (!formData.lastName.trim()) newErrors.lastName = 'Last name is required';
+    if (!formData.username.trim()) newErrors.username = 'Username is required';
+    else if (formData.username.length < 3) newErrors.username = 'Username must be at least 3 characters';
+    
     if (!formData.email.trim()) {
       newErrors.email = 'Email is required';
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
       newErrors.email = 'Invalid email format';
     }
+    
     if (!formData.phone.trim()) newErrors.phone = 'Phone number is required';
+    
     if (!formData.password) {
       newErrors.password = 'Password is required';
     } else if (formData.password.length < 6) {
       newErrors.password = 'Password must be at least 6 characters';
     }
+    
     if (formData.password !== formData.confirmPassword) {
       newErrors.confirmPassword = 'Passwords do not match';
     }
@@ -69,8 +75,7 @@ export default function RegistrationPage() {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          firstName: formData.firstName,
-          lastName: formData.lastName,
+          username: formData.username,
           email: formData.email,
           phone: formData.phone,
           password: formData.password,
@@ -84,7 +89,6 @@ export default function RegistrationPage() {
         throw new Error(data.error || 'Registration failed');
       }
 
-      // Registration successful - redirect to login or dashboard
       router.push('/auth/login');
     } catch (error) {
       console.error('Registration error:', error);
@@ -95,81 +99,68 @@ export default function RegistrationPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
-        <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-          Create your account
+        <div className="flex justify-center">
+          <div className="w-20 h-20 relative">
+            <Image
+              src="/logo.png"
+              alt="Pamarel Logo"
+              fill
+              className="object-contain"
+              priority
+            />
+          </div>
+        </div>
+        
+        <h2 className="mt-6 text-center text-3xl font-bold text-gray-900">
+          Join Pamarel
         </h2>
         <p className="mt-2 text-center text-sm text-gray-600">
-          Join our MLM network and start earning today
+          Create your account and start your journey
         </p>
       </div>
 
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-        <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
+        <div className="bg-white py-8 px-6 shadow-lg rounded-xl sm:px-10 border border-gray-100">
           {apiError && (
-            <div className="mb-4 bg-red-50 border-l-4 border-red-500 p-4">
-              <div className="flex">
-                <div className="flex-shrink-0">
-                  <svg className="h-5 w-5 text-red-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-                  </svg>
-                </div>
-                <div className="ml-3">
-                  <p className="text-sm text-red-700">{apiError}</p>
-                </div>
+            <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4">
+              <div className="flex items-center text-red-800">
+                <svg className="h-5 w-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                </svg>
+                <p className="text-sm font-medium">{apiError}</p>
               </div>
             </div>
           )}
 
-          <form className="space-y-6" onSubmit={handleSubmit}>
-            <div className="grid grid-cols-1 gap-y-6 gap-x-4 sm:grid-cols-2">
-              <div>
-                <label htmlFor="firstName" className="block text-sm font-medium text-gray-700">
-                  First name
-                </label>
-                <div className="mt-1">
-                  <input
-                    id="firstName"
-                    name="firstName"
-                    type="text"
-                    autoComplete="given-name"
-                    value={formData.firstName}
-                    onChange={handleChange}
-                    className={`block w-full shadow-sm sm:text-sm rounded-md ${errors.firstName ? 'border-red-300 focus:ring-red-500 focus:border-red-500' : 'border-gray-300 focus:ring-yellow-500 focus:border-yellow-500'} border p-2`}
-                  />
-                  {errors.firstName && (
-                    <p className="mt-2 text-sm text-red-600">{errors.firstName}</p>
-                  )}
-                </div>
+          <form className="space-y-5" onSubmit={handleSubmit}>
+            <div>
+              <label htmlFor="username" className="block text-sm font-medium text-gray-700 mb-1">
+                Username
+              </label>
+              <div className="relative">
+                <input
+                  id="username"
+                  name="username"
+                  type="text"
+                  autoComplete="username"
+                  value={formData.username}
+                  onChange={handleChange}
+                  className={`block w-full px-4 py-2.5 rounded-lg border ${errors.username ? 'border-red-300 focus:ring-red-500 focus:border-red-500' : 'border-gray-300 focus:ring-yellow-500 focus:border-yellow-500'} shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-opacity-50`}
+                  placeholder="Enter your username"
+                />
               </div>
-
-              <div>
-                <label htmlFor="lastName" className="block text-sm font-medium text-gray-700">
-                  Last name
-                </label>
-                <div className="mt-1">
-                  <input
-                    id="lastName"
-                    name="lastName"
-                    type="text"
-                    autoComplete="family-name"
-                    value={formData.lastName}
-                    onChange={handleChange}
-                    className={`block w-full shadow-sm sm:text-sm rounded-md ${errors.lastName ? 'border-red-300 focus:ring-red-500 focus:border-red-500' : 'border-gray-300 focus:ring-yellow-500 focus:border-yellow-500'} border p-2`}
-                  />
-                  {errors.lastName && (
-                    <p className="mt-2 text-sm text-red-600">{errors.lastName}</p>
-                  )}
-                </div>
-              </div>
+              {errors.username && (
+                <p className="mt-1.5 text-sm text-red-600">{errors.username}</p>
+              )}
             </div>
 
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700">
+              <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
                 Email address
               </label>
-              <div className="mt-1">
+              <div className="relative">
                 <input
                   id="email"
                   name="email"
@@ -177,19 +168,20 @@ export default function RegistrationPage() {
                   autoComplete="email"
                   value={formData.email}
                   onChange={handleChange}
-                  className={`block w-full shadow-sm sm:text-sm rounded-md ${errors.email ? 'border-red-300 focus:ring-red-500 focus:border-red-500' : 'border-gray-300 focus:ring-yellow-500 focus:border-yellow-500'} border p-2`}
+                  className={`block w-full px-4 py-2.5 rounded-lg border ${errors.email ? 'border-red-300 focus:ring-red-500 focus:border-red-500' : 'border-gray-300 focus:ring-yellow-500 focus:border-yellow-500'} shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-opacity-50`}
+                  placeholder="your@email.com"
                 />
-                {errors.email && (
-                  <p className="mt-2 text-sm text-red-600">{errors.email}</p>
-                )}
               </div>
+              {errors.email && (
+                <p className="mt-1.5 text-sm text-red-600">{errors.email}</p>
+              )}
             </div>
 
             <div>
-              <label htmlFor="phone" className="block text-sm font-medium text-gray-700">
+              <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-1">
                 Phone number
               </label>
-              <div className="mt-1">
+              <div className="relative">
                 <input
                   id="phone"
                   name="phone"
@@ -197,85 +189,109 @@ export default function RegistrationPage() {
                   autoComplete="tel"
                   value={formData.phone}
                   onChange={handleChange}
-                  className={`block w-full shadow-sm sm:text-sm rounded-md ${errors.phone ? 'border-red-300 focus:ring-red-500 focus:border-red-500' : 'border-gray-300 focus:ring-yellow-500 focus:border-yellow-500'} border p-2`}
+                  className={`block w-full px-4 py-2.5 rounded-lg border ${errors.phone ? 'border-red-300 focus:ring-red-500 focus:border-red-500' : 'border-gray-300 focus:ring-yellow-500 focus:border-yellow-500'} shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-opacity-50`}
+                  placeholder="+1 (555) 123-4567"
                 />
-                {errors.phone && (
-                  <p className="mt-2 text-sm text-red-600">{errors.phone}</p>
-                )}
               </div>
+              {errors.phone && (
+                <p className="mt-1.5 text-sm text-red-600">{errors.phone}</p>
+              )}
             </div>
 
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700">
+              <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
                 Password
               </label>
-              <div className="mt-1">
+              <div className="relative">
                 <input
                   id="password"
                   name="password"
-                  type="password"
+                  type={showPassword ? "text" : "password"}
                   autoComplete="new-password"
                   value={formData.password}
                   onChange={handleChange}
-                  className={`block w-full shadow-sm sm:text-sm rounded-md ${errors.password ? 'border-red-300 focus:ring-red-500 focus:border-red-500' : 'border-gray-300 focus:ring-yellow-500 focus:border-yellow-500'} border p-2`}
+                  className={`block w-full px-4 py-2.5 rounded-lg border ${errors.password ? 'border-red-300 focus:ring-red-500 focus:border-red-500' : 'border-gray-300 focus:ring-yellow-500 focus:border-yellow-500'} shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-opacity-50 pr-10`}
+                  placeholder="••••••••"
                 />
-                {errors.password && (
-                  <p className="mt-2 text-sm text-red-600">{errors.password}</p>
-                )}
+                <button
+                  type="button"
+                  className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                  onClick={() => setShowPassword(!showPassword)}
+                >
+                  {showPassword ? (
+                    <EyeOff className="h-5 w-5 text-gray-400 hover:text-gray-500" />
+                  ) : (
+                    <Eye className="h-5 w-5 text-gray-400 hover:text-gray-500" />
+                  )}
+                </button>
               </div>
+              {errors.password && (
+                <p className="mt-1.5 text-sm text-red-600">{errors.password}</p>
+              )}
             </div>
 
             <div>
-              <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700">
+              <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-1">
                 Confirm password
               </label>
-              <div className="mt-1">
+              <div className="relative">
                 <input
                   id="confirmPassword"
                   name="confirmPassword"
-                  type="password"
+                  type={showConfirmPassword ? "text" : "password"}
                   autoComplete="new-password"
                   value={formData.confirmPassword}
                   onChange={handleChange}
-                  className={`block w-full shadow-sm sm:text-sm rounded-md ${errors.confirmPassword ? 'border-red-300 focus:ring-red-500 focus:border-red-500' : 'border-gray-300 focus:ring-yellow-500 focus:border-yellow-500'} border p-2`}
+                  className={`block w-full px-4 py-2.5 rounded-lg border ${errors.confirmPassword ? 'border-red-300 focus:ring-red-500 focus:border-red-500' : 'border-gray-300 focus:ring-yellow-500 focus:border-yellow-500'} shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-opacity-50 pr-10`}
+                  placeholder="••••••••"
                 />
-                {errors.confirmPassword && (
-                  <p className="mt-2 text-sm text-red-600">{errors.confirmPassword}</p>
-                )}
+                <button
+                  type="button"
+                  className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                >
+                  {showConfirmPassword ? (
+                    <EyeOff className="h-5 w-5 text-gray-400 hover:text-gray-500" />
+                  ) : (
+                    <Eye className="h-5 w-5 text-gray-400 hover:text-gray-500" />
+                  )}
+                </button>
               </div>
+              {errors.confirmPassword && (
+                <p className="mt-1.5 text-sm text-red-600">{errors.confirmPassword}</p>
+              )}
             </div>
 
             <div>
-              <label htmlFor="referralCode" className="block text-sm font-medium text-gray-700">
+              <label htmlFor="referralCode" className="block text-sm font-medium text-gray-700 mb-1">
                 Referral code (optional)
               </label>
-              <div className="mt-1">
-                <input
-                  id="referralCode"
-                  name="referralCode"
-                  type="text"
-                  value={formData.referralCode}
-                  onChange={handleChange}
-                  className="block w-full shadow-sm sm:text-sm rounded-md border-gray-300 focus:ring-yellow-500 focus:border-yellow-500 border p-2"
-                />
-              </div>
+              <input
+                id="referralCode"
+                name="referralCode"
+                type="text"
+                value={formData.referralCode}
+                onChange={handleChange}
+                className="block w-full px-4 py-2.5 rounded-lg border border-gray-300 shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 focus:ring-opacity-50"
+                placeholder="Enter referral code if any"
+              />
             </div>
 
-            <div>
+            <div className="pt-1">
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-yellow-500 hover:bg-yellow-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full flex justify-center items-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-yellow-600 hover:bg-yellow-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500 disabled:opacity-70 disabled:cursor-not-allowed transition-colors duration-200"
               >
                 {loading ? (
                   <>
-                    <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <svg className="animate-spin -ml-1 mr-3 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                     </svg>
-                    Processing...
+                    Creating account...
                   </>
-                ) : 'Register'}
+                ) : 'Create Account'}
               </button>
             </div>
           </form>
@@ -283,7 +299,7 @@ export default function RegistrationPage() {
           <div className="mt-6">
             <div className="relative">
               <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-gray-300"></div>
+                <div className="w-full border-t border-gray-200"></div>
               </div>
               <div className="relative flex justify-center text-sm">
                 <span className="px-2 bg-white text-gray-500">
@@ -292,11 +308,9 @@ export default function RegistrationPage() {
               </div>
             </div>
 
-            <div className="mt-6">
-              <Link className="w-full flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500" href="/auth/login">
-                {/* <a > */}
-                  Sign in
-                {/* </a> */}
+            <div className="mt-5">
+              <Link href="/auth/login" className="w-full flex justify-center py-2.5 px-4 border border-gray-300 rounded-lg shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500 transition-colors duration-200">
+                Sign in to your account
               </Link>
             </div>
           </div>

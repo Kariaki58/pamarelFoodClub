@@ -1,15 +1,14 @@
 import mongoose from 'mongoose';
 
 const userSchema = new mongoose.Schema({
-  firstName: {
+  // Basic Information
+  username: {
     type: String,
-    required: [true, 'First name is required'],
-    trim: true
-  },
-  lastName: {
-    type: String,
-    required: [true, 'Last name is required'],
-    trim: true
+    required: [true, 'Username is required'],
+    unique: true,
+    trim: true,
+    minlength: [3, 'Username must be at least 3 characters'],
+    maxlength: [20, 'Username cannot exceed 20 characters']
   },
   email: {
     type: String,
@@ -27,8 +26,7 @@ const userSchema = new mongoose.Schema({
   phone: {
     type: String,
     required: [true, 'Phone number is required'],
-    unique: true,
-    trim: true
+    trim: true,
   },
 
   // Authentication
@@ -38,16 +36,8 @@ const userSchema = new mongoose.Schema({
     minlength: [6, 'Password must be at least 6 characters'],
     select: false
   },
-  passwordChangedAt: Date,
-  passwordResetToken: String,
-  passwordResetExpires: Date,
 
-  // MLM Specific Fields
-  role: {
-    type: String,
-    enum: ['admin', 'affiliate'],
-    default: 'affiliate'
-  },
+  // MLM Structure
   referralCode: {
     type: String,
     unique: true,
@@ -57,61 +47,74 @@ const userSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User'
   },
-  directDownlines: [{
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User'
-  }],
   upline: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User'
   },
-  genealogyLevel: {
-    type: Number,
-    default: 0
+  directDownlines: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
+  }],
+  networkDownlines: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
+  }],
+
+  // Board Progress - Starts with no board
+  currentBoard: {
+    type: String,
+    enum: ['basic', 'bronze', 'silver', 'gold', 'platinum'],
+    default: 'basic'
+  },
+  boardProgress: {
+    none: {
+      membersRecruited: { type: Number, default: 0 }
+    },
+    bronze: { 
+      completed: { type: Boolean, default: false },
+      completionDate: Date,
+      membersRecruited: { type: Number, default: 0 }
+    },
+    silver: { 
+      completed: { type: Boolean, default: false },
+      completionDate: Date,
+      level1Recruited: { type: Number, default: 0 }, // Direct
+      level2Recruited: { type: Number, default: 0 }  // Indirect (7x7)
+    },
+    gold: { 
+      completed: { type: Boolean, default: false },
+      completionDate: Date,
+      level1Recruited: { type: Number, default: 0 }, // Direct
+      level2Recruited: { type: Number, default: 0 }  // Indirect (7x7)
+    },
+    platinum: { 
+      completed: { type: Boolean, default: false },
+      completionDate: Date,
+      membersRecruited: { type: Number, default: 0 }
+    }
   },
 
-  // Wallet Information
-  wallets: {
-    cash: { type: Number, default: 0 },
-    gadget: { type: Number, default: 0 },
-    food: { type: Number, default: 0 },
-    points: { type: Number, default: 0 }
+  // Earnings and Rewards
+  earnings: {
+    total: { type: Number, default: 0 },
+    foodWallet: { type: Number, default: 0 },
+    gadgetWallet: { type: Number, default: 0 },
+    cashWallet: { type: Number, default: 0 },
+    bonusWallet: { type: Number, default: 0 }
   },
 
-  // Status and Verification
-  isVerified: {
-    type: Boolean,
-    default: false
-  },
-  isActive: {
-    type: Boolean,
-    default: true
-  },
-  verificationToken: String,
-  verificationExpires: Date,
-
-  // Profile Information
-  profilePhoto: String,
-  address: {
-    street: String,
-    city: String,
-    state: String,
-    country: String,
-    postalCode: String
-  },
+  // Bank Information
   bankDetails: {
-    bankName: String,
-    accountName: String,
-    accountNumber: String,
-    bankCode: String
+    bankName: { type: String },
+    accountName: { type: String },
+    accountNumber: { type: String },
+    bankCode: { type: String }
   },
 
-  // Timestamps
-  lastLogin: Date,
-  loginCount: {
-    type: Number,
-    default: 0
-  }
+  // System Status
+  isVerified: { type: Boolean, default: false },
+  isActive: { type: Boolean, default: true },
+  lastLogin: Date
 }, {
   timestamps: true,
   toJSON: { virtuals: true },
@@ -121,22 +124,56 @@ const userSchema = new mongoose.Schema({
 // Generate referral code before saving
 userSchema.pre('save', async function(next) {
   if (!this.referralCode) {
-    this.referralCode = generateReferralCode(this.firstName, this.lastName);
+    this.referralCode = await generateUniqueReferralCode(this.username);
   }
   next();
 });
 
+// Method to check if user qualifies for Bronze board
+userSchema.methods.checkBronzeQualification = function() {
+  return this.boardProgress.none.membersRecruited >= 7;
+};
 
-// Virtual for full name
-userSchema.virtual('fullName').get(function() {
-  return `${this.firstName} ${this.lastName}`;
-});
+// Method to promote to Bronze board
+userSchema.methods.promoteToBronze = function() {
+  if (this.checkBronzeQualification() && this.currentBoard === 'none') {
+    this.currentBoard = 'bronze';
+    this.boardProgress.bronze = {
+      completed: true,
+      completionDate: new Date(),
+      membersRecruited: this.boardProgress.none.membersRecruited
+    };
+    return true;
+  }
+  return false;
+};
 
-// Generate referral code helper function
-function generateReferralCode(firstName, lastName) {
-  const randomChars = Math.random().toString(36).substring(2, 6).toUpperCase();
-  return `${firstName.charAt(0)}${lastName.charAt(0)}${randomChars}`;
-}
+// Method to add new recruit
+userSchema.methods.addRecruit = async function(recruitId, isDirect = true) {
+  if (isDirect) {
+    // Add to direct downlines if not already there
+    if (!this.directDownlines.includes(recruitId)) {
+      this.directDownlines.push(recruitId);
+    }
+    
+    // Update recruitment counts
+    if (this.currentBoard === 'none') {
+      this.boardProgress.none.membersRecruited += 1;
+      
+      // Auto-promote to Bronze if qualified
+      if (this.checkBronzeQualification()) {
+        await this.promoteToBronze();
+      }
+    }
+  } else {
+    // Add to network downlines if not already there
+    if (!this.networkDownlines.includes(recruitId)) {
+      this.networkDownlines.push(recruitId);
+    }
+  }
+  
+  await this.save();
+};
 
 const User = mongoose.models.User || mongoose.model('User', userSchema);
 export default User;
