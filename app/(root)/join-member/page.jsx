@@ -1,316 +1,83 @@
 "use client";
 
-import Link from 'next/link';
+import { useState } from 'react';
+import BasicFoodPlan from "./basic-food-plan";
+import ClassicFoodPlan from "./classic-food-plan";
+import PremiumFoodPlan from "./premium-food-plan";
 import { motion } from 'framer-motion';
-import { useInView } from 'react-intersection-observer';
-import { Button } from '@/components/ui/button';
-
 
 export default function JoinMember() {
-  const basicPlan = {
-    name: "BASIC FOOD PLAN",
-    boards: [
-      {
-        name: "Bronze Board",
-        level: "Level 1",
-        requirements: "7 direct members",
-        earnings: [
-          "₦13,000 FOODY BAG",
-          "Access to Silver Board"
-        ],
-        color: "bg-amber-100",
-        border: "border-amber-300",
-        icon: "🥉"
-      },
-      {
-        name: "Silver Board",
-        level: "Levels 1-2",
-        requirements: "7 direct + 49 indirect members",
-        earnings: [
-          "Total: ₦100,000 - ₦110,000",
-          "Food Wallet: ₦30,000",
-          "Gadgets Wallet: ₦10,000",
-          "Cash Wallet: ₦20,000",
-          "CSR Donation : ₦5,000",
-          "Arising Leader Bonus ( Complete your Silver Board within 30 days to qualify) : Mini Breakfast Fody Bag valued at ₦10,000",
-          "Access to Gold Board"
-        ],
-        color: "bg-gray-100",
-        border: "border-gray-300",
-        icon: "🥈"
-      },
-      {
-        name: "Gold Board",
-        level: "Levels 1-2",
-        requirements: "7 direct + 49 indirect members",
-        earnings: [
-          "Total: ₦1,300,000",
-          "Food Wallet: ₦300,000",
-          "Gadgets Wallet: ₦120,000",
-          "Cash Wallet: ₦300,000",
-          "Automatic Registration into PLATINUM FOOD PLAN : ₦80,000",
-          "HSF Project :  ₦500. 000",
-          "Access to Platinum Board"
-        ],
-        color: "bg-yellow-100",
-        border: "border-yellow-300",
-        icon: "🥇"
-      },
-      {
-        name: "Platinum Board",
-        level: "Level 1",
-        requirements: "7 direct members",
-        earnings: [
-          "Total: ₦14,000,000",
-          "Food Wallet: ₦2,000,000",
-          "Gadgets Wallet: ₦1,000,000",
-          "Cash Wallet: ₦4,000,000",
-          "Car Award: ₦5,000,000",
-          "HSF Project :  ₦2,00,000"
-        ],
-        color: "bg-blue-100",
-        border: "border-blue-300",
-        icon: "💎"
-      }
-    ]
-  };
+  const [activeTab, setActiveTab] = useState('basic');
 
-  const [ref, inView] = useInView({
-    triggerOnce: true,
-    threshold: 0.1,
-  });
-
-  const container = {
-    hidden: { opacity: 0 },
-    show: {
-      opacity: 1,
-      transition: {
-        staggerChildren: 0.2
-      }
-    }
-  };
-
-  const item = {
-    hidden: { opacity: 0, y: 20 },
-    show: { opacity: 1, y: 0, transition: { duration: 0.5 } }
-  };
+  const tabs = [
+    { id: 'basic', label: 'Basic Plan', color: 'from-amber-400 to-amber-500' },
+    { id: 'classic', label: 'Classic Plan', color: 'from-amber-500 to-amber-600' },
+    { id: 'premium', label: 'Premium Plan', color: 'from-gray-700 to-gray-900' }
+  ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 py-16 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto">
-        <div className="text-center mb-16">
+        {/* Header */}
+        <div className="text-center mb-12">
           <motion.h1 
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
-            className="text-4xl font-bold text-gray-900 sm:text-5xl"
+            className="text-4xl font-bold text-gray-900 sm:text-5xl mb-4"
           >
-            <span className="bg-clip-text text-transparent bg-gradient-to-r from-amber-500 to-amber-600">
-              Basic Food Plan
-            </span>
+            Choose Your <span className="bg-clip-text text-transparent bg-gradient-to-r from-amber-500 to-amber-600">Food Plan</span>
           </motion.h1>
           <motion.p
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.3, duration: 0.6 }}
-            className="mt-4 text-xl text-gray-600 max-w-3xl mx-auto"
+            className="text-xl text-gray-600 max-w-3xl mx-auto"
           >
-            Progress through our 4-board system to unlock increasing rewards
+            Select the plan that matches your goals and start earning rewards today
           </motion.p>
         </div>
 
-        {/* Registration Card */}
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.4, duration: 0.6 }}
-          className="bg-white rounded-2xl shadow-xl overflow-hidden border-2 border-amber-400 mb-16"
-        >
-          <div className="bg-gradient-to-r from-amber-400 to-amber-500 px-8 py-6">
-            <h2 className="text-2xl font-bold text-white">Start Your Journey</h2>
-            <p className="text-amber-100 mt-1">Register for the Basic Food Plan</p>
-          </div>
-          <div className="px-8 py-6 bg-white">
-            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
-              <div>
-                <h3 className="text-lg font-semibold text-gray-900">Basic Food Plan</h3>
-                <p className="text-gray-600 mt-1">Your entry point to the Pamarel system</p>
-                <div className="mt-4 text-amber-600 font-bold text-xl">₦4,000 Registration</div>
-              </div>
-              <Button 
-                href="/register" 
-                className="inline-flex items-center justify-center px-8 py-6 border border-transparent text-base font-medium rounded-md text-white bg-amber-600 hover:bg-amber-700 md:py-6 md:text-lg md:px-10 transition-all duration-200 hover:shadow-lg"
+        {/* Tab Navigation */}
+        <div className="flex justify-center mb-12">
+          <div className="inline-flex rounded-xl bg-gray-200 p-1">
+            {tabs.map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`relative px-6 py-3 rounded-lg text-sm font-medium transition-colors focus:outline-none ${
+                  activeTab === tab.id 
+                    ? 'text-white' 
+                    : 'text-gray-600 hover:text-gray-900'
+                }`}
               >
-                Join Basic Plan
-              </Button>
-            </div>
-          </div>
-        </motion.div>
-
-        {/* Board Progression */}
-        <div className="mb-20" ref={ref}>
-          <motion.h2 
-            initial={{ opacity: 0 }}
-            animate={inView ? { opacity: 1 } : {}}
-            transition={{ delay: 0.2, duration: 0.6 }}
-            className="text-3xl font-bold text-center text-gray-900 mb-12"
-          >
-            Board <span className="text-amber-600">Progression</span> Path
-          </motion.h2>
-          
-          {/* Connecting Line Container */}
-          <div className="relative">
-            {/* Horizontal Connecting Line */}
-            <motion.div
-              initial={{ scaleX: 0 }}
-              animate={inView ? { scaleX: 1 } : {}}
-              transition={{ delay: 0.4, duration: 1, ease: [0.16, 1, 0.3, 1] }}
-              className="hidden lg:block absolute h-1 bg-gradient-to-r from-amber-300 via-amber-400 to-amber-500 top-1/2 left-16 right-16 -translate-y-1/2 rounded-full"
-              style={{ originX: 0 }}
-            />
-            
-            {/* Board Grid */}
-            <motion.div 
-              variants={container}
-              initial="hidden"
-              animate={inView ? "show" : ""}
-              className="grid grid-cols-1 lg:grid-cols-4 gap-8 relative z-10"
-            >
-              {basicPlan.boards.map((board, index) => (
-                <motion.div 
-                  key={index}
-                  variants={item}
-                  className={`relative rounded-xl overflow-hidden border-2 ${board.border} bg-white shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-2`}
-                >
-                  {/* Board Header */}
-                  <div className={`px-6 py-5 ${board.color} border-b-2 ${board.border}`}>
-                    <div className="flex items-center gap-3">
-                      <span className="text-2xl">{board.icon}</span>
-                      <div>
-                        <h3 className="text-xl font-bold text-gray-900">{board.name}</h3>
-                        <p className="text-sm font-medium text-gray-700">{board.level}</p>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  {/* Board Content */}
-                  <div className="px-6 py-5">
-                    <div className="mb-5">
-                      <h4 className="text-sm font-semibold text-gray-500 uppercase tracking-wider">Requirements</h4>
-                      <p className="mt-1 text-gray-700 font-medium">{board.requirements}</p>
-                    </div>
-                    
-                    <div>
-                      <h4 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-2">Rewards</h4>
-                      <ul className="space-y-3">
-                        {board.earnings.map((item, i) => (
-                          <motion.li 
-                            key={i}
-                            initial={{ opacity: 0, x: -10 }}
-                            animate={inView ? { opacity: 1, x: 0 } : {}}
-                            transition={{ delay: 0.6 + (index * 0.1) + (i * 0.05) }}
-                            className="flex items-start"
-                          >
-                            <svg className="h-5 w-5 text-green-500 mr-2 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                            </svg>
-                            <span className="text-gray-700">{item}</span>
-                          </motion.li>
-                        ))}
-                      </ul>
-                    </div>
-                  </div>
-                  
-                  {/* Progress Indicator (mobile) */}
-                  {index < basicPlan.boards.length - 1 && (
-                    <>
-                      <div className="lg:hidden absolute -bottom-4 left-1/2 transform -translate-x-1/2 z-10">
-                        <div className="h-8 w-8 flex items-center justify-center bg-white rounded-full border-2 border-gray-300 shadow-md">
-                          <svg className="h-5 w-5 text-amber-600 rotate-90" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                          </svg>
-                        </div>
-                      </div>
-                    </>
-                  )}
-                </motion.div>
-              ))}
-            </motion.div>
-          </div>
-        </div>
-
-        <div className="flex justify-center">
-          <motion.div
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-          >
-            <Link 
-              href="/visual" 
-              className="my-3 inline-flex justify-center px-12 py-4 border border-transparent text-lg font-bold rounded-full shadow-lg text-white bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 transition-all duration-200 hover:shadow-xl"
-            >
-              See how you gain rewards
-            </Link>
-          </motion.div>
-        </div>
-
-
-        {/* How It Works */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
-          viewport={{ once: true }}
-          className="bg-white rounded-2xl shadow-lg overflow-hidden border border-gray-200"
-        >
-          <div className="bg-gradient-to-r from-gray-900 to-gray-800 px-8 py-6">
-            <h2 className="text-2xl font-bold text-white">How The System Works</h2>
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-gray-200">
-            {[
-              {
-                step: "1",
-                title: "Join Basic Plan",
-                description: "Register for the Basic Food Plan to begin your journey through our board system"
-              },
-              {
-                step: "2",
-                title: "Build Your Team",
-                description: "Refer others to complete board requirements and progress through the levels"
-              },
-              {
-                step: "3",
-                title: "Earn Rewards",
-                description: "Graduate to higher boards and unlock increasing financial rewards"
-              }
-            ].map((step, index) => (
-              <motion.div
-                key={index}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.1 + 0.3, duration: 0.5 }}
-                viewport={{ once: true }}
-                className="p-8"
-              >
-                <div className="flex items-center gap-4 mb-4">
-                  <motion.div 
-                    initial={{ scale: 0 }}
-                    whileInView={{ scale: 1 }}
-                    transition={{ delay: index * 0.1 + 0.5, type: "spring" }}
-                    viewport={{ once: true }}
-                    className="flex-shrink-0 h-12 w-12 rounded-full bg-amber-100 flex items-center justify-center"
-                  >
-                    <span className="text-amber-600 text-xl font-bold">{step.step}</span>
-                  </motion.div>
-                  <h3 className="text-lg font-bold text-gray-900">{step.title}</h3>
-                </div>
-                <p className="text-gray-600">{step.description}</p>
-              </motion.div>
+                {activeTab === tab.id && (
+                  <motion.span
+                    layoutId="activeTab"
+                    className={`absolute inset-0 bg-gradient-to-r ${tab.color} rounded-lg`}
+                    transition={{ type: 'spring', bounce: 0.2, duration: 0.6 }}
+                  />
+                )}
+                <span className="relative z-10">{tab.label}</span>
+              </button>
             ))}
           </div>
+        </div>
+
+        {/* Tab Content */}
+        <motion.div
+          key={activeTab}
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+          className="bg-white rounded-2xl shadow-xl overflow-hidden"
+        >
+          {activeTab === 'basic' && <BasicFoodPlan />}
+          {activeTab === 'classic' && <ClassicFoodPlan />}
+          {activeTab === 'premium' && <PremiumFoodPlan />}
         </motion.div>
 
-        {/* Final CTA */}
+        {/* Comparison CTA */}
         <motion.div
           initial={{ opacity: 0 }}
           whileInView={{ opacity: 1 }}
@@ -318,22 +85,79 @@ export default function JoinMember() {
           viewport={{ once: true }}
           className="mt-16 text-center"
         >
-          <h2 className="text-3xl font-bold text-gray-900 mb-4">Ready to Begin Your Journey?</h2>
-          <p className="text-xl text-gray-600 mb-8 max-w-3xl mx-auto">
-            Join thousands of entrepreneurs building wealth with Pamarel's proven system
+          <h2 className="text-2xl font-bold text-gray-900 mb-4">Not sure which plan is right for you?</h2>
+          <p className="text-lg text-gray-600 mb-6 max-w-3xl mx-auto">
+            Compare all plans to see which one matches your goals
           </p>
           <motion.div
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
+            className="inline-block"
           >
-            <Button 
-                href="/register" 
-                className="inline-flex items-center justify-center px-8 py-6 border border-transparent text-base font-medium rounded-md text-white bg-amber-600 hover:bg-amber-700 md:py-6 md:text-lg md:px-10 transition-all duration-200 hover:shadow-lg"
-              >
-                Join Basic Plan Now
-              </Button>
+            <button
+              onClick={() => {
+                // Scroll to comparison section or open modal
+                document.getElementById('plan-comparison')?.scrollIntoView({ behavior: 'smooth' });
+              }}
+              className="inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 transition-all duration-200 hover:shadow-lg"
+            >
+              Compare All Plans
+            </button>
           </motion.div>
         </motion.div>
+
+        {/* Plan Comparison Section */}
+        <div id="plan-comparison" className="mt-24">
+          <h2 className="text-3xl font-bold text-center text-gray-900 mb-12">Plan Comparison</h2>
+          
+          <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-0 divide-y md:divide-y-0 md:divide-x divide-gray-200">
+              {/* Header Row */}
+              <div className="p-6 bg-gray-50">
+                <h3 className="text-lg font-bold text-gray-900 mb-4">Features</h3>
+              </div>
+              <div className="p-6 bg-amber-50">
+                <h3 className="text-lg font-bold text-amber-800 mb-2">Basic</h3>
+                <p className="text-amber-600 font-medium">₦4,000</p>
+              </div>
+              <div className="p-6 bg-amber-100">
+                <h3 className="text-lg font-bold text-amber-900 mb-2">Classic</h3>
+                <p className="text-amber-700 font-medium">₦25,000</p>
+              </div>
+              <div className="p-6 bg-gray-800 text-white">
+                <h3 className="text-lg font-bold mb-2">Premium</h3>
+                <p className="text-gray-300 font-medium">₦80,000</p>
+              </div>
+
+              {/* Comparison Rows */}
+              {[
+                { feature: "Registration Fee", basic: "₦4,000", classic: "₦25,000", premium: "₦80,000" },
+                { feature: "Max Potential Earnings", basic: "₦14,000,000", classic: "₦30,000,000", premium: "₦100,000,000" },
+                { feature: "Food Wallet", basic: "Yes", classic: "Yes", premium: "Yes" },
+                { feature: "Cash Wallet", basic: "Yes", classic: "Yes", premium: "Yes" },
+                { feature: "Gadget Wallet", basic: "Yes", classic: "Yes", premium: "Yes" },
+                { feature: "Car Incentive", basic: "Platinum Only", classic: "Levels 3-4", premium: "Levels 2-4" },
+                { feature: "International Travel", basic: "No", classic: "Level 4", premium: "Levels 3-4" },
+                { feature: "Housing Incentive", basic: "No", classic: "No", premium: "Level 4" },
+              ].map((row, index) => (
+                <div key={index} className="contents group">
+                  <div className="p-4 bg-gray-50 group-hover:bg-gray-100 transition-colors">
+                    <p className="font-medium text-gray-700">{row.feature}</p>
+                  </div>
+                  <div className="p-4 bg-white group-hover:bg-amber-50 transition-colors">
+                    <p className="text-gray-800">{row.basic}</p>
+                  </div>
+                  <div className="p-4 bg-white group-hover:bg-amber-100 transition-colors">
+                    <p className="text-gray-800">{row.classic}</p>
+                  </div>
+                  <div className="p-4 bg-gray-900 group-hover:bg-gray-800 transition-colors">
+                    <p className="text-gray-200">{row.premium}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );
