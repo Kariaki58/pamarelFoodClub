@@ -13,7 +13,7 @@ export default function BasicFoodPlan() {
       {
         name: "Bronze Board",
         level: "Level 1",
-        requirements1: "7 direct members",
+        requirements1: "7 Team members",
         requirements2: "",
         earnings: [
           "₦13,000 FOODY BAG",
@@ -26,8 +26,8 @@ export default function BasicFoodPlan() {
       {
         name: "Silver Board",
         level: "Levels 1-2",
-        requirements1: "7 direct members",
-        requirement2: "49 indirect members",
+        requirements1: "7 Team members",
+        requirement2: "7X7 (49 Team members)",
         earnings: [
           "Total: ₦100,000 - ₦110,000",
           "Food Wallet: ₦30,000",
@@ -35,6 +35,7 @@ export default function BasicFoodPlan() {
           "Cash Wallet: ₦20,000",
           "CSR Donation : ₦5,000",
           "Arising Leader Bonus ( Complete your Silver Board within 30 days to qualify) : Mini Breakfast Fody Bag valued at ₦10,000",
+          "Automatic registration into CLASSIC FOOD PLAN",
           "Access to Gold Board"
         ],
         color: "bg-gray-100",
@@ -44,14 +45,14 @@ export default function BasicFoodPlan() {
       {
         name: "Gold Board",
         level: "Levels 1-2",
-        requirements1: "7 direct members",
-        requirement2: "49 indirect members",
+        requirements1: "7 Team members",
+        requirement2: "7X7 (49 Team members)",
         earnings: [
           "Total: ₦1,300,000",
           "Food Wallet: ₦300,000 (₦100,000  monthly food supplies for 3 months)",
           "Gadgets Wallet: ₦120,000",
           "Cash Wallet: ₦300,000",
-          "Automatic Registration into PLATINUM FOOD PLAN : ₦80,000",
+          "Automatic Registration into DELUXE FOOD PLAN : ₦80,000",
           "HSF Project :  ₦500. 000",
           "Access to Platinum Board"
         ],
@@ -62,7 +63,7 @@ export default function BasicFoodPlan() {
       {
         name: "Platinum Board",
         level: "Level 1",
-        requirements1: "7 direct members",
+        requirements1: "7 Team members",
         earnings: [
           "Total: ₦14,000,000",
           "Food Wallet: ₦2,000,000 (₦200,000  monthly food supplies for 10 months)",

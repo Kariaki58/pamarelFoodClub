@@ -12,7 +12,7 @@ export default function ClassicFoodPlan() {
       {
         name: "Bronze Board",
         level: "Level 1",
-        requirements1: "7 direct members",
+        requirements1: "7 Team members",
         earnings: [
           "Total: ₦120,000",
           "Foody Bag: ₦40,000",
@@ -28,8 +28,8 @@ export default function ClassicFoodPlan() {
       {
         name: "Silver Board",
         level: "Level 2",
-        requirements1: "7 direct members",
-        requirement2: "49 indirect members",
+        requirements1: "7 Team members",
+        requirement2: "7X7 (49 Team members)",
         earnings: [
           "Total: ₦370,000",
           "Food Wallet: ₦300,000 (₦100,000 monthly supplies for 3 months)",
@@ -44,8 +44,8 @@ export default function ClassicFoodPlan() {
       {
         name: "Gold Board",
         level: "Level 3",
-        requirements1: "7 direct members",
-        requirement2: "49 indirect members",
+        requirements1: "7 Team members",
+        requirement2: "7X7 (49 Team members)",
         earnings: [
           "Total: ₦20,000,000",
           "Food Wallet: ₦2,000,000 (₦200,000 monthly supplies for 10 months)",
@@ -61,7 +61,7 @@ export default function ClassicFoodPlan() {
       {
         name: "Platinum Board",
         level: "Level 4",
-        requirements1: "7 direct members",
+        requirements1: "7 Team members",
         earnings: [
           "Total: ₦45,000,000",
           "Food Wallet: ₦5,000,000 (₦500,000 monthly supplies for 10 months)",
@@ -215,7 +215,7 @@ export default function ClassicFoodPlan() {
                             transition={{ delay: 0.6 + (index * 0.1) + (i * 0.05) }}
                             className="flex items-start"
                           >
-                            <svg className="h-5 w-5 text-green-500 mr-2 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <svg className="h-5 w-5 text-purple-500 mr-2 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                             </svg>
                             <span className="text-gray-700">{item}</span>
@@ -254,6 +254,61 @@ export default function ClassicFoodPlan() {
             </Link>
           </motion.div>
         </div>
+
+        <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6 }}
+            viewport={{ once: true }}
+            className="bg-white rounded-2xl shadow-lg overflow-hidden border border-gray-200"
+          >
+            <div className="bg-gradient-to-r from-gray-900 to-gray-800 px-8 py-6">
+              <h2 className="text-2xl font-bold text-white">How The System Works</h2>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-gray-200">
+              {[
+                {
+                  step: "1",
+                  title: "Join Classic Plan",
+                  description: "Register for the Classic Food Plan to begin your journey through our board system"
+                },
+                {
+                  step: "2",
+                  title: "Build Your Team",
+                  description: "Refer others to complete board requirements and progress through the levels"
+                },
+                {
+                  step: "3",
+                  title: "Earn Rewards",
+                  description: "Graduate to higher boards and unlock increasing financial rewards"
+                }
+              ].map((step, index) => (
+                <motion.div
+                  key={index}
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.1 + 0.3, duration: 0.5 }}
+                  viewport={{ once: true }}
+                  className="p-8"
+                >
+                  <div className="flex items-center gap-4 mb-4">
+                    <motion.div 
+                      initial={{ scale: 0 }}
+                      whileInView={{ scale: 1 }}
+                      transition={{ delay: index * 0.1 + 0.5, type: "spring" }}
+                      viewport={{ once: true }}
+                      className="flex-shrink-0 h-12 w-12 rounded-full bg-purple-100 flex items-center justify-center"
+                    >
+                      <span className="text-purple-600 text-xl font-bold">{step.step}</span>
+                    </motion.div>
+                    <h3 className="text-lg font-bold text-gray-900">{step.title}</h3>
+                  </div>
+                  <p className="text-gray-600">{step.description}</p>
+                </motion.div>
+              ))}
+            </div>
+        </motion.div>
 
         {/* Final CTA */}
         <motion.div

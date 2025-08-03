@@ -12,7 +12,7 @@ export default function PremiumFoodPlan() {
       {
         name: "Bronze Board",
         level: "Level 1",
-        requirements1: "7 direct members",
+        requirements1: "7 Team members",
         earnings: [
           "Total: ₦200,000",
           "Foody Bag: ₦60,000",
@@ -28,8 +28,8 @@ export default function PremiumFoodPlan() {
       {
         name: "Silver Board",
         level: "Level 2",
-        requirements1: "7 direct members",
-        requirement2: "49 indirect members",
+        requirements1: "7 Team members",
+        requirement2: "7X7 (49 Team members)",
         earnings: [
           "Total: ₦1,700,000",
           "Food Wallet: ₦600,000 (₦200,000 monthly supplies for 3 months)",
@@ -43,8 +43,8 @@ export default function PremiumFoodPlan() {
       {
         name: "Gold Board",
         level: "Level 3",
-        requirements1: "7 direct members",
-        requirement2: "49 indirect members",
+        requirements1: "7 Team members",
+        requirement2: "7X7 (49 Team members)",
         earnings: [
           "Total: ₦35,000,000",
           "Food Wallet: ₦3,000,000 (₦300,000 monthly supplies for 10 months)",
@@ -61,14 +61,14 @@ export default function PremiumFoodPlan() {
       {
         name: "Platinum Board",
         level: "Level 4",
-        requirements1: "7 direct members",
+        requirements1: "7 Team members",
         earnings: [
           "Total: ₦300,000,000",
-          "Food Wallet: ₦20,000,000 (₦1,00,000 monthly supplies for 20 months)",
+          "Food Wallet: ₦20,000,000 (₦1,000,000 monthly supplies for 20 months)",
           "Gadgets Wallet: ₦10,000,000",
           "Cash Wallet: ₦100,000,000",
           "Automobiles Award: ₦30,000,000",
-          "International Country Trip: ₦20,000,000",
+          "International Trip: ₦20,000,000",
           "HSF Project: ₦20,000,000",
           "Housing Bonus: ₦100,000,000"
         ],
@@ -254,6 +254,61 @@ export default function PremiumFoodPlan() {
             </Link>
           </motion.div>
         </div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6 }}
+          viewport={{ once: true }}
+          className="bg-white rounded-2xl shadow-lg overflow-hidden border border-gray-200"
+        >
+          <div className="bg-gradient-to-r from-gray-900 to-gray-800 px-8 py-6">
+            <h2 className="text-2xl font-bold text-white">How The System Works</h2>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-gray-200">
+            {[
+              {
+                step: "1",
+                title: "Join Classic Plan",
+                description: "Register for the Classic Food Plan to begin your journey through our board system"
+              },
+              {
+                step: "2",
+                title: "Build Your Team",
+                description: "Refer others to complete board requirements and progress through the levels"
+              },
+              {
+                step: "3",
+                title: "Earn Rewards",
+                description: "Graduate to higher boards and unlock increasing financial rewards"
+              }
+            ].map((step, index) => (
+              <motion.div
+                key={index}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                transition={{ delay: index * 0.1 + 0.3, duration: 0.5 }}
+                viewport={{ once: true }}
+                className="p-8"
+              >
+                <div className="flex items-center gap-4 mb-4">
+                  <motion.div 
+                    initial={{ scale: 0 }}
+                    whileInView={{ scale: 1 }}
+                    transition={{ delay: index * 0.1 + 0.5, type: "spring" }}
+                    viewport={{ once: true }}
+                    className="flex-shrink-0 h-12 w-12 rounded-full bg-gray-100 flex items-center justify-center"
+                  >
+                    <span className="text-gray-600 text-xl font-bold">{step.step}</span>
+                  </motion.div>
+                  <h3 className="text-lg font-bold text-gray-900">{step.title}</h3>
+                </div>
+                <p className="text-gray-600">{step.description}</p>
+              </motion.div>
+            ))}
+          </div>
+      </motion.div>
 
         {/* Final CTA */}
         <motion.div

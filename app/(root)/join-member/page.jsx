@@ -140,7 +140,7 @@ export default function JoinMember() {
                     { feature: "Food Wallet", basic: "✓", classic: "✓", Premium: "✓" },
                     { feature: "Cash Wallet", basic: "✓", classic: "✓", Premium: "✓" },
                     { feature: "Gadget Wallet", basic: "✓", classic: "✓", Premium: "✓" },
-                    { feature: "Arising Leader Bonus", basic: "✗", classic: "✓", Premium: "✓" },
+                    { feature: "Arising Leader Bonus", basic: "✓", classic: "✓", Premium: "✓" },
                     { feature: "Car Incentive", basic: "Platinum", classic: "Gold & Platinum", Premium: "Gold & Platinum" },
                     { feature: "Travel Incentive", basic: "✗", classic: "Platinum", Premium: "Gold & Platinum" },
                     { feature: "Housing Bonus", basic: "✗", classic: "✗", Premium: "Platinum" },
