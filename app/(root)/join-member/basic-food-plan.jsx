@@ -13,7 +13,8 @@ export default function BasicFoodPlan() {
       {
         name: "Bronze Board",
         level: "Level 1",
-        requirements: "7 direct members",
+        requirements1: "7 direct members",
+        requirements2: "",
         earnings: [
           "₦13,000 FOODY BAG",
           "Access to Silver Board"
@@ -25,7 +26,8 @@ export default function BasicFoodPlan() {
       {
         name: "Silver Board",
         level: "Levels 1-2",
-        requirements: "7 direct + 49 indirect members",
+        requirements1: "7 direct members",
+        requirement2: "49 indirect members",
         earnings: [
           "Total: ₦100,000 - ₦110,000",
           "Food Wallet: ₦30,000",
@@ -42,10 +44,11 @@ export default function BasicFoodPlan() {
       {
         name: "Gold Board",
         level: "Levels 1-2",
-        requirements: "7 direct + 49 indirect members",
+        requirements1: "7 direct members",
+        requirement2: "49 indirect members",
         earnings: [
           "Total: ₦1,300,000",
-          "Food Wallet: ₦300,000",
+          "Food Wallet: ₦300,000 (₦100,000  monthly food supplies for 3 months)",
           "Gadgets Wallet: ₦120,000",
           "Cash Wallet: ₦300,000",
           "Automatic Registration into PLATINUM FOOD PLAN : ₦80,000",
@@ -59,10 +62,10 @@ export default function BasicFoodPlan() {
       {
         name: "Platinum Board",
         level: "Level 1",
-        requirements: "7 direct members",
+        requirements1: "7 direct members",
         earnings: [
           "Total: ₦14,000,000",
-          "Food Wallet: ₦2,000,000",
+          "Food Wallet: ₦2,000,000 (₦200,000  monthly food supplies for 10 months)",
           "Gadgets Wallet: ₦1,000,000",
           "Cash Wallet: ₦4,000,000",
           "Car Award: ₦5,000,000",
@@ -197,7 +200,8 @@ export default function BasicFoodPlan() {
                   <div className="px-6 py-5">
                     <div className="mb-5">
                       <h4 className="text-sm font-semibold text-gray-500 uppercase tracking-wider">Requirements</h4>
-                      <p className="mt-1 text-gray-700 font-medium">{board.requirements}</p>
+                      <p className="mt-1 text-gray-700 font-medium">{board.requirements1}</p>
+                      <p className="mt-1 text-gray-700 font-medium">{board.requirement2}</p>
                     </div>
                     
                     <div>

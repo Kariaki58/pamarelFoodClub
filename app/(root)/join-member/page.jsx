@@ -119,13 +119,13 @@ export default function JoinMember() {
                     <div className="p-4 sm:p-6 bg-gray-50 sticky left-0 z-10">
                       <h3 className="text-sm sm:text-base font-bold text-gray-900">Features</h3>
                     </div>
-                    <div className="p-4 sm:p-6 bg-amber-50">
-                      <h3 className="text-sm sm:text-base font-bold text-amber-800">Basic</h3>
-                      <p className="text-xs sm:text-sm text-amber-600 font-medium mt-1">₦4,000</p>
+                    <div className="p-4 sm:p-6 bg-green-800">
+                      <h3 className="text-sm sm:text-base font-bold text-gray-50">Basic</h3>
+                      <p className="text-xs sm:text-sm text-gray-50 font-medium mt-1">₦4,000</p>
                     </div>
-                    <div className="p-4 sm:p-6 bg-amber-100">
-                      <h3 className="text-sm sm:text-base font-bold text-amber-900">Classic</h3>
-                      <p className="text-xs sm:text-sm text-amber-700 font-medium mt-1">₦35,000</p>
+                    <div className="p-4 sm:p-6 bg-purple-800">
+                      <h3 className="text-sm sm:text-base font-bold text-gray-50">Classic</h3>
+                      <p className="text-xs sm:text-sm text-gray-50 font-medium mt-1">₦35,000</p>
                     </div>
                     <div className="p-4 sm:text-sm sm:p-6 bg-gray-800 text-white">
                       <h3 className="text-sm sm:text-base font-bold">Deluxe</h3>
@@ -140,21 +140,21 @@ export default function JoinMember() {
                     { feature: "Food Wallet", basic: "✓", classic: "✓", Premium: "✓" },
                     { feature: "Cash Wallet", basic: "✓", classic: "✓", Premium: "✓" },
                     { feature: "Gadget Wallet", basic: "✓", classic: "✓", Premium: "✓" },
+                    { feature: "Arising Leader Bonus", basic: "✗", classic: "✓", Premium: "✓" },
                     { feature: "Car Incentive", basic: "Platinum", classic: "Gold & Platinum", Premium: "Gold & Platinum" },
                     { feature: "Travel Incentive", basic: "✗", classic: "Platinum", Premium: "Gold & Platinum" },
                     { feature: "Housing Bonus", basic: "✗", classic: "✗", Premium: "Platinum" },
-                    { feature: "Arising Leader Bonus", basic: "✗", classic: "✓", Premium: "✓" },
                     { feature: "Board Levels", basic: "4", classic: "4", Premium: "4" },
                   ].map((row, index) => (
                     <div key={index} className="grid grid-cols-4 min-w-full border-t border-gray-200 hover:bg-gray-50 transition-colors">
                       <div className="p-3 sm:p-4 bg-gray-50 sticky left-0 z-10">
                         <p className="text-xs sm:text-sm font-medium text-gray-700">{row.feature}</p>
                       </div>
-                      <div className="p-3 sm:p-4 bg-white">
-                        <p className="text-xs sm:text-sm text-gray-800">{row.basic}</p>
+                      <div className="p-3 sm:p-4 bg-green-900">
+                        <p className="text-xs sm:text-sm text-gray-200">{row.basic}</p>
                       </div>
-                      <div className="p-3 sm:p-4 bg-white">
-                        <p className="text-xs sm:text-sm text-gray-800">{row.classic}</p>
+                      <div className="p-3 sm:p-4 bg-purple-900">
+                        <p className="text-xs sm:text-sm text-gray-200">{row.classic}</p>
                       </div>
                       <div className="p-3 sm:p-4 bg-gray-900">
                         <p className="text-xs sm:text-sm text-gray-200">{row.Premium}</p>

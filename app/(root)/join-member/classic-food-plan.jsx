@@ -12,8 +12,9 @@ export default function ClassicFoodPlan() {
       {
         name: "Bronze Board",
         level: "Level 1",
-        requirements: "7 direct members",
+        requirements1: "7 direct members",
         earnings: [
+          "Total: ₦120,000",
           "Foody Bag: ₦40,000",
           "Gadgets Wallet: ₦20,000",
           "Cash Wallet: ₦35,000",
@@ -27,9 +28,11 @@ export default function ClassicFoodPlan() {
       {
         name: "Silver Board",
         level: "Level 2",
-        requirements: "7 direct + 49 indirect members",
+        requirements1: "7 direct members",
+        requirement2: "49 indirect members",
         earnings: [
-          "Food Wallet: ₦300,000 (monthly supplies for 3 months)",
+          "Total: ₦370,000",
+          "Food Wallet: ₦300,000 (₦100,000 monthly supplies for 3 months)",
           "Gadgets Wallet: ₦50,000",
           "Cash Wallet: ₦100,000",
           "Automatic Registration into Deluxe Food Plan: ₦80,000"
@@ -41,9 +44,11 @@ export default function ClassicFoodPlan() {
       {
         name: "Gold Board",
         level: "Level 3",
-        requirements: "7 direct + 49 indirect members",
+        requirements1: "7 direct members",
+        requirement2: "49 indirect members",
         earnings: [
-          "Food Wallet: ₦2,000,000 (monthly supplies for 10 months)",
+          "Total: ₦20,000,000",
+          "Food Wallet: ₦2,000,000 (₦200,000 monthly supplies for 10 months)",
           "Gadgets Wallet: ₦2,000,000",
           "Cash Wallet: ₦5,000,000",
           "Car Award: ₦8,000,000",
@@ -56,9 +61,10 @@ export default function ClassicFoodPlan() {
       {
         name: "Platinum Board",
         level: "Level 4",
-        requirements: "7 direct members",
+        requirements1: "7 direct members",
         earnings: [
-          "Food Wallet: ₦5,000,000 (monthly supplies for 10 months)",
+          "Total: ₦45,000,000",
+          "Food Wallet: ₦5,000,000 (₦500,000 monthly supplies for 10 months)",
           "Gadgets Wallet: ₦3,000,000",
           "Cash Wallet: ₦10,000,000",
           "Car Award: ₦15,000,000",
@@ -194,7 +200,8 @@ export default function ClassicFoodPlan() {
                   <div className="px-6 py-5">
                     <div className="mb-5">
                       <h4 className="text-sm font-semibold text-gray-500 uppercase tracking-wider">Requirements</h4>
-                      <p className="mt-1 text-gray-700 font-medium">{board.requirements}</p>
+                      <p className="mt-1 text-gray-700 font-medium">{board.requirements1}</p>
+                      <p className="mt-1 text-gray-700 font-medium">{board.requirement2}</p>
                     </div>
                     
                     <div>
@@ -232,6 +239,20 @@ export default function ClassicFoodPlan() {
               ))}
             </motion.div>
           </div>
+        </div>
+
+        <div className="flex justify-center">
+          <motion.div
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+          >
+            <Link 
+              href="/visual" 
+              className="my-3 inline-flex justify-center px-12 py-4 border border-transparent text-lg font-bold rounded-full shadow-lg text-white bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 transition-all duration-200 hover:shadow-xl"
+            >
+              See how you gain rewards
+            </Link>
+          </motion.div>
         </div>
 
         {/* Final CTA */}
