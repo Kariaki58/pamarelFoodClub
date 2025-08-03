@@ -6,71 +6,65 @@ import { useInView } from 'react-intersection-observer';
 import { Button } from '@/components/ui/button';
 
 export default function PremiumFoodPlan() {
-  const premiumPlan = {
-    name: "PREMIUM FOOD PLAN",
+  const PremiumPlan = {
+    name: "DELUXE FOOD PLAN",
     boards: [
       {
-        name: "Level 1",
-        level: "First Board",
+        name: "Bronze Board",
+        level: "Level 1",
         requirements: "7 direct members",
         earnings: [
-          "₦48,000 cash back (Cash Wallet)",
-          "₦30,000 Food Wallet",
-          "₦22,000 CSR Donation",
-          "Access to Level 2"
+          "Foody Bag: ₦60,000",
+          "Gadgets Wallet: ₦20,000",
+          "Cash Wallet: ₦80,000",
+          "CSR Donation: ₦20,000",
+          "Arising Leader Bonus (complete within 30 days): Mini Breakfast Foody Bag valued at ₦20,000"
         ],
         color: "bg-gray-100",
         border: "border-gray-300",
         icon: "🥉"
       },
       {
-        name: "Level 2",
-        level: "Second Board",
+        name: "Silver Board",
+        level: "Level 2",
         requirements: "7 direct + 49 indirect members",
         earnings: [
-          "Total: ₦12,000,000",
-          "Food Wallet: ₦4,000,000 (20 months supply)",
-          "Gadget Wallet: ₦1,000,000",
-          "Cash Wallet: ₦1,000,000",
-          "Car Incentive: ₦5,000,000",
-          "HSF: ₦1,000,000",
-          "Access to Level 3"
+          "Food Wallet: ₦600,000 (monthly supplies for 3 months)",
+          "Gadgets Wallet: ₦400,000",
+          "Cash Wallet: ₦500,000"
         ],
         color: "bg-gray-800",
         border: "border-gray-900",
         icon: "🥈"
       },
       {
-        name: "Level 3",
-        level: "Third Board",
+        name: "Gold Board",
+        level: "Level 3",
         requirements: "7 direct + 49 indirect members",
         earnings: [
-          "Total: ₦30,000,000",
-          "Food Wallet: ₦6,000,000 (20 months supply)",
-          "Gadget Wallet: ₦2,000,000",
-          "Cash Wallet: ₦5,000,000",
-          "Car Incentive: ₦10,000,000",
-          "International Travel: ₦5,000,000",
-          "HSF: ₦2,000,000",
-          "Access to Level 4"
+          "Food Wallet: ₦3,000,000 (monthly supplies for 10 months)",
+          "Gadgets Wallet: ₦3,000,000",
+          "Cash Wallet: ₦6,000,000",
+          "Car Award: ₦10,000,000",
+          "HSF Project: ₦5,000,000",
+          "African Country Trip: ₦8,000,000"
         ],
         color: "bg-gray-900",
         border: "border-black",
         icon: "🥇"
       },
       {
-        name: "Level 4",
-        level: "Fourth Board",
+        name: "Platinum Board",
+        level: "Level 4",
         requirements: "7 direct members",
         earnings: [
-          "Total: ₦100,000,000",
-          "Food Wallet: ₦20,000,000 (40 months supply)",
-          "Gadget Wallet: ₦5,000,000",
-          "Cash Wallet: ₦20,000,000",
-          "Automobile Incentive: ₦20,000,000",
-          "International Travel: ₦10,000,000",
-          "Housing Incentive: ₦20,000,000",
-          "HSF: ₦5,000,000"
+          "Food Wallet: ₦20,000,000 (monthly supplies for 20 months)",
+          "Gadgets Wallet: ₦10,000,000",
+          "Cash Wallet: ₦100,000,000",
+          "Automobiles Award: ₦30,000,000",
+          "International Country Trip: ₦20,000,000",
+          "HSF Project: ₦20,000,000",
+          "Housing Bonus: ₦100,000,000"
         ],
         color: "bg-black",
         border: "border-gray-900",
@@ -110,7 +104,7 @@ export default function PremiumFoodPlan() {
             className="text-4xl font-bold text-gray-900 sm:text-5xl"
           >
             <span className="bg-clip-text text-transparent bg-gradient-to-r from-gray-700 to-black">
-              Premium Food Plan
+              Deluxe Food Plan
             </span>
           </motion.h1>
           <motion.p
@@ -132,20 +126,19 @@ export default function PremiumFoodPlan() {
         >
           <div className="bg-gradient-to-r from-gray-800 to-black px-8 py-6">
             <h2 className="text-2xl font-bold text-white">Elite Membership</h2>
-            <p className="text-gray-300 mt-1">Register for the Premium Food Plan</p>
+            <p className="text-gray-300 mt-1">Register for the Deluxe Food Plan</p>
           </div>
           <div className="px-8 py-6 bg-white">
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
               <div>
-                <h3 className="text-lg font-semibold text-gray-900">Premium Food Plan</h3>
+                <h3 className="text-lg font-semibold text-gray-900">Deluxe Food Plan</h3>
                 <p className="text-gray-600 mt-1">Our highest tier with elite rewards</p>
                 <div className="mt-4 text-gray-800 font-bold text-xl">₦80,000 Registration</div>
               </div>
               <Button 
-                href="/register/premium" 
                 className="inline-flex items-center justify-center px-8 py-6 border border-transparent text-base font-medium rounded-md text-white bg-gray-800 hover:bg-black md:py-6 md:text-lg md:px-10 transition-all duration-200 hover:shadow-lg"
               >
-                Join Premium Plan
+                Join Deluxe Plan
               </Button>
             </div>
           </div>
@@ -180,7 +173,7 @@ export default function PremiumFoodPlan() {
               animate={inView ? "show" : ""}
               className="grid grid-cols-1 lg:grid-cols-4 gap-8 relative z-10"
             >
-              {premiumPlan.boards.map((board, index) => (
+              {PremiumPlan.boards.map((board, index) => (
                 <motion.div 
                   key={index}
                   variants={item}
@@ -226,7 +219,7 @@ export default function PremiumFoodPlan() {
                   </div>
                   
                   {/* Progress Indicator (mobile) */}
-                  {index < premiumPlan.boards.length - 1 && (
+                  {index < PremiumPlan.boards.length - 1 && (
                     <div className="lg:hidden absolute -bottom-4 left-1/2 transform -translate-x-1/2 z-10">
                       <div className="h-8 w-8 flex items-center justify-center bg-white rounded-full border-2 border-gray-300 shadow-md">
                         <svg className="h-5 w-5 text-gray-800 rotate-90" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -251,17 +244,16 @@ export default function PremiumFoodPlan() {
         >
           <h2 className="text-3xl font-bold text-gray-900 mb-4">Ready for Elite Rewards?</h2>
           <p className="text-xl text-gray-600 mb-8 max-w-3xl mx-auto">
-            Join the Premium Food Plan and earn up to ₦100,000,000 in rewards
+            Join the Deluxe Food Plan and earn up to ₦200,000,000 in rewards
           </p>
           <motion.div
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
           >
             <Button 
-              href="/register/premium" 
               className="inline-flex items-center justify-center px-8 py-6 border border-transparent text-base font-medium rounded-md text-white bg-gray-800 hover:bg-black md:py-6 md:text-lg md:px-10 transition-all duration-200 hover:shadow-lg"
             >
-              Join Premium Plan Now
+              Join Deluxe Plan Now
             </Button>
           </motion.div>
         </motion.div>

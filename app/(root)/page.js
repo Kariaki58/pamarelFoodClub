@@ -8,11 +8,13 @@ import { HeroSection } from "@/components/account/hero-section";
 import TopDeals from "@/components/account/top-deals";
 import { GadgetEssentails } from "@/components/account/gadget-essentails";
 import { EarnWithUsSection } from "@/components/account/EarnWithUsSection";
+import PamarelLandingPage from "@/components/landing-page/PamarelLandingPage";
 
 export default function Home() {
 
   return (
     <>
+      {/* <PamarelLandingPage /> */}
       <HeroSection />
       <EarnWithUsSection />
       <div className="container mx-auto px-4 md:px-6">

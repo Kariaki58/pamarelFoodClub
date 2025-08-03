@@ -18,8 +18,8 @@ export default function BasicFoodPlan() {
           "₦13,000 FOODY BAG",
           "Access to Silver Board"
         ],
-        color: "bg-amber-100",
-        border: "border-amber-300",
+        color: "bg-green-100",
+        border: "border-green-300",
         icon: "🥉"
       },
       {
@@ -105,7 +105,7 @@ export default function BasicFoodPlan() {
             transition={{ duration: 0.6 }}
             className="text-4xl font-bold text-gray-900 sm:text-5xl"
           >
-            <span className="bg-clip-text text-transparent bg-gradient-to-r from-amber-500 to-amber-600">
+            <span className="bg-clip-text text-transparent bg-gradient-to-r from-green-500 to-green-600">
               Basic Food Plan
             </span>
           </motion.h1>
@@ -124,22 +124,22 @@ export default function BasicFoodPlan() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.4, duration: 0.6 }}
-          className="bg-white rounded-2xl shadow-xl overflow-hidden border-2 border-amber-400 mb-16"
+          className="bg-white rounded-2xl shadow-xl overflow-hidden border-2 border-green-400 mb-16"
         >
-          <div className="bg-gradient-to-r from-amber-400 to-amber-500 px-8 py-6">
+          <div className="bg-gradient-to-r from-green-400 to-green-500 px-8 py-6">
             <h2 className="text-2xl font-bold text-white">Start Your Journey</h2>
-            <p className="text-amber-100 mt-1">Register for the Basic Food Plan</p>
+            <p className="text-green-100 mt-1">Register for the Basic Food Plan</p>
           </div>
           <div className="px-8 py-6 bg-white">
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
               <div>
                 <h3 className="text-lg font-semibold text-gray-900">Basic Food Plan</h3>
                 <p className="text-gray-600 mt-1">Your entry point to the Pamarel system</p>
-                <div className="mt-4 text-amber-600 font-bold text-xl">₦4,000 Registration</div>
+                <div className="mt-4 text-green-600 font-bold text-xl">₦4,000 Registration</div>
               </div>
               <Button 
                 href="/register" 
-                className="inline-flex items-center justify-center px-8 py-6 border border-transparent text-base font-medium rounded-md text-white bg-amber-600 hover:bg-amber-700 md:py-6 md:text-lg md:px-10 transition-all duration-200 hover:shadow-lg"
+                className="inline-flex items-center justify-center px-8 py-6 border border-transparent text-base font-medium rounded-md text-white bg-green-600 hover:bg-green-700 md:py-6 md:text-lg md:px-10 transition-all duration-200 hover:shadow-lg"
               >
                 Join Basic Plan
               </Button>
@@ -155,7 +155,7 @@ export default function BasicFoodPlan() {
             transition={{ delay: 0.2, duration: 0.6 }}
             className="text-3xl font-bold text-center text-gray-900 mb-12"
           >
-            Board <span className="text-amber-600">Progression</span> Path
+            Board <span className="text-green-600">Progression</span> Path
           </motion.h2>
           
           {/* Connecting Line Container */}
@@ -165,7 +165,7 @@ export default function BasicFoodPlan() {
               initial={{ scaleX: 0 }}
               animate={inView ? { scaleX: 1 } : {}}
               transition={{ delay: 0.4, duration: 1, ease: [0.16, 1, 0.3, 1] }}
-              className="hidden lg:block absolute h-1 bg-gradient-to-r from-amber-300 via-amber-400 to-amber-500 top-1/2 left-16 right-16 -translate-y-1/2 rounded-full"
+              className="hidden lg:block absolute h-1 bg-gradient-to-r from-green-300 via-green-400 to-green-500 top-1/2 left-16 right-16 -translate-y-1/2 rounded-full"
               style={{ originX: 0 }}
             />
             
@@ -226,7 +226,7 @@ export default function BasicFoodPlan() {
                     <>
                       <div className="lg:hidden absolute -bottom-4 left-1/2 transform -translate-x-1/2 z-10">
                         <div className="h-8 w-8 flex items-center justify-center bg-white rounded-full border-2 border-gray-300 shadow-md">
-                          <svg className="h-5 w-5 text-amber-600 rotate-90" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <svg className="h-5 w-5 text-green-600 rotate-90" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                           </svg>
                         </div>
@@ -246,7 +246,7 @@ export default function BasicFoodPlan() {
           >
             <Link 
               href="/visual" 
-              className="my-3 inline-flex justify-center px-12 py-4 border border-transparent text-lg font-bold rounded-full shadow-lg text-white bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 transition-all duration-200 hover:shadow-xl"
+              className="my-3 inline-flex justify-center px-12 py-4 border border-transparent text-lg font-bold rounded-full shadow-lg text-white bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 transition-all duration-200 hover:shadow-xl"
             >
               See how you gain rewards
             </Link>
@@ -298,9 +298,9 @@ export default function BasicFoodPlan() {
                     whileInView={{ scale: 1 }}
                     transition={{ delay: index * 0.1 + 0.5, type: "spring" }}
                     viewport={{ once: true }}
-                    className="flex-shrink-0 h-12 w-12 rounded-full bg-amber-100 flex items-center justify-center"
+                    className="flex-shrink-0 h-12 w-12 rounded-full bg-green-100 flex items-center justify-center"
                   >
-                    <span className="text-amber-600 text-xl font-bold">{step.step}</span>
+                    <span className="text-green-600 text-xl font-bold">{step.step}</span>
                   </motion.div>
                   <h3 className="text-lg font-bold text-gray-900">{step.title}</h3>
                 </div>
@@ -328,7 +328,7 @@ export default function BasicFoodPlan() {
           >
             <Button 
                 href="/register" 
-                className="inline-flex items-center justify-center px-8 py-6 border border-transparent text-base font-medium rounded-md text-white bg-amber-600 hover:bg-amber-700 md:py-6 md:text-lg md:px-10 transition-all duration-200 hover:shadow-lg"
+                className="inline-flex items-center justify-center px-8 py-6 border border-transparent text-base font-medium rounded-md text-white bg-green-600 hover:bg-green-700 md:py-6 md:text-lg md:px-10 transition-all duration-200 hover:shadow-lg"
               >
                 Join Basic Plan Now
               </Button>

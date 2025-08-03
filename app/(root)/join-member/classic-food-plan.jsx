@@ -10,64 +10,60 @@ export default function ClassicFoodPlan() {
     name: "CLASSIC FOOD PLAN",
     boards: [
       {
-        name: "Level 1",
-        level: "First Board",
+        name: "Bronze Board",
+        level: "Level 1",
         requirements: "7 direct members",
         earnings: [
-          "₦12,500 cash back (Cash Wallet)",
-          "Access to Level 2"
+          "Foody Bag: ₦40,000",
+          "Gadgets Wallet: ₦20,000",
+          "Cash Wallet: ₦35,000",
+          "CSR Donation: ₦10,000",
+          "Arising Leader Bonus (complete within 30 days): Mini Breakfast Foody Bag valued at ₦15,000"
         ],
-        color: "bg-amber-100",
-        border: "border-amber-300",
+        color: "bg-purple-100",
+        border: "border-purple-300",
         icon: "🥉"
       },
       {
-        name: "Level 2",
-        level: "Second Board",
+        name: "Silver Board",
+        level: "Level 2",
         requirements: "7 direct + 49 indirect members",
         earnings: [
-          "Total: ₦1,200,000",
-          "Premium Food Plan Auto Registration: ₦48,000",
-          "Food Wallet: ₦300,000 (6 months supply)",
-          "Gadget Wallet: ₦140,000",
-          "Cash Wallet: ₦200,000",
-          "CSR Donation: ₦12,000",
-          "HSF: ₦500,000",
-          "Access to Level 3"
+          "Food Wallet: ₦300,000 (monthly supplies for 3 months)",
+          "Gadgets Wallet: ₦50,000",
+          "Cash Wallet: ₦100,000",
+          "Automatic Registration into Deluxe Food Plan: ₦80,000"
         ],
         color: "bg-gray-100",
         border: "border-gray-300",
         icon: "🥈"
       },
       {
-        name: "Level 3",
-        level: "Third Board",
+        name: "Gold Board",
+        level: "Level 3",
         requirements: "7 direct + 49 indirect members",
         earnings: [
-          "Total: ₦12,000,000",
-          "Food Wallet: ₦4,000,000 (20 months supply)",
-          "Gadget Wallet: ₦1,000,000",
-          "Cash Wallet: ₦1,000,000",
-          "Car Incentive: ₦5,000,000",
-          "HSF: ₦1,000,000",
-          "Access to Level 4"
+          "Food Wallet: ₦2,000,000 (monthly supplies for 10 months)",
+          "Gadgets Wallet: ₦2,000,000",
+          "Cash Wallet: ₦5,000,000",
+          "Car Award: ₦8,000,000",
+          "HSF Project: ₦3,000,000"
         ],
         color: "bg-yellow-100",
         border: "border-yellow-300",
         icon: "🥇"
       },
       {
-        name: "Level 4",
-        level: "Fourth Board",
-        requirements: "7 direct + 49 indirect members",
+        name: "Platinum Board",
+        level: "Level 4",
+        requirements: "7 direct members",
         earnings: [
-          "Total: ₦30,000,000",
-          "Food Wallet: ₦6,000,000 (20 months supply)",
-          "Gadget Wallet: ₦2,000,000",
-          "Cash Wallet: ₦5,000,000",
-          "Car Incentive: ₦10,000,000",
-          "International Travel: ₦5,000,000",
-          "HSF: ₦2,000,000"
+          "Food Wallet: ₦5,000,000 (monthly supplies for 10 months)",
+          "Gadgets Wallet: ₦3,000,000",
+          "Cash Wallet: ₦10,000,000",
+          "Car Award: ₦15,000,000",
+          "African Country Trip: ₦7,000,000",
+          "HSF Project: ₦5,000,000"
         ],
         color: "bg-blue-100",
         border: "border-blue-300",
@@ -106,7 +102,7 @@ export default function ClassicFoodPlan() {
             transition={{ duration: 0.6 }}
             className="text-4xl font-bold text-gray-900 sm:text-5xl"
           >
-            <span className="bg-clip-text text-transparent bg-gradient-to-r from-amber-500 to-amber-600">
+            <span className="bg-clip-text text-transparent bg-gradient-to-r from-purple-500 to-purple-600">
               Classic Food Plan
             </span>
           </motion.h1>
@@ -125,22 +121,22 @@ export default function ClassicFoodPlan() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.4, duration: 0.6 }}
-          className="bg-white rounded-2xl shadow-xl overflow-hidden border-2 border-amber-400 mb-16"
+          className="bg-white rounded-2xl shadow-xl overflow-hidden border-2 border-purple-400 mb-16"
         >
-          <div className="bg-gradient-to-r from-amber-400 to-amber-500 px-8 py-6">
+          <div className="bg-gradient-to-r from-purple-400 to-purple-500 px-8 py-6">
             <h2 className="text-2xl font-bold text-white">Start Earning Big</h2>
-            <p className="text-amber-100 mt-1">Register for the Classic Food Plan</p>
+            <p className="text-purple-100 mt-1">Register for the Classic Food Plan</p>
           </div>
           <div className="px-8 py-6 bg-white">
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
               <div>
                 <h3 className="text-lg font-semibold text-gray-900">Classic Food Plan</h3>
                 <p className="text-gray-600 mt-1">Premium rewards with our gold-tier plan</p>
-                <div className="mt-4 text-amber-600 font-bold text-xl">₦35,000 Registration</div>
+                <div className="mt-4 text-purple-600 font-bold text-xl">₦35,000 Registration</div>
               </div>
               <Button 
                 href="/register/classic" 
-                className="inline-flex items-center justify-center px-8 py-6 border border-transparent text-base font-medium rounded-md text-white bg-amber-600 hover:bg-amber-700 md:py-6 md:text-lg md:px-10 transition-all duration-200 hover:shadow-lg"
+                className="inline-flex items-center justify-center px-8 py-6 border border-transparent text-base font-medium rounded-md text-white bg-purple-600 hover:bg-purple-700 md:py-6 md:text-lg md:px-10 transition-all duration-200 hover:shadow-lg"
               >
                 Join Classic Plan
               </Button>
@@ -156,7 +152,7 @@ export default function ClassicFoodPlan() {
             transition={{ delay: 0.2, duration: 0.6 }}
             className="text-3xl font-bold text-center text-gray-900 mb-12"
           >
-            Compensation <span className="text-amber-600">Structure</span>
+            Compensation <span className="text-purple-600">Structure</span>
           </motion.h2>
           
           {/* Connecting Line Container */}
@@ -166,7 +162,7 @@ export default function ClassicFoodPlan() {
               initial={{ scaleX: 0 }}
               animate={inView ? { scaleX: 1 } : {}}
               transition={{ delay: 0.4, duration: 1, ease: [0.16, 1, 0.3, 1] }}
-              className="hidden lg:block absolute h-1 bg-gradient-to-r from-amber-300 via-amber-400 to-amber-500 top-1/2 left-16 right-16 -translate-y-1/2 rounded-full"
+              className="hidden lg:block absolute h-1 bg-gradient-to-r from-purple-300 via-purple-400 to-purple-500 top-1/2 left-16 right-16 -translate-y-1/2 rounded-full"
               style={{ originX: 0 }}
             />
             
@@ -226,7 +222,7 @@ export default function ClassicFoodPlan() {
                   {index < classicPlan.boards.length - 1 && (
                     <div className="lg:hidden absolute -bottom-4 left-1/2 transform -translate-x-1/2 z-10">
                       <div className="h-8 w-8 flex items-center justify-center bg-white rounded-full border-2 border-gray-300 shadow-md">
-                        <svg className="h-5 w-5 text-amber-600 rotate-90" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <svg className="h-5 w-5 text-purple-600 rotate-90" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                         </svg>
                       </div>
@@ -248,7 +244,7 @@ export default function ClassicFoodPlan() {
         >
           <h2 className="text-3xl font-bold text-gray-900 mb-4">Ready for Gold-Level Rewards?</h2>
           <p className="text-xl text-gray-600 mb-8 max-w-3xl mx-auto">
-            Join the Classic Food Plan and earn up to ₦30,000,000 in rewards
+            Join the Classic Food Plan and earn up to ₦45,000,000 in rewards
           </p>
           <motion.div
             whileHover={{ scale: 1.05 }}
@@ -256,7 +252,7 @@ export default function ClassicFoodPlan() {
           >
             <Button 
               href="/register/classic" 
-              className="inline-flex items-center justify-center px-8 py-6 border border-transparent text-base font-medium rounded-md text-white bg-amber-600 hover:bg-amber-700 md:py-6 md:text-lg md:px-10 transition-all duration-200 hover:shadow-lg"
+              className="inline-flex items-center justify-center px-8 py-6 border border-transparent text-base font-medium rounded-md text-white bg-purple-600 hover:bg-purple-700 md:py-6 md:text-lg md:px-10 transition-all duration-200 hover:shadow-lg"
             >
               Join Classic Plan Now
             </Button>

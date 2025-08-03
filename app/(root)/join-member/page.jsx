@@ -3,16 +3,16 @@
 import { useState } from 'react';
 import BasicFoodPlan from "./basic-food-plan";
 import ClassicFoodPlan from "./classic-food-plan";
-import PremiumFoodPlan from "./premium-food-plan";
+import PremiumFoodPlan from './premium-food-plan';
 import { motion } from 'framer-motion';
 
 export default function JoinMember() {
   const [activeTab, setActiveTab] = useState('basic');
 
   const tabs = [
-    { id: 'basic', label: 'Basic Plan', color: 'from-amber-400 to-amber-500' },
-    { id: 'classic', label: 'Classic Plan', color: 'from-amber-500 to-amber-600' },
-    { id: 'premium', label: 'Premium Plan', color: 'from-gray-700 to-gray-900' }
+    { id: 'basic', label: 'Basic Plan', color: 'from-green-400 to-green-500' },
+    { id: 'classic', label: 'Classic Plan', color: 'from-purple-500 to-purple-600' },
+    { id: 'Premium', label: 'DELUXE Plan', color: 'from-gray-700 to-gray-900' }
   ];
 
   return (
@@ -74,7 +74,7 @@ export default function JoinMember() {
         >
           {activeTab === 'basic' && <BasicFoodPlan />}
           {activeTab === 'classic' && <ClassicFoodPlan />}
-          {activeTab === 'premium' && <PremiumFoodPlan />}
+          {activeTab === 'Premium' && <PremiumFoodPlan />}
         </motion.div>
 
         {/* Comparison CTA */}
@@ -128,21 +128,23 @@ export default function JoinMember() {
                       <p className="text-xs sm:text-sm text-amber-700 font-medium mt-1">₦35,000</p>
                     </div>
                     <div className="p-4 sm:text-sm sm:p-6 bg-gray-800 text-white">
-                      <h3 className="text-sm sm:text-base font-bold">Premium</h3>
+                      <h3 className="text-sm sm:text-base font-bold">Deluxe</h3>
                       <p className="text-xs sm:text-sm text-gray-300 font-medium mt-1">₦80,000</p>
                     </div>
                   </div>
 
                   {/* Comparison Rows */}
                   {[
-                    { feature: "Registration Fee", basic: "₦4,000", classic: "₦35,000", premium: "₦80,000" },
-                    { feature: "Max Earnings", basic: "₦14M", classic: "₦30M", premium: "₦100M" },
-                    { feature: "Food Wallet", basic: "✓", classic: "✓", premium: "✓" },
-                    { feature: "Cash Wallet", basic: "✓", classic: "✓", premium: "✓" },
-                    { feature: "Gadget Wallet", basic: "✓", classic: "✓", premium: "✓" },
-                    { feature: "Car Incentive", basic: "Platinum", classic: "Levels 3-4", premium: "Levels 2-4" },
-                    { feature: "Travel", basic: "✗", classic: "Level 4", premium: "Levels 3-4" },
-                    { feature: "Housing", basic: "✗", classic: "✗", premium: "Level 4" },
+                    { feature: "Registration Fee", basic: "₦4,000", classic: "₦35,000", Premium: "₦80,000" },
+                    { feature: "Max Earnings", basic: "₦14M", classic: "₦45M", Premium: "₦200M" },
+                    { feature: "Food Wallet", basic: "✓", classic: "✓", Premium: "✓" },
+                    { feature: "Cash Wallet", basic: "✓", classic: "✓", Premium: "✓" },
+                    { feature: "Gadget Wallet", basic: "✓", classic: "✓", Premium: "✓" },
+                    { feature: "Car Incentive", basic: "Platinum", classic: "Gold & Platinum", Premium: "Gold & Platinum" },
+                    { feature: "Travel Incentive", basic: "✗", classic: "Platinum", Premium: "Gold & Platinum" },
+                    { feature: "Housing Bonus", basic: "✗", classic: "✗", Premium: "Platinum" },
+                    { feature: "Arising Leader Bonus", basic: "✗", classic: "✓", Premium: "✓" },
+                    { feature: "Board Levels", basic: "4", classic: "4", Premium: "4" },
                   ].map((row, index) => (
                     <div key={index} className="grid grid-cols-4 min-w-full border-t border-gray-200 hover:bg-gray-50 transition-colors">
                       <div className="p-3 sm:p-4 bg-gray-50 sticky left-0 z-10">
@@ -155,7 +157,7 @@ export default function JoinMember() {
                         <p className="text-xs sm:text-sm text-gray-800">{row.classic}</p>
                       </div>
                       <div className="p-3 sm:p-4 bg-gray-900">
-                        <p className="text-xs sm:text-sm text-gray-200">{row.premium}</p>
+                        <p className="text-xs sm:text-sm text-gray-200">{row.Premium}</p>
                       </div>
                     </div>
                   ))}
