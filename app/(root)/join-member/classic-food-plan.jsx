@@ -31,7 +31,7 @@ export default function ClassicFoodPlan() {
         requirements1: "7 Team members",
         requirement2: "7X7 (49 Team members)",
         earnings: [
-          "Total: ₦370,000",
+          "Total: ₦530,000",
           "Food Wallet: ₦300,000 (₦100,000 monthly supplies for 3 months)",
           "Gadgets Wallet: ₦50,000",
           "Cash Wallet: ₦100,000",
@@ -318,7 +318,7 @@ export default function ClassicFoodPlan() {
           viewport={{ once: true }}
           className="mt-16 text-center"
         >
-          <h2 className="text-3xl font-bold text-gray-900 mb-4">Ready for Gold-Level Rewards?</h2>
+          <h2 className="text-3xl font-bold text-gray-900 mb-4">Ready for Royal-Level Rewards?</h2>
           <p className="text-xl text-gray-600 mb-8 max-w-3xl mx-auto">
             Join the Classic Food Plan and earn up to ₦45,000,000 in rewards
           </p>
