@@ -3,324 +3,166 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { ArrowRight, Info, Users, Trophy, Gift, Wallet } from "lucide-react";
+import { ArrowRight, Info, Users, Trophy, Gift, Wallet, Copy, Check } from "lucide-react";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
+import { useState, useEffect } from "react";
+import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import { useSession } from "next-auth/react";
+import { cn } from "@/lib/utils";
+import { PLANS } from "@/lib/plans";
 
-export const AffiliateProgress = () => {
-  // Enhanced dummy data with Basic Plan
-  const dummyData = {
-    currentBoard: 'basic', // basic/bronze/silver/gold/platinum
-    boardProgress: {
-      basic: { membersRecruited: 0 },
-      bronze: { 
-        completed: false,
-        membersRecruited: 0
-      },
-      silver: {
-        completed: false,
-        level1Recruited: 0,
-        level2Recruited: 0
-      },
-      gold: {
-        completed: false,
-        level1Recruited: 0,
-        level2Recruited: 0
-      },
-      platinum: {
-        completed: false,
-        membersRecruited: 0
-      }
-    },
-    directDownlines: 0,
-    networkDownlines: 0,
-    earnings: {
-      total: 0
-    }
-  };
+const ReferralLink = ({ code }) => {
+  const [copied, setCopied] = useState(false);
+  const referralLink = typeof window !== 'undefined' ? `${window.location.origin}/auth/register?ref=${code}` : '';
 
-  const progressData = {
-    currentBoard: dummyData.currentBoard,
-    nextBoard: getNextBoard(dummyData.currentBoard),
-    boards: {
-      basic: {
-        completed: false,
-        progress: 0,
-        required: 1, // Just needs to join
-        current: 1,
-        reward: 'Access to System',
-        icon: <Wallet className="w-5 h-5" />
-      },
-      bronze: {
-        completed: dummyData.boardProgress.bronze.completed,
-        progress: Math.round((dummyData.boardProgress.basic.membersRecruited / 7) * 100),
-        required: 7,
-        current: dummyData.boardProgress.basic.membersRecruited,
-        reward: '₦13,000 FOODY BAG',
-        icon: <Trophy className="w-5 h-5 text-amber-500" />
-      },
-      silver: {
-        completed: dummyData.boardProgress.silver.completed,
-        progress: Math.round(((dummyData.boardProgress.silver.level1Recruited + 
-                             dummyData.boardProgress.silver.level2Recruited) / 56) * 100),
-        required: 56,
-        current: dummyData.boardProgress.silver.level1Recruited + 
-                dummyData.boardProgress.silver.level2Recruited,
-        reward: '₦100,000 - ₦110,000',
-        icon: <Trophy className="w-5 h-5 text-gray-400" />
-      },
-      gold: {
-        completed: dummyData.boardProgress.gold.completed,
-        progress: Math.round(((dummyData.boardProgress.gold.level1Recruited + 
-                             dummyData.boardProgress.gold.level2Recruited) / 56) * 100),
-        required: 56,
-        current: dummyData.boardProgress.gold.level1Recruited + 
-                dummyData.boardProgress.gold.level2Recruited,
-        reward: '₦1,300,000',
-        icon: <Trophy className="w-5 h-5 text-yellow-500" />
-      },
-      platinum: {
-        completed: dummyData.boardProgress.platinum.completed,
-        progress: Math.round((dummyData.boardProgress.platinum.membersRecruited / 7) * 100),
-        required: 7,
-        current: dummyData.boardProgress.platinum.membersRecruited,
-        reward: '₦14,000,000 + Car Award',
-        icon: <Trophy className="w-5 h-5 text-blue-500" />
-      }
-    },
-    teamStats: {
-      directDownlines: dummyData.directDownlines,
-      networkDownlines: dummyData.networkDownlines,
-      totalEarnings: dummyData.earnings.total
-    }
+  const copyToClipboard = () => {
+    if (!referralLink) return;
+    navigator.clipboard.writeText(referralLink);
+    setCopied(true);
+    toast.success('Referral link copied!');
+    setTimeout(() => setCopied(false), 2000);
   };
 
   return (
-    <Card className="mb-6 border-0 shadow-lg">
-      <CardHeader className="pb-3">
-        <CardTitle className="flex items-center justify-between">
-          <div className="flex items-center">
-            <Users className="w-6 h-6 mr-2 text-primary" />
-            <span className="text-2xl font-bold">Affiliate Dashboard</span>
-          </div>
-          <Badge variant="outline" className="px-3 py-1 text-sm">
-            {progressData.currentBoard === 'basic' ? 'Basic Plan' : progressData.currentBoard.charAt(0).toUpperCase() + progressData.currentBoard.slice(1)}
-          </Badge>
-        </CardTitle>
-      </CardHeader>
-      
-      <CardContent className="space-y-8">
-        {/* Board Progression - Now in 3x2 grid */}
-        <div>
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold flex items-center">
-              <Trophy className="w-5 h-5 mr-2 text-primary" />
-              Board Progression
-            </h3>
-            {progressData.nextBoard && (
-              <div className="flex items-center text-sm text-muted-foreground">
-                Next: <span className="font-medium ml-1 capitalize">{progressData.nextBoard}</span>
-                <ArrowRight className="w-4 h-4 ml-1" />
-              </div>
-            )}
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-2">
-            {/* First Row - Basic, Bronze, Silver */}
-            <div className="space-y-4">
-              <BoardCard 
-                board="basic"
-                data={progressData.boards.basic}
-                isCurrent={progressData.currentBoard === 'basic'}
-                isCompleted={progressData.boards.basic.completed}
-              />
-              <BoardCard 
-                board="bronze"
-                data={progressData.boards.bronze}
-                isCurrent={progressData.currentBoard === 'bronze'}
-                isCompleted={progressData.boards.bronze.completed}
-              />
-            </div>
-            
-            {/* Second Row - Silver, Gold */}
-            <div className="space-y-4">
-              <BoardCard 
-                board="silver"
-                data={progressData.boards.silver}
-                isCurrent={progressData.currentBoard === 'silver'}
-                isCompleted={progressData.boards.silver.completed}
-              />
-              <BoardCard 
-                board="gold"
-                data={progressData.boards.gold}
-                isCurrent={progressData.currentBoard === 'gold'}
-                isCompleted={progressData.boards.gold.completed}
-              />
-            </div>
-            
-            {/* Third Row - Platinum (centered) */}
-            <div className="space-y-4">
-              <div className="h-full flex flex-col justify-center">
-                <BoardCard 
-                  board="platinum"
-                  data={progressData.boards.platinum}
-                  isCurrent={progressData.currentBoard === 'platinum'}
-                  isCompleted={progressData.boards.platinum.completed}
-                />
-              </div>
-              {/* Empty space to maintain grid structure */}
-              <div className="opacity-0 pointer-events-none">
-                <BoardCard 
-                  board="basic"
-                  data={progressData.boards.basic}
-                  isCurrent={false}
-                  isCompleted={false}
-                />
-              </div>
-            </div>
-          </div>
-          
-          <div className="text-xs text-muted-foreground mt-2">
-            * Complete requirements to advance to the next board
-          </div>
-        </div>
-
-        {/* Team Stats */}
-        <div className="bg-gradient-to-r from-blue-50 to-purple-50 p-6 rounded-xl">
-          <h3 className="text-lg font-semibold mb-4 flex items-center">
-            <Users className="w-5 h-5 mr-2 text-primary" />
-            Team Overview
-          </h3>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <StatCard 
-              title="Direct Team"
-              value={progressData.teamStats.directDownlines}
-              description="Members you personally recruited"
-              icon={<Users className="w-5 h-5 text-blue-500" />}
-            />
-            <StatCard 
-              title="Network Team"
-              value={progressData.teamStats.networkDownlines}
-              description="Your team's total recruits"
-              icon={<Users className="w-5 h-5 text-purple-500" />}
-            />
-            <StatCard 
-              title="Total Earnings"
-              value={`₦${progressData.teamStats.totalEarnings.toLocaleString()}`}
-              description="Your all-time earnings"
-              icon={<Wallet className="w-5 h-5 text-green-500" />}
-              isCurrency
-            />
-          </div>
-        </div>
-
-        {/* Quick Actions */}
-        <div className="flex flex-col space-y-4">
-          <h3 className="text-lg font-semibold flex items-center">
-            <Gift className="w-5 h-5 mr-2 text-primary" />
-            Quick Actions
-          </h3>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <Link 
-              href="/recruit" 
-              className="group flex flex-col items-center justify-center p-4 border rounded-xl hover:bg-primary hover:text-primary-foreground transition-colors"
-            >
-              <div className="w-10 h-10 bg-primary/10 group-hover:bg-primary/20 rounded-full flex items-center justify-center mb-2">
-                <Users className="w-5 h-5" />
-              </div>
-              <span className="text-sm font-medium">Recruit Members</span>
-            </Link>
-            <Link 
-              href="/team" 
-              className="group flex flex-col items-center justify-center p-4 border rounded-xl hover:bg-primary hover:text-primary-foreground transition-colors"
-            >
-              <div className="w-10 h-10 bg-primary/10 group-hover:bg-primary/20 rounded-full flex items-center justify-center mb-2">
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                </svg>
-              </div>
-              <span className="text-sm font-medium">Team Dashboard</span>
-            </Link>
-            <Link 
-              href="/rewards" 
-              className="group flex flex-col items-center justify-center p-4 border rounded-xl hover:bg-primary hover:text-primary-foreground transition-colors"
-            >
-              <div className="w-10 h-10 bg-primary/10 group-hover:bg-primary/20 rounded-full flex items-center justify-center mb-2">
-                <Gift className="w-5 h-5" />
-              </div>
-              <span className="text-sm font-medium">Claim Rewards</span>
-            </Link>
-          </div>
-        </div>
-      </CardContent>
-    </Card>
+    <div className="bg-gradient-to-r from-blue-50 to-purple-50 p-4 rounded-lg">
+      <h3 className="font-medium mb-2">Your Referral Link</h3>
+      <div className="flex items-center gap-2">
+        <input
+          type="text"
+          value={referralLink}
+          readOnly
+          className="flex-1 p-2 border rounded-md bg-white text-sm"
+        />
+        <button
+          onClick={copyToClipboard}
+          className="p-2 bg-primary text-white rounded-md hover:bg-primary/90"
+        >
+          {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+        </button>
+      </div>
+      <p className="text-xs text-muted-foreground mt-2">
+        Share this link to recruit members and earn rewards
+      </p>
+    </div>
   );
 };
 
-// Helper Components
-const BoardCard = ({ board, data, isCurrent, isCompleted }) => {
+const BoardCard = ({ board, data, isCurrent, isClaiming, onClaim, planColor, currentPlan }) => {
   const boardInfo = {
-    basic: {
-      name: 'Basic Plan',
-      color: 'bg-gray-500',
-      description: 'Start your journey'
-    },
-    bronze: {
-      name: 'Bronze',
-      color: 'bg-amber-500',
-      description: 'Recruit 7 members'
-    },
-    silver: {
-      name: 'Silver',
-      color: 'bg-gray-400',
-      description: 'Build your network'
-    },
-    gold: {
-      name: 'Gold',
-      color: 'bg-yellow-500',
-      description: 'Expand your team'
-    },
-    platinum: {
-      name: 'Platinum',
-      color: 'bg-blue-500',
-      description: 'Top achiever'
-    }
+    bronze: { name: 'Bronze', color: 'bg-amber-500' },
+    silver: { name: 'Silver', color: 'bg-gray-400' },
+    gold: { name: 'Gold', color: 'bg-yellow-500' },
+    platinum: { name: 'Platinum', color: 'bg-blue-500' }
   };
 
+  // Get the correct plan's board rewards
+  const getPlanRewards = (boardType) => {
+    const plan = PLANS[currentPlan.toLowerCase()] || PLANS.basic;
+    const boardData = plan.boards.find(b => 
+      b.name.toLowerCase().includes(boardType)
+    );
+    return boardData?.earnings || [];
+  };
+
+  const rewards = getPlanRewards(board);
+
+  // Calculate progress percentage
+  const progressPercentage = data.requirements.indirect === 0
+    ? Math.min(100, Math.round((data.current.direct / data.requirements.direct) * 100))
+    : Math.min(100, Math.round(
+        ((data.current.direct + data.current.indirect) / 
+        (data.requirements.direct + data.requirements.indirect)) * 100
+      ));
+
   return (
-    <div className={`relative border rounded-xl p-4 transition-all ${isCurrent ? 'ring-2 ring-primary shadow-md' : 'hover:shadow-md'}`}>
+    <div className={cn(
+      `relative border rounded-xl p-4 transition-all`,
+      isCurrent ? 'ring-2 shadow-md' : 'hover:shadow-md',
+      isCurrent ? `ring-${planColor}-500` : ''
+    )}>
       <div className="flex items-start justify-between">
         <div>
           <div className="flex items-center mb-2">
             <div className={`w-3 h-3 rounded-full ${boardInfo[board].color} mr-2`}></div>
             <h4 className="font-medium text-sm">{boardInfo[board].name}</h4>
           </div>
-          <p className="text-xs text-muted-foreground mb-3">{boardInfo[board].description}</p>
+          <p className="text-xs text-muted-foreground mb-3">{data.description}</p>
           
-          {!isCompleted && board !== 'basic' && (
-            <div className="mb-2">
-              <Progress value={data.progress} className="h-2" />
-              <div className="flex justify-between text-xs mt-1">
-                <span>{data.current}/{data.required}</span>
-                <span>{data.progress}%</span>
+          {!data.completed ? (
+            <>
+              <div className="mb-2">
+                <Progress value={progressPercentage} className="h-2" />
+                <div className="flex justify-between text-xs mt-1">
+                  <span>
+                    {data.requirements.indirect === 0
+                      ? `${data.current.direct}/${data.requirements.direct} direct`
+                      : `${data.current.direct}/${data.requirements.direct} direct, ${data.current.indirect}/${data.requirements.indirect} indirect`}
+                  </span>
+                  <span>{progressPercentage}%</span>
+                </div>
               </div>
-            </div>
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">Reward:</span>
+                <span className="font-medium text-right">
+                  {rewards.join(', ')}
+                </span>
+              </div>
+            </>
+          ) : data.rewardClaimed ? (
+            <>
+              <div className="mb-3 flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">Reward Claimed:</span>
+                <span className="font-medium text-green-600">
+                  {rewards.join(', ')}
+                </span>
+              </div>
+              <Button
+                disabled
+                className="w-full bg-gray-100 text-gray-400 cursor-not-allowed"
+              >
+                Already Claimed
+              </Button>
+            </>
+          ) : (
+            <>
+              <div className="mb-3 flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">Reward Earned:</span>
+                <span className="font-medium text-green-600">
+                  {rewards.join(', ')}
+                </span>
+              </div>
+              <Button
+                onClick={() => onClaim(board)}
+                disabled={isClaiming === board}
+                className={cn(
+                  "w-full hover:bg-green-700",
+                  isClaiming === board ? 'bg-green-600/80' : 'bg-green-600'
+                )}
+              >
+                {isClaiming === board ? (
+                  <>
+                    <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Claiming...
+                  </>
+                ) : (
+                  'Claim Reward'
+                )}
+              </Button>
+            </>
           )}
-          
-          <div className="flex items-center justify-between text-sm">
-            <span className="text-muted-foreground">Reward:</span>
-            <span className="font-medium text-right">{data.reward}</span>
-          </div>
         </div>
         
-        {data.icon && (
-          <div className={`p-2 rounded-lg ${isCurrent ? 'bg-primary/10' : 'bg-muted'}`}>
-            {data.icon}
-          </div>
-        )}
+        <div className={`p-2 rounded-lg ${isCurrent ? `bg-${planColor}-100` : 'bg-muted'}`}>
+          <span className="text-lg">{data.icon}</span>
+        </div>
       </div>
       
-      {isCompleted && (
+      {data.completed && (
         <div className="absolute -top-2 -right-2">
           <svg className="w-6 h-6 text-green-500" fill="currentColor" viewBox="0 0 20 20">
             <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
@@ -339,7 +181,7 @@ const StatCard = ({ title, value, description, icon, isCurrency = false }) => {
         {icon}
       </div>
       <p className="text-2xl font-bold">
-        {isCurrency ? value : value.toLocaleString()}
+        {isCurrency ? `₦${value.toLocaleString()}` : value.toLocaleString()}
       </p>
       <Tooltip>
         <TooltipTrigger className="mt-2 text-xs text-muted-foreground flex items-center">
@@ -354,9 +196,194 @@ const StatCard = ({ title, value, description, icon, isCurrency = false }) => {
   );
 };
 
-// Helper function
-function getNextBoard(currentBoard) {
-  const boards = ['basic', 'bronze', 'silver', 'gold', 'platinum'];
-  const currentIndex = boards.indexOf(currentBoard);
-  return currentIndex < boards.length - 1 ? boards[currentIndex + 1] : null;
-}
+export const AffiliateProgress = () => {
+  const { data: session } = useSession();
+  const [affiliateData, setAffiliateData] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isClaiming, setIsClaiming] = useState(null);
+
+  useEffect(() => {
+    const fetchAffiliateData = async () => {
+      try {
+        const response = await fetch('/api/affiliate/board');
+        const data = await response.json();
+        
+        if (!response.ok) throw new Error(data.error || 'Failed to fetch data');
+        
+        setAffiliateData(data);
+      } catch (error) {
+        toast.error(error.message);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    if (session) fetchAffiliateData();
+  }, [session]);
+
+  const handleClaimReward = async (boardType) => {
+    setIsClaiming(boardType);
+    try {
+      const response = await fetch('/api/affiliate/reward/claim', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ boardType })
+      });
+
+      const data = await response.json();
+      
+      if (!response.ok) throw new Error(data.error || 'Claim failed');
+      
+      toast.success(data.message);
+      // Refresh data
+      const updatedResponse = await fetch('/api/affiliate/board');
+      const updatedData = await updatedResponse.json();
+      setAffiliateData(updatedData);
+    } catch (error) {
+      toast.error(error.message);
+    } finally {
+      setIsClaiming(null);
+    }
+  };
+
+  if (isLoading) return (
+    <div className="flex items-center justify-center h-64">
+      <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+    </div>
+  );
+
+  if (!affiliateData) return (
+    <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-center">
+      <p className="text-red-600">Error loading affiliate data</p>
+      <Button 
+        variant="outline" 
+        className="mt-2"
+        onClick={() => window.location.reload()}
+      >
+        Retry
+      </Button>
+    </div>
+  );
+
+  const currentBoardData = affiliateData.boards[affiliateData.currentBoard];
+  const planColorMap = {
+    basic: 'green',
+    classic: 'purple',
+    deluxe: 'black'
+  };
+  const planColor = planColorMap[affiliateData.currentPlan?.toLowerCase().split(' ')[0]] || 'green';
+
+  return (
+    <Card className="mb-6 border-0 shadow-lg">
+      <CardHeader className="pb-3">
+        <CardTitle className="flex items-center justify-between">
+          <div className="flex items-center">
+            <Users className="w-6 h-6 mr-2 text-primary" />
+            <span className="text-2xl font-bold">Affiliate Dashboard</span>
+          </div>
+          <div className="flex items-center gap-4">
+            <Badge 
+              variant="outline" 
+              className={cn(
+                "px-3 py-1 text-sm capitalize",
+                `bg-${planColor}-100 text-${planColor}-800 border-${planColor}-300`
+              )}
+            >
+              {affiliateData.currentPlan}
+            </Badge>
+            <ReferralLink code={affiliateData.referralCode} />
+          </div>
+        </CardTitle>
+      </CardHeader>
+      
+      <CardContent className="space-y-8">
+        {/* Wallet Balances */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <StatCard 
+            title="Cash Wallet"
+            value={affiliateData.wallets?.cash || 0}
+            description="Available cash balance for withdrawals"
+            icon={<Wallet className="w-5 h-5 text-green-500" />}
+            isCurrency
+          />
+          <StatCard 
+            title="Food Wallet"
+            value={affiliateData.wallets?.food || 0}
+            description="Food credits for purchasing food items"
+            icon={<Gift className="w-5 h-5 text-amber-500" />}
+            isCurrency
+          />
+          <StatCard 
+            title="Gadget Wallet"
+            value={affiliateData.wallets?.gadget || 0}
+            description="Credits for purchasing gadgets"
+            icon={<Gift className="w-5 h-5 text-blue-500" />}
+            isCurrency
+          />
+        </div>
+
+        {/* Board Progression */}
+        <div>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-semibold flex items-center">
+              <Trophy className="w-5 h-5 mr-2 text-primary" />
+              Board Progression
+            </h3>
+            <div className="text-sm text-muted-foreground">
+              Lifetime: {affiliateData.lifetimeStats?.totalRecruits || 0} recruits • 
+              {affiliateData.lifetimeStats?.rewardsClaimed || 0} rewards claimed
+            </div>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-2">
+            {['bronze', 'silver', 'gold', 'platinum'].map(board => (
+              <BoardCard 
+                key={board}
+                board={board}
+                data={affiliateData.boards[board]}
+                isCurrent={affiliateData.currentBoard === board}
+                isClaiming={isClaiming === board}
+                onClaim={handleClaimReward}
+                planColor={planColor}
+                currentPlan={affiliateData.currentPlan}
+              />
+            ))}
+          </div>
+        </div>
+
+        {/* Team Stats */}
+        <div className="bg-gradient-to-r from-blue-50 to-purple-50 p-6 rounded-xl">
+          <h3 className="text-lg font-semibold mb-4 flex items-center">
+            <Users className="w-5 h-5 mr-2 text-primary" />
+            Current Board Team Overview ({affiliateData.currentBoard})
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {/* <p>
+              {JSON.stringify(currentBoardData)}
+            </p> */}
+            <StatCard 
+              title="Direct Team"
+              value={currentBoardData?.current?.direct || 0}
+              description="Members you personally recruited in current board"
+              icon={<Users className="w-5 h-5 text-blue-500" />}
+            />
+            <StatCard 
+              title="Network Team"
+              value={currentBoardData?.current?.indirect || 0}
+              description="Your team's indirect recruits in current board"
+              icon={<Users className="w-5 h-5 text-purple-500" />}
+            />
+            <StatCard 
+              title="Total Team"
+              value={(currentBoardData?.current?.direct || 0) + (currentBoardData?.current?.indirect || 0)}
+              description="Your complete team in current board"
+              icon={<Users className="w-5 h-5 text-green-500" />}
+            />
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+};

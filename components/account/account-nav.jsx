@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, Package, Star, User, LogOut, BookUser } from 'lucide-react';
+import { Home, Package, Star, User, LogOut, BookUser, LayoutDashboardIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { signOut } from 'next-auth/react';
@@ -10,6 +10,7 @@ import { signOut } from 'next-auth/react';
 
 const navItems = [
     { href: '/account', label: 'Dashboard', icon: Home, exact: true },
+    { href: '/account/affiliate', label: "Affiliate Board", icon: LayoutDashboardIcon, exact: false },
     { href: '/account/orders', label: 'Orders', icon: Package, exact: false },
     { href: '/account/reviews', label: 'Pending Reviews', icon: Star, exact: false },
     { href: '/account/addresses', label: 'Address Book', icon: BookUser, exact: false },

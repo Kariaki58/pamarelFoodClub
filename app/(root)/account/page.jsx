@@ -107,8 +107,6 @@ export default function AccountPage() {
       
       <DashboardSummary />
 
-      <AffiliateProgress />
-
       
       <div className="my-5">
         <WalletDisplay wallets={wallets} />

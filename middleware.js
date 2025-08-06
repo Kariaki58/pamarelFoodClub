@@ -29,8 +29,6 @@ export async function middleware(req) {
   }
 
   // Restrict /admin routes to admin users only
-  console.log("line 32")
-  console.log(token)
   if (pathname.startsWith('/admin') && token.role !== 'admin') {
     return NextResponse.redirect(new URL('/', req.url));
   }
