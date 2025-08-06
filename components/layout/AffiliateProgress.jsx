@@ -277,17 +277,17 @@ export const AffiliateProgress = () => {
 
   return (
     <Card className="mb-6 border-0 shadow-lg">
-      <CardHeader className="pb-3">
-        <CardTitle className="flex items-center justify-between">
+      <CardHeader className="pb-2 sm:pb-3">
+        <CardTitle className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
           <div className="flex items-center">
-            <Users className="w-6 h-6 mr-2 text-primary" />
-            <span className="text-2xl font-bold">Affiliate Dashboard</span>
+            <Users className="w-5 h-5 sm:w-6 sm:h-6 mr-2 text-primary" />
+            <span className="text-xl sm:text-2xl font-bold">Affiliate Dashboard</span>
           </div>
-          <div className="flex items-center gap-4">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-4">
             <Badge 
               variant="outline" 
               className={cn(
-                "px-3 py-1 text-sm capitalize",
+                "px-2 py-0.5 sm:px-3 sm:py-1 text-xs sm:text-sm capitalize w-full sm:w-auto text-center",
                 `bg-${planColor}-100 text-${planColor}-800 border-${planColor}-300`
               )}
             >
