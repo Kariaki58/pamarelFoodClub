@@ -37,13 +37,24 @@ const boardProgressSchema = new mongoose.Schema({
   completionDate: Date,
   // Track direct referrals (people you personally referred)
   directReferrals: [{
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User'
+    userId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User'
+    },
+    // Track which boards this referral counted towards
+    countedFor: [{
+      type: String,
+      enum: ['bronze', 'silver', 'gold', 'platinum']
+    }]
   }],
   // Track indirect referrals (your downline's downlines)
   indirectReferrals: [{
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User'
+    userId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User'
+    },
+    // Track which board this counted for
+    countedForBoard: String
   }],
   rewardsClaimed: {
     type: Boolean,
@@ -317,26 +328,39 @@ userSchema.methods.processReferral = async function(referrerId) {
 
 // Update board recruitment counts
 userSchema.methods.updateBoardRecruitment = async function(newDownlineId) {
+  // Only process for current active board
   const currentBoardProgress = this.boardProgress.find(
     b => b.boardType === this.currentBoard && !b.completed
   );
 
   if (!currentBoardProgress) return;
 
-  // Add to direct referrals if not already there
-  if (!currentBoardProgress.directReferrals.includes(newDownlineId)) {
-    currentBoardProgress.directReferrals.push(newDownlineId);
+  // Add to direct referrals if not already counted for this board
+  const existingDirect = currentBoardProgress.directReferrals.find(
+    ref => ref.userId.equals(newDownlineId)
+  );
+
+  if (!existingDirect) {
+    currentBoardProgress.directReferrals.push({
+      userId: newDownlineId,
+      countedFor: [this.currentBoard]
+    });
+  } else if (!existingDirect.countedFor.includes(this.currentBoard)) {
+    existingDirect.countedFor.push(this.currentBoard);
   }
 
-  // Check if board is completed
+  // Check board completion
   const requirements = this.getBoardRequirements(currentBoardProgress.boardType);
   let isCompleted = false;
 
   if (['bronze', 'platinum'].includes(this.currentBoard)) {
     isCompleted = currentBoardProgress.directReferrals.length >= requirements.direct;
   } else {
-    // For silver/gold, we need to calculate indirect referrals
-    const indirectCount = await this.calculateIndirectReferrals();
+    // For silver/gold, only count indirects that haven't been counted for this board
+    const indirectCount = currentBoardProgress.indirectReferrals.filter(
+      ref => ref.countedForBoard === this.currentBoard
+    ).length;
+    
     isCompleted = currentBoardProgress.directReferrals.length >= requirements.direct && 
                  indirectCount >= requirements.indirect;
   }
@@ -348,14 +372,6 @@ userSchema.methods.updateBoardRecruitment = async function(newDownlineId) {
   }
 
   await this.save();
-
-  // Update upline's indirect referrals if needed
-  if (this.upline && ['silver', 'gold'].includes(this.currentBoard)) {
-    const uplineUser = await this.model('User').findById(this.upline);
-    if (uplineUser) {
-      await uplineUser.updateIndirectReferral(newDownlineId);
-    }
-  }
 };
 
 userSchema.methods.calculateIndirectReferrals = async function() {
@@ -378,25 +394,45 @@ userSchema.methods.calculateIndirectReferrals = async function() {
 };
 
 userSchema.methods.updateIndirectReferral = async function(newDownlineId) {
-  const currentBoardProgress = this.boardProgress.find(
-    b => b.boardType === this.currentBoard && !b.completed
+  // Only update for current active board of upline
+  const uplineUser = await this.model('User').findById(this.upline);
+  if (!uplineUser) return;
+
+  const uplineCurrentBoard = uplineUser.boardProgress.find(
+    b => b.boardType === uplineUser.currentBoard && !b.completed
   );
 
-  if (!currentBoardProgress) return;
+  if (!uplineCurrentBoard) return;
 
-  // Add to indirect referrals if not already there
-  if (!currentBoardProgress.indirectReferrals.includes(newDownlineId)) {
-    currentBoardProgress.indirectReferrals.push(newDownlineId);
+  // Check if this indirect referral already counted
+  const alreadyCounted = uplineCurrentBoard.indirectReferrals.some(
+    ref => ref.userId.equals(newDownlineId) && 
+           ref.countedForBoard === uplineUser.currentBoard
+  );
+
+  if (!alreadyCounted) {
+    uplineCurrentBoard.indirectReferrals.push({
+      userId: newDownlineId,
+      countedForBoard: uplineUser.currentBoard
+    });
+
+    // Check if upline's board is now complete
+    const requirements = uplineUser.getBoardRequirements(uplineCurrentBoard.boardType);
+    if (['silver', 'gold'].includes(uplineCurrentBoard.boardType)) {
+      const indirectCount = uplineCurrentBoard.indirectReferrals.filter(
+        ref => ref.countedForBoard === uplineUser.currentBoard
+      ).length;
+
+      if (uplineCurrentBoard.directReferrals.length >= requirements.direct &&
+          indirectCount >= requirements.indirect) {
+        uplineCurrentBoard.completed = true;
+        uplineCurrentBoard.completionDate = new Date();
+        await uplineUser.processBoardCompletion();
+      }
+    }
+
+    await uplineUser.save();
   }
-
-  // Check if board is completed
-  if (this.checkBoardRequirements(currentBoardProgress)) {
-    currentBoardProgress.completed = true;
-    currentBoardProgress.completionDate = new Date();
-    await this.processBoardCompletion();
-  }
-
-  await this.save();
 };
 
 // Check if board requirements are met
@@ -424,6 +460,7 @@ userSchema.methods.processBoardCompletion = async function() {
   );
 
   if (!completedBoard) return;
+
 
   const boardConfig = currentPlan.boards.find(b => 
     b.name.toLowerCase().includes(completedBoard.boardType)
@@ -453,7 +490,7 @@ userSchema.methods.processBoardCompletion = async function() {
 
   // Promote to next board if applicable
   const nextBoard = this.getNextBoard();
-  if (nextBoard) {
+  if (nextBoard && completedBoard.rewardsClaimed) {
     this.currentBoard = nextBoard;
     this.boardProgress.push({
       boardType: nextBoard,

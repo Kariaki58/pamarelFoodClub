@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import connectToDatabase from "@/lib/dbConnect";
 import User from "@/models/user";
+import PLANS from "../../../../../lib/plans"
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/options";
 
