@@ -13,7 +13,7 @@ const navItems = [
     { href: '/account/affiliate', label: "Affiliate Board", icon: LayoutDashboardIcon, exact: false },
     { href: '/account/orders', label: 'Orders', icon: Package, exact: false },
     { href: '/account/reviews', label: 'Pending Reviews', icon: Star, exact: false },
-    { href: '/account/addresses', label: 'Address Book', icon: BookUser, exact: false },
+    // { href: '/account/addresses', label: 'Address Book', icon: BookUser, exact: false },
     { href: '/account/settings', label: 'Account Settings', icon: User, exact: false },
 ];
 

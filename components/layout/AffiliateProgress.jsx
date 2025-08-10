@@ -59,7 +59,7 @@ const BoardCard = ({ board, data, isCurrent, isClaiming, onClaim, planColor, cur
 
   // Get the correct plan's board rewards
   const getPlanRewards = (boardType) => {
-    const plan = PLANS[currentPlan.toLowerCase()] || PLANS.basic;
+    const plan = PLANS[currentPlan?.toLowerCase()] || PLANS.basic;
     const boardData = plan.boards.find(b => 
       b.name.toLowerCase().includes(boardType)
     );
@@ -360,9 +360,6 @@ export const AffiliateProgress = () => {
             Current Board Team Overview ({affiliateData.currentBoard})
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {/* <p>
-              {JSON.stringify(currentBoardData)}
-            </p> */}
             <StatCard 
               title="Direct Team"
               value={currentBoardData?.current?.direct || 0}

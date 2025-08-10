@@ -14,6 +14,7 @@ import {
   FiTrash2
 } from 'react-icons/fi';
 import { toast } from 'react-hot-toast';
+import { useRouter } from 'next/navigation';
 
 const ITEMS_PER_PAGE = 10;
 
@@ -36,6 +37,9 @@ export default function InventoryDashboard() {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [productToDelete, setProductToDelete] = useState(null);
   const [categories, setCategories] = useState([]);
+
+
+  const router = useRouter()
 
   // Fetch products from API
   const fetchProducts = async () => {
@@ -148,7 +152,8 @@ export default function InventoryDashboard() {
   // Edit product
   const handleEdit = (product) => {
     setEditingProduct({...product});
-    toast.success(`Editing ${product.name}`);
+    router.push(`/admin/products/edit/${product._id}`)
+    // toast.success(`Editing ${product.name}`);
   };
 
   // Delete product confirmation

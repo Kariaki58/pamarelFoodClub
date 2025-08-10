@@ -30,7 +30,7 @@ export default function PaymentCallback() {
       } catch (error) {
         console.error('Payment verification error:', error);
         toast.error(error.message || 'Payment verification failed');
-        router.push('/plans');
+        router.push('/join-member');
       }
     };
 

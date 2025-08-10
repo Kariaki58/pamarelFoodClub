@@ -54,6 +54,14 @@ const orderSchema = new mongoose.Schema({
   },
   shippingInfo: shippingInfoSchema,
   items: [orderItemSchema],
+  reviewId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Review'
+  },
+  isReviewed: {
+    type: Boolean,
+    default: false
+  },
   deliveryMethod: {
     type: String,
     required: true,

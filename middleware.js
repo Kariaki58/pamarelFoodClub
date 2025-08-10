@@ -2,7 +2,13 @@ import { NextResponse } from 'next/server';
 import { getToken } from 'next-auth/jwt';
 
 // Routes that don't require auth
-const PUBLIC_PATHS = ['/auth/login', '/auth/register'];
+const PUBLIC_PATHS = [
+  '/', // home page
+  '/auth/login',
+  '/auth/register',
+  '/auth/forgot-password',
+  '/auth/reset-password'
+];
 
 export async function middleware(req) {
   const { pathname } = req.nextUrl;
@@ -18,7 +24,7 @@ export async function middleware(req) {
 
   const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
 
-  // Public routes (login, register)
+  // Allow public routes
   if (PUBLIC_PATHS.includes(pathname)) {
     return NextResponse.next();
   }

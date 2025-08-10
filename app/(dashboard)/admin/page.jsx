@@ -84,7 +84,7 @@ export default function AdminDashboard() {
         <ChartAreaInteractive />
       </div>
       
-      <Transactions />
+      {/* <Transactions /> */}
     </div>
   );
 }

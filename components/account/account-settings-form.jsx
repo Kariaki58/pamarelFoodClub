@@ -1,15 +1,12 @@
-
 "use client"
 
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import * as z from "zod"
-
 import { Button } from "@/components/ui/button"
 import {
   Form,
   FormControl,
-  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -17,8 +14,9 @@ import {
 } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
-// import { Separator } from "../ui/separator"
-import { useToast } from "@/hooks/use-toast"
+import { useSession } from "next-auth/react"
+import { useEffect, useState } from "react"
+import { toast } from "sonner"
 
 const accountFormSchema = z.object({
   name: z.string().min(2, {
@@ -36,44 +34,154 @@ const passwordFormSchema = z.object({
     path: ["confirmPassword"]
 })
 
-
-const defaultAccountValues = {
-  name: "John Doe",
-  email: "john.doe@example.com",
-}
-
-const defaultPasswordValues = {
-    currentPassword: "",
-    newPassword: "",
-    confirmPassword: ""
-}
-
 export function AccountSettingsForm() {
-  const { toast } = useToast()
+  const { data: session, update } = useSession()
+  const [userData, setUserData] = useState(null)
+  const [loading, setLoading] = useState(true)
 
   const accountForm = useForm({
     resolver: zodResolver(accountFormSchema),
-    defaultValues: defaultAccountValues,
+    defaultValues: {
+      name: "",
+      email: ""
+    },
   })
 
   const passwordForm = useForm({
     resolver: zodResolver(passwordFormSchema),
-    defaultValues: defaultPasswordValues,
+    defaultValues: {
+      currentPassword: "",
+      newPassword: "",
+      confirmPassword: ""
+    }
   })
 
-  function onAccountSubmit(data) {
-    toast({
-      title: "Account Updated",
-      description: "Your personal information has been saved.",
-    })
+  // Fetch user data from database
+  useEffect(() => {
+    const fetchUserData = async () => {
+      try {
+        setLoading(true)
+        const response = await fetch('/api/account/user')
+        
+        if (!response.ok) {
+          throw new Error('Failed to fetch user data')
+        }
+
+        const result = await response.json()
+        if (result.success) {
+          setUserData(result.user)
+          accountForm.reset({
+            name: result.user.name,
+            email: result.user.email
+          })
+        }
+      } catch (error) {
+        toast.error("Error", {
+          description: error.message
+        })
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchUserData()
+  }, [])
+
+  async function onAccountSubmit(data) {
+    try {
+      const response = await fetch('/api/account/update', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
+      })
+
+      const result = await response.json()
+
+      if (result.success) {
+        // Update local state
+        setUserData(prev => ({
+          ...prev,
+          name: result.user.name,
+          email: result.user.email
+        }))
+        
+        // Update session if needed
+        await update({
+          ...session,
+          user: {
+            ...session?.user,
+            name: result.user.name,
+            email: result.user.email
+          }
+        })
+
+        toast.success("Account Updated", {
+          description: "Your personal information has been saved."
+        })
+      } else {
+        throw new Error(result.message || "Failed to update account")
+      }
+    } catch (error) {
+      toast.error("Error", {
+        description: error.message
+      })
+    }
   }
 
-  function onPasswordSubmit(data) {
-    toast({
-      title: "Password Updated",
-      description: "Your password has been changed successfully.",
-    })
-    passwordForm.reset();
+  async function onPasswordSubmit(data) {
+    try {
+      const response = await fetch('/api/account/password', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          currentPassword: data.currentPassword,
+          newPassword: data.newPassword
+        }),
+      })
+
+      const result = await response.json()
+
+      if (result.success) {
+        toast.success("Password Updated", {
+          description: "Your password has been changed successfully."
+        })
+        passwordForm.reset()
+      } else {
+        throw new Error(result.message || "Failed to update password")
+      }
+    } catch (error) {
+      toast.error("Error", {
+        description: error.message
+      })
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="space-y-8">
+        <Card>
+          <CardHeader>
+            <CardTitle>Loading...</CardTitle>
+            <CardDescription>Fetching your account information</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-8">
+            <div className="space-y-4">
+              <div className="h-4 w-1/2 bg-gray-200 rounded animate-pulse"></div>
+              <div className="h-10 bg-gray-200 rounded animate-pulse"></div>
+            </div>
+            <div className="space-y-4">
+              <div className="h-4 w-1/2 bg-gray-200 rounded animate-pulse"></div>
+              <div className="h-10 bg-gray-200 rounded animate-pulse"></div>
+            </div>
+            <div className="h-10 w-24 bg-gray-200 rounded animate-pulse"></div>
+          </CardContent>
+        </Card>
+      </div>
+    )
   }
 
   return (

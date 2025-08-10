@@ -1,4 +1,3 @@
-// app/api/affiliate/board/route.js
 import { NextResponse } from "next/server";
 import connectToDatabase from "@/lib/dbConnect";
 import User from "@/models/user";
@@ -38,13 +37,11 @@ export async function GET() {
     const calculateIndirectReferrals = async (userId) => {
       let indirectCount = 0;
       
-      // Get direct downlines with active plans
       const directDownlines = await User.find({ 
         referredBy: userId,
         currentPlan: { $exists: true, $ne: null }
       }).select('_id').lean();
       
-      // For each direct downline, count their active downlines
       for (const downline of directDownlines) {
         const downlineDownlines = await User.countDocuments({ 
           referredBy: downline._id,
@@ -60,12 +57,12 @@ export async function GET() {
     const formatBoardData = async (boardType) => {
       const board = user.boardProgress.find(b => b.boardType === boardType);
       const requirements = getBoardRequirements(boardType);
+      const isCurrent = user.currentBoard === boardType;
       
-      // Filter direct referrals to only include users with active plans
-      const activeDirectReferrals = board?.directReferrals?.length || 0;
+      // Initialize counts to zero if not current board
+      const activeDirectReferrals = isCurrent ? (board?.directReferrals?.length || 0) : 0;
       
-      // Calculate indirect referrals for silver/gold boards
-      const indirectCount = (boardType === 'silver' || boardType === 'gold')
+      const indirectCount = (isCurrent && (boardType === 'silver' || boardType === 'gold'))
         ? await calculateIndirectReferrals(user._id)
         : 0;
 
@@ -79,7 +76,7 @@ export async function GET() {
           indirect: indirectCount
         },
         requirements,
-        isCurrent: user.currentBoard === boardType,
+        isCurrent,
         completed: board?.completed || false,
         rewardClaimed: board?.rewardsClaimed || false,
         started: !!board,
@@ -103,9 +100,13 @@ export async function GET() {
       lifetimeStats: {
         totalEarnings: user.wallets.cash + user.wallets.food + user.wallets.gadget,
         rewardsClaimed: user.boardProgress.filter(b => b.rewardsClaimed).length,
-        totalRecruits: activeDownlines.length // Only count active downlines
+        totalRecruits: activeDownlines.length
       }
     };
+    console.log(responseData.boards.silver)
+    console.log(responseData.boards.gold)
+    console.log("lllllllllllll")
+    console.log(responseData)
 
     return NextResponse.json(responseData);
   } catch (error) {

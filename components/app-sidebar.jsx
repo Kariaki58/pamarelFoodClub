@@ -57,7 +57,7 @@ const data = {
       title: "Orders",
       url: "/admin//orders",
       icon: IconShoppingCart,
-      badge: 12,
+      // badge: 12,
       items: [
         {
           title: "All Orders",
@@ -66,12 +66,12 @@ const data = {
         {
           title: "Pending",
           url: "/admin/orders?status=pending",
-          badge: 5,
+          // badge: 5,
         },
         {
           title: "Processing",
           url: "/admin/orders?status=processing",
-          badge: 3,
+          // badge: 3,
         },
         {
           title: "Delivered",
@@ -80,12 +80,12 @@ const data = {
         {
           title: "Cancelled",
           url: "/admin/orders?status=cancelled",
-          badge: 2,
+          // badge: 2,
         },
         {
           title: "Returns",
           url: "/admin/orders?status=return",
-          badge: 2,
+          // badge: 2,
         },
       ],
     },
@@ -123,67 +123,67 @@ const data = {
       title: "Reviews",
       url: "/admin/reviews",
       icon: IconStar,
-      badge: 24,
+      // badge: 24,
     },
     {
       title: "Customers",
       url: "/admin/customers",
       icon: IconUsers,
-      badge: "New",
+      // badge: "New",
     },
-    {
-      title: "Marketing",
-      url: "/admin/marketing",
-      icon: IconSpeakerphone,
-      items: [
-        {
-          title: "Promotions",
-          url: "/admin/promotions",
-          icon: IconDiscount,
-        },
-        {
-          title: "Coupons",
-          url: "/admin/coupons",
-        },
-        // {
-        //   title: "Email Campaigns",
-        //   url: "/marketing/email",
-        // },
-        // {
-        //   title: "Push Notifications",
-        //   url: "/marketing/notifications",
-        // },
-      ],
-    },
-    {
-      title: "Payments",
-      url: "/admin/payments",
-      icon: IconCashBanknote,
-    },
-    {
-      title: "Store Setup",
-      url: "/admin/store",
-      icon: IconBuildingStore,
-      items: [
-        {
-          title: "General",
-          url: "/admin/store/general",
-        },
-        {
-          title: "Shipping",
-          url: "/admin/store/shipping",
-          icon: IconTruckDelivery,
-        },
-      ],
-    },
+    // {
+    //   title: "Marketing",
+    //   url: "/admin/marketing",
+    //   icon: IconSpeakerphone,
+    //   items: [
+    //     {
+    //       title: "Promotions",
+    //       url: "/admin/promotions",
+    //       icon: IconDiscount,
+    //     },
+    //     {
+    //       title: "Coupons",
+    //       url: "/admin/coupons",
+    //     },
+    //     // {
+    //     //   title: "Email Campaigns",
+    //     //   url: "/marketing/email",
+    //     // },
+    //     // {
+    //     //   title: "Push Notifications",
+    //     //   url: "/marketing/notifications",
+    //     // },
+    //   ],
+    // },
+    // {
+    //   title: "Payments",
+    //   url: "/admin/payments",
+    //   icon: IconCashBanknote,
+    // },
+    // {
+    //   title: "Store Setup",
+    //   url: "/admin/store",
+    //   icon: IconBuildingStore,
+    //   items: [
+    //     {
+    //       title: "General",
+    //       url: "/admin/store/general",
+    //     },
+    //     {
+    //       title: "Shipping",
+    //       url: "/admin/store/shipping",
+    //       icon: IconTruckDelivery,
+    //     },
+    //   ],
+    // },
   ],
-  navSecondary: [
-    {
-      title: "Help Center",
-      url: "/admin/help",
-      icon: IconHelp,
-    },
-  ],
+  // navSecondary: [
+  //   {
+  //     title: "Help Center",
+  //     url: "/admin/help",
+  //     icon: IconHelp,
+  //   },
+  // ],
 }
 
 export function AppSidebar({
@@ -207,7 +207,7 @@ export function AppSidebar({
       </SidebarHeader>
       <SidebarContent>
         <NavMain items={data.navMain} />
-        <NavSecondary items={data.navSecondary} className="mt-auto" />
+        {/* <NavSecondary items={data.navSecondary} className="mt-auto" /> */}
       </SidebarContent>
       <SidebarFooter>
         <NavUser user={data.user} />

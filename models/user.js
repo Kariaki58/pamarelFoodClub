@@ -1,12 +1,11 @@
 import mongoose from 'mongoose';
-import { PLANS } from "../lib/plans"
+import { PLANS } from "../lib/plans";
 
 // Helper function to generate unique referral code
 async function generateUniqueReferralCode(username) {
-  let randomSuffix = Math.floor(1000 + Math.random() * 9000); // 4-digit random number
+  let randomSuffix = Math.floor(1000 + Math.random() * 9000);
   let referralCode = `${username.slice(0, 3)}${randomSuffix}`.toUpperCase();
   
-  // Check if code exists and regenerate if needed
   let exists = true;
   let attempts = 0;
   const maxAttempts = 5;
@@ -28,33 +27,28 @@ const boardProgressSchema = new mongoose.Schema({
   boardType: {
     type: String,
     required: true,
-    enum: ['bronze', 'silver', 'gold', 'platinum']
+    enum: ['bronze', 'silver', 'gold', 'platinum', 'exit']
   },
   completed: {
     type: Boolean,
     default: false
   },
   completionDate: Date,
-  // Track direct referrals (people you personally referred)
   directReferrals: [{
     userId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User'
     },
-    // Track which boards this referral counted towards
     countedFor: [{
       type: String,
-      enum: ['bronze', 'silver', 'gold', 'platinum']
+      enum: ['bronze', 'silver', 'gold', 'platinum', 'exit']
     }]
   }],
-  // Track indirect referrals (your downline's downlines)
   indirectReferrals: [{
-    userId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'User'
-    },
-    // Track which board this counted for
-    countedForBoard: String
+    userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    countedForBoard: String,
+    level: Number, // 1 = direct's direct (Silver), 2 = Gold, ..., 7 = Exit
+    generation: Number // 1-7 (for matrix visualization)
   }],
   rewardsClaimed: {
     type: Boolean,
@@ -66,6 +60,27 @@ const boardProgressSchema = new mongoose.Schema({
   }
 }, { _id: false });
 
+const matrixProgressSchema = new mongoose.Schema({
+  level: { type: Number, default: 1 },
+  completedLevels: [{
+    level: Number,
+    completionDate: Date,
+    referralsRequired: Number,
+    referralsAchieved: Number
+  }],
+  isFullyCompleted: { type: Boolean, default: false }
+}, { _id: false });
+
+const matrixAuditSchema = new mongoose.Schema({
+  timestamp: { type: Date, default: Date.now },
+  level: Number,
+  action: {
+    type: String,
+    enum: ['referral-added', 'board-completed', 'level-achieved']
+  },
+  details: mongoose.Schema.Types.Mixed
+}, { _id: false });
+
 const userSchema = new mongoose.Schema({
   // Basic Information
   username: {
@@ -75,6 +90,11 @@ const userSchema = new mongoose.Schema({
     trim: true,
     minlength: [3, 'Username must be at least 3 characters'],
     maxlength: [20, 'Username cannot exceed 20 characters']
+  },
+  role: {
+    type: String,
+    enum: ["user", "admin"],
+    default: "user"
   },
   email: {
     type: String,
@@ -88,6 +108,12 @@ const userSchema = new mongoose.Schema({
       },
       message: props => `${props.value} is not a valid email address`
     }
+  },
+  verifyToken: {
+    type: String,
+  },
+  expireToken: {
+   type: String,
   },
   phone: {
     type: String,
@@ -121,10 +147,32 @@ const userSchema = new mongoose.Schema({
   }],
   currentBoard: {
     type: String,
-    enum: ['bronze', 'silver', 'gold', 'platinum'],
+    enum: ['bronze', 'silver', 'gold', 'platinum', 'exit'],
     default: 'bronze'
   },
-  boardProgress: [boardProgressSchema],
+  boardProgress: {
+    type: [boardProgressSchema],
+    default: [{
+      boardType: 'bronze',
+      completed: false,
+      directReferrals: [],
+      indirectReferrals: [],
+      rewardsClaimed: false,
+      startDate: new Date()
+    }]
+  },
+  matrixProgress: {
+    type: matrixProgressSchema,
+    default: () => ({
+      level: 1,
+      completedLevels: [],
+      isFullyCompleted: false
+    })
+  },
+  matrixAuditTrail: {
+    type: [matrixAuditSchema],
+    default: []
+  },
 
   // MLM Structure
   referralCode: {
@@ -140,7 +188,6 @@ const userSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User'
   },
-  // Simplified downline tracking - we'll use board-specific tracking in boardProgress
   downlines: [{
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User'
@@ -180,7 +227,7 @@ const userSchema = new mongoose.Schema({
     date: { type: Date, default: Date.now }
   }],
 
-  // Special rewards (non-monetary)
+  // Special rewards
   specialRewards: [{
     board: String,
     items: [String],
@@ -197,19 +244,21 @@ const userSchema = new mongoose.Schema({
   toObject: { virtuals: true }
 });
 
+// ============== INDEXES ============== //
+userSchema.index({ referredBy: 1 });
+userSchema.index({ 'boardProgress.boardType': 1, 'boardProgress.completed': 1 });
+userSchema.index({ 'matrixProgress.level': 1 });
+userSchema.index({ 'matrixProgress.isFullyCompleted': 1 });
+
 // ============== METHODS ============== //
 
-// Plan Activation
-// In your User model (models/User.js)
 userSchema.methods.activatePlan = async function(planType, paymentProof) {
   if (!['basic', 'classic', 'deluxe'].includes(planType)) {
     throw new Error('Invalid plan type');
   }
 
-  // Update current plan
   this.currentPlan = planType;
   
-  // Add to plan history
   this.planHistory.push({
     planType,
     startDate: new Date(),
@@ -217,8 +266,8 @@ userSchema.methods.activatePlan = async function(planType, paymentProof) {
     status: 'active'
   });
 
-  // Initialize board progress if not exists
-  if (!this.boardProgress || this.boardProgress.length === 0) {
+  // Initialize board progress if empty
+  if (this.boardProgress.length === 0) {
     this.boardProgress = [{
       boardType: 'bronze',
       completed: false,
@@ -227,12 +276,10 @@ userSchema.methods.activatePlan = async function(planType, paymentProof) {
       rewardsClaimed: false,
       startDate: new Date()
     }];
-    this.currentBoard = 'bronze';
   }
 
   await this.save();
 
-  // Process referral if this user was referred
   if (this.referredBy) {
     const referrer = await this.model('User').findById(this.referredBy);
     if (referrer) {
@@ -243,17 +290,168 @@ userSchema.methods.activatePlan = async function(planType, paymentProof) {
   return this;
 };
 
+userSchema.methods.getBoardRequirements = function(boardType) {
+  const requirements = {
+    bronze: { direct: 7, matrixLevels: [] },
+    silver: { direct: 7, matrixLevels: [2] },
+    gold: { direct: 7, matrixLevels: [3] },
+    platinum: { direct: 7, matrixLevels: [4] },
+    exit: { direct: 7, matrixLevels: [5,6,7] }
+  };
+  return requirements[boardType] || { direct: 0, matrixLevels: [] };
+};
 
-userSchema.methods.processActivatedReferral = async function(newUserId, planType) {
+userSchema.methods.updateIndirectReferral = async function(newUserId, level) {
+  const boardTypes = ['bronze', 'silver', 'gold', 'platinum', 'exit'];
+  const currentBoardIndex = boardTypes.indexOf(this.currentBoard);
+  
+  // Only count if the referral's level matches the board's required depth
+  // (e.g., Silver = level 2, Gold = level 3, etc.)
+  if (level > currentBoardIndex + 1) return;
+
   const currentBoard = this.boardProgress.find(
     b => b.boardType === this.currentBoard && !b.completed
   );
 
   if (!currentBoard) return;
 
-  // Only add to direct referrals if not already there
-  if (!currentBoard.directReferrals.includes(newUserId)) {
-    currentBoard.directReferrals.push(newUserId);
+  // Avoid duplicates
+  const exists = currentBoard.indirectReferrals.some(
+    ref => ref.userId.equals(newUserId) && ref.level === level
+  );
+
+  if (!exists) {
+    currentBoard.indirectReferrals.push({
+      userId: newUserId,
+      countedForBoard: this.currentBoard,
+      level,
+      generation: level // For matrix visualization
+    });
+
+    await this.save();
+  }
+};
+
+userSchema.methods.getNextBoard = function() {
+  const boards = ['bronze', 'silver', 'gold', 'platinum', 'exit'];
+  const currentIndex = boards.indexOf(this.currentBoard);
+  
+  // Return next board or null if at the end
+  return currentIndex < boards.length - 1 ? boards[currentIndex + 1] : null;
+};
+
+userSchema.methods.processBoardCompletion = async function() {
+
+  console.log("herehhhhh")
+  if (!this.getNextBoard) {
+    throw new Error('getNextBoard method is not defined');
+  }
+
+  const completedBoard = this.boardProgress.find(
+    b => b.boardType === this.currentBoard && b.completed && !b.rewardsClaimed
+  );
+
+  if (!completedBoard) return;
+
+  const currentPlan = PLANS[this.currentPlan];
+  if (!currentPlan) {
+    throw new Error('Invalid current plan');
+  }
+
+  const boardConfig = currentPlan.boards.find(b => 
+    b.name.toLowerCase().includes(completedBoard.boardType)
+  );
+
+  if (!boardConfig) {
+    throw new Error('Board configuration not found');
+  }
+
+  // Process rewards
+  boardConfig.earnings.forEach(earning => {
+    const amount = this.extractAmount(earning) || 0;
+    if (earning.includes('Food Wallet')) {
+      this.wallets.food += amount;
+    } else if (earning.includes('Gadgets Wallet')) {
+      this.wallets.gadget += amount;
+    } else if (earning.includes('Cash Wallet')) {
+      this.wallets.cash += amount;
+    }
+  });
+
+  completedBoard.rewardsClaimed = true;
+
+  // Promote to next board if applicable
+  const nextBoard = this.getNextBoard();
+  if (nextBoard) {
+    this.currentBoard = nextBoard;
+    
+    // Only carry forward referrals that haven't been counted for this board yet
+    const newDirectRefs = completedBoard.directReferrals.map(ref => ({
+      userId: ref.userId,
+      countedFor: [] // Start fresh for new board
+    }));
+
+    this.boardProgress.push({
+      boardType: nextBoard,
+      directReferrals: newDirectRefs,
+      indirectReferrals: [],
+      completed: false,
+      rewardsClaimed: false,
+      startDate: new Date()
+    });
+  }
+
+  await this.save();
+};
+
+userSchema.methods.extractAmount = function(text) {
+  if (!text) return 0;
+  
+  // Handle ₦ format (e.g., "₦5,000")
+  const nairaMatch = text.match(/₦([\d,]+)/);
+  if (nairaMatch) {
+    return parseInt(nairaMatch[1].replace(/,/g, '')) || 0;
+  }
+  
+  // Handle plain numbers (e.g., "5000" or "1,000")
+  const numberMatch = text.match(/([\d,]+)/);
+  if (numberMatch) {
+    return parseInt(numberMatch[1].replace(/,/g, '')) || 0;
+  }
+  
+  return 0;
+};
+
+// Add this method to your userSchema.methods
+userSchema.methods.processActivatedReferral = async function(newUserId, planType) {
+  // Find current active board (not completed)
+  const currentBoard = this.boardProgress.find(
+    b => b.boardType === this.currentBoard && !b.completed
+  );
+
+  if (!currentBoard) return;
+
+  // Check if this referral already exists in any board
+  let existingRef = null;
+  for (const board of this.boardProgress) {
+    const ref = board.directReferrals.find(r => r.userId.equals(newUserId));
+    if (ref) {
+      existingRef = ref;
+      break;
+    }
+  }
+
+  if (existingRef) {
+    // Only add to countedFor if this is the current board and not already counted
+    if (!existingRef.countedFor.includes(this.currentBoard)) {
+      existingRef.countedFor.push(this.currentBoard);
+    }
+  } else {
+    // Add as new direct referral only for current board
+    currentBoard.directReferrals.push({
+      userId: newUserId,
+      countedFor: [this.currentBoard]
+    });
   }
 
   // Check if board is completed
@@ -286,243 +484,82 @@ userSchema.methods.processActivatedReferral = async function(newUserId, planType
   }
 };
 
-userSchema.methods.getBoardRequirements = function(boardType) {
-  switch(boardType) {
-    case 'bronze':
-    case 'platinum':
-      return { direct: 7, indirect: 0 };
-    case 'silver':
-    case 'gold':
-      return { direct: 7, indirect: 49 }; // 7x7 structure
-    default:
-      return { direct: 0, indirect: 0 };
-  }
+userSchema.methods.addAuditEvent = function(action, details) {
+  this.matrixAuditTrail.push({
+    action,
+    details,
+    timestamp: new Date(),
+    board: this.currentBoard
+  });
 };
 
-// Process new referral (called when a new user signs up)
-userSchema.methods.processReferral = async function(referrerId) {
-  if (!referrerId) return;
+userSchema.methods.calculateIndirectReferrals = async function(maxLevel = 7) {
+  let total = 0;
   
-  // Prevent self-referral
-  if (this._id.equals(referrerId)) {
-    throw new Error("Cannot refer yourself");
-  }
-
-  this.referredBy = referrerId;
-  this.upline = referrerId;
-
-  const referrer = await this.model('User').findById(referrerId);
-  if (!referrer) return;
-
-  // Add to referrer's downlines
-  if (!referrer.downlines.includes(this._id)) {
-    referrer.downlines.push(this._id);
-  }
-
-  // Update the referrer's current board progress
-  await referrer.updateBoardRecruitment(this._id);
-
-  await referrer.save();
-  await this.save();
-};
-
-// Update board recruitment counts
-userSchema.methods.updateBoardRecruitment = async function(newDownlineId) {
-  // Only process for current active board
-  const currentBoardProgress = this.boardProgress.find(
-    b => b.boardType === this.currentBoard && !b.completed
-  );
-
-  if (!currentBoardProgress) return;
-
-  // Add to direct referrals if not already counted for this board
-  const existingDirect = currentBoardProgress.directReferrals.find(
-    ref => ref.userId.equals(newDownlineId)
-  );
-
-  if (!existingDirect) {
-    currentBoardProgress.directReferrals.push({
-      userId: newDownlineId,
-      countedFor: [this.currentBoard]
-    });
-  } else if (!existingDirect.countedFor.includes(this.currentBoard)) {
-    existingDirect.countedFor.push(this.currentBoard);
-  }
-
-  // Check board completion
-  const requirements = this.getBoardRequirements(currentBoardProgress.boardType);
-  let isCompleted = false;
-
-  if (['bronze', 'platinum'].includes(this.currentBoard)) {
-    isCompleted = currentBoardProgress.directReferrals.length >= requirements.direct;
-  } else {
-    // For silver/gold, only count indirects that haven't been counted for this board
-    const indirectCount = currentBoardProgress.indirectReferrals.filter(
-      ref => ref.countedForBoard === this.currentBoard
-    ).length;
-    
-    isCompleted = currentBoardProgress.directReferrals.length >= requirements.direct && 
-                 indirectCount >= requirements.indirect;
-  }
-
-  if (isCompleted) {
-    currentBoardProgress.completed = true;
-    currentBoardProgress.completionDate = new Date();
-    await this.processBoardCompletion();
-  }
-
-  await this.save();
-};
-
-userSchema.methods.calculateIndirectReferrals = async function() {
-  let indirectCount = 0;
-  
+  // Get all direct downlines (Level 1)
   const directDownlines = await this.model('User').find({ 
-    referredBy: this._id,
-    currentPlan: { $exists: true, $ne: null }
+    referredBy: this._id 
   }).select('_id').lean();
 
-  for (const downline of directDownlines) {
-    const downlineDownlines = await this.model('User').countDocuments({ 
-      referredBy: downline._id,
-      currentPlan: { $exists: true, $ne: null }
-    });
-    indirectCount += downlineDownlines;
-  }
-  
-  return indirectCount;
-};
+  // Recursively count downlines up to maxLevel
+  const countDownlines = async (userId, currentLevel) => {
+    if (currentLevel > maxLevel) return 0;
+    
+    const downlines = await this.model('User').find({ 
+      referredBy: userId 
+    }).select('_id').lean();
 
-userSchema.methods.updateIndirectReferral = async function(newDownlineId) {
-  // Only update for current active board of upline
-  const uplineUser = await this.model('User').findById(this.upline);
-  if (!uplineUser) return;
-
-  const uplineCurrentBoard = uplineUser.boardProgress.find(
-    b => b.boardType === uplineUser.currentBoard && !b.completed
-  );
-
-  if (!uplineCurrentBoard) return;
-
-  // Check if this indirect referral already counted
-  const alreadyCounted = uplineCurrentBoard.indirectReferrals.some(
-    ref => ref.userId.equals(newDownlineId) && 
-           ref.countedForBoard === uplineUser.currentBoard
-  );
-
-  if (!alreadyCounted) {
-    uplineCurrentBoard.indirectReferrals.push({
-      userId: newDownlineId,
-      countedForBoard: uplineUser.currentBoard
-    });
-
-    // Check if upline's board is now complete
-    const requirements = uplineUser.getBoardRequirements(uplineCurrentBoard.boardType);
-    if (['silver', 'gold'].includes(uplineCurrentBoard.boardType)) {
-      const indirectCount = uplineCurrentBoard.indirectReferrals.filter(
-        ref => ref.countedForBoard === uplineUser.currentBoard
-      ).length;
-
-      if (uplineCurrentBoard.directReferrals.length >= requirements.direct &&
-          indirectCount >= requirements.indirect) {
-        uplineCurrentBoard.completed = true;
-        uplineCurrentBoard.completionDate = new Date();
-        await uplineUser.processBoardCompletion();
-      }
+    let subtotal = downlines.length;
+    for (const dl of downlines) {
+      subtotal += await countDownlines(dl._id, currentLevel + 1);
     }
+    return subtotal;
+  };
 
-    await uplineUser.save();
-  }
-};
-
-// Check if board requirements are met
-userSchema.methods.checkBoardRequirements = function(boardProgress) {
-  const requirements = this.getBoardRequirements(boardProgress.boardType);
-  
-  if (['bronze', 'platinum'].includes(boardProgress.boardType)) {
-    return boardProgress.directReferrals.length >= requirements.direct;
-  } else {
-    return (
-      boardProgress.directReferrals.length >= requirements.direct && 
-      boardProgress.indirectReferrals.length >= requirements.indirect
-    );
-  }
-};
-
-
-// Process board completion and move to next board
-userSchema.methods.processBoardCompletion = async function() {
-  const currentPlan = PLANS[this.currentPlan];
-  if (!currentPlan) throw new Error('Invalid current plan');
-
-  const completedBoard = this.boardProgress.find(
-    b => b.boardType === this.currentBoard && b.completed && !b.rewardsClaimed
-  );
-
-  if (!completedBoard) return;
-
-
-  const boardConfig = currentPlan.boards.find(b => 
-    b.name.toLowerCase().includes(completedBoard.boardType)
-  );
-
-  if (!boardConfig) {
-    throw new Error('Board configuration not found');
+  for (const dl of directDownlines) {
+    total += await countDownlines(dl._id, 2); // Start counting from Level 2
   }
 
-  // Process rewards
-  boardConfig.earnings.forEach(earning => {
-    const amount = this.extractAmount(earning) || 0;
-
-    if (earning.includes('Food Wallet') || earning.includes('FOODY BAG')) {
-      this.wallets.food += amount;
-    } 
-    else if (earning.includes('Gadgets Wallet')) {
-      this.wallets.gadget += amount;
-    }
-    else if (earning.includes('Cash Wallet')) {
-      this.wallets.cash += amount;
-    }
-  });
-
-  // Mark reward as claimed
-  completedBoard.rewardsClaimed = true;
-
-  // Promote to next board if applicable
-  const nextBoard = this.getNextBoard();
-  if (nextBoard && completedBoard.rewardsClaimed) {
-    this.currentBoard = nextBoard;
-    this.boardProgress.push({
-      boardType: nextBoard,
-      directReferrals: [],
-      indirectReferrals: [],
-      completed: false,
-      rewardsClaimed: false,
-      startDate: new Date()
-    });
-  }
-
-  await this.save();
+  return total;
 };
 
-// ============== HELPER METHODS ============== //
-
-userSchema.methods.extractAmount = function(text) {
-  const match = text.match(/₦([\d,]+)/);
-  return match ? parseInt(match[1].replace(/,/g, '')) : 0;
+userSchema.methods.checkExitBoardEligibility = async function() {
+  const indirectCount = await this.calculateIndirectReferrals(7); // 7 levels deep
+  return indirectCount >= 960799; // 7⁷ - 1
 };
 
-userSchema.methods.getNextBoard = function() {
-  const boards = ['bronze', 'silver', 'gold', 'platinum'];
-  const currentIndex = boards.indexOf(this.currentBoard);
-  return currentIndex < boards.length - 1 ? boards[currentIndex + 1] : null;
-};
-
-// ============== PRE HOOKS ============== //
-
+// ============== HOOKS ============== //
 userSchema.pre('save', async function(next) {
   if (!this.referralCode) {
     this.referralCode = await generateUniqueReferralCode(this.username);
+  }
+  next();
+});
+
+userSchema.pre('save', async function(next) {
+  if (this.isModified('referredBy') && !this.isNew) {
+    try {
+      const original = await this.constructor.findById(this._id, 'referredBy');
+      if (original?.referredBy && this.referredBy && 
+          !original.referredBy.equals(this.referredBy)) {
+        throw new Error('Referral relationship cannot be changed once set');
+      }
+    } catch (err) {
+      return next(err);
+    }
+  }
+  next();
+});
+
+userSchema.pre('save', function(next) {
+  if (this.isModified('currentBoard') && !this.isNew) {
+    const boardOrder = ['bronze', 'silver', 'gold', 'platinum', 'exit'];
+    const currentIdx = boardOrder.indexOf(this._original?.currentBoard || 'bronze');
+    const newIdx = boardOrder.indexOf(this.currentBoard);
+    
+    if (newIdx !== currentIdx + 1) {
+      return next(new Error('Can only progress to next immediate board level'));
+    }
   }
   next();
 });

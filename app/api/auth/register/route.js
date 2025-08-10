@@ -18,8 +18,6 @@ export async function POST(request) {
             );
         }
 
-        console.log({ username, email, phone, password, referralCode })
-
         // Check existing user
         const existingUser = await User.findOne({
             $or: [{ email }, { username }, { phone }]
@@ -28,9 +26,7 @@ export async function POST(request) {
         if (existingUser) {
             let errorMessage = "User already exists";
             if (existingUser.email === email) errorMessage = "Email already registered";
-            else if (existingUser.username === username) errorMessage = "Username taken";
-            else if (existingUser.phone === phone) errorMessage = "Phone number registered";
-            
+            else if (existingUser.username === username) errorMessage = "Username taken";            
             return NextResponse.json(
                 { success: false, error: errorMessage },
                 { status: 409 }
@@ -52,24 +48,14 @@ export async function POST(request) {
         // Hash password
         const hashedPassword = await bcrypt.hash(password, 10);
 
-        // Generate verification token
-        const verificationToken = crypto.randomBytes(32).toString('hex');
-        const verificationExpires = Date.now() + 24 * 60 * 60 * 1000; // 24 hours
-
-        // Generate unique referral code
-        const userReferralCode = `${username.slice(0, 3)}${Math.floor(1000 + Math.random() * 9000)}`.toUpperCase();
-
-        // Create new user according to schema
+        // Create new user
         const newUser = new User({
             username,
             email,
             phone,
             password: hashedPassword,
-            referralCode: userReferralCode,
             referredBy: referredByUser?._id,
             upline: referredByUser?._id,
-            currentPlan: null, // No plan yet
-            isVerified: false
         });
 
         await newUser.save();
@@ -81,18 +67,22 @@ export async function POST(request) {
 
         return NextResponse.json({
             success: true,
-            message: "Registration successful. Please verify your email.",
+            message: "Registration successful",
             data: {
                 id: newUser._id,
                 username: newUser.username,
-                email: newUser.email
+                email: newUser.email,
+                referralCode: newUser.referralCode
             }
         }, { status: 201 });
 
     } catch (error) {
         console.error("Registration error:", error);
         return NextResponse.json(
-            { success: false, error: "Registration failed. Please try again." },
+            { 
+                success: false, 
+                error: error.message || "Registration failed. Please try again." 
+            },
             { status: 500 }
         );
     }

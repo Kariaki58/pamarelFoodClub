@@ -1,8 +1,6 @@
 "use client"
-
 import * as React from "react"
 import { Area, AreaChart, CartesianGrid, XAxis } from "recharts"
-
 import { useIsMobile } from "@/hooks/use-mobile"
 import {
   Card,
@@ -12,7 +10,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
-import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
+import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart"
 import {
   Select,
   SelectContent,
@@ -24,102 +22,6 @@ import {
   ToggleGroup,
   ToggleGroupItem,
 } from "@/components/ui/toggle-group"
-
-export const description = "An interactive area chart showing orders and returns"
-
-const chartData = [
-  { date: "2024-04-01", orders: 222, returns: 15 },
-  { date: "2024-04-02", orders: 97, returns: 8 },
-  { date: "2024-04-03", orders: 167, returns: 12 },
-  { date: "2024-04-04", orders: 242, returns: 18 },
-  { date: "2024-04-05", orders: 373, returns: 25 },
-  { date: "2024-04-06", orders: 301, returns: 22 },
-  { date: "2024-04-07", orders: 245, returns: 19 },
-  { date: "2024-04-08", orders: 409, returns: 30 },
-  { date: "2024-04-09", orders: 59, returns: 5 },
-  { date: "2024-04-10", orders: 261, returns: 20 },
-  { date: "2024-04-11", orders: 327, returns: 25 },
-  { date: "2024-04-12", orders: 292, returns: 21 },
-  { date: "2024-04-13", orders: 342, returns: 28 },
-  { date: "2024-04-14", orders: 137, returns: 11 },
-  { date: "2024-04-15", orders: 120, returns: 9 },
-  { date: "2024-04-16", orders: 138, returns: 10 },
-  { date: "2024-04-17", orders: 446, returns: 33 },
-  { date: "2024-04-18", orders: 364, returns: 27 },
-  { date: "2024-04-19", orders: 243, returns: 18 },
-  { date: "2024-04-20", orders: 89, returns: 7 },
-  { date: "2024-04-21", orders: 137, returns: 11 },
-  { date: "2024-04-22", orders: 224, returns: 17 },
-  { date: "2024-04-23", orders: 138, returns: 10 },
-  { date: "2024-04-24", orders: 387, returns: 29 },
-  { date: "2024-04-25", orders: 215, returns: 16 },
-  { date: "2024-04-26", orders: 75, returns: 6 },
-  { date: "2024-04-27", orders: 383, returns: 28 },
-  { date: "2024-04-28", orders: 122, returns: 9 },
-  { date: "2024-04-29", orders: 315, returns: 23 },
-  { date: "2024-04-30", orders: 454, returns: 34 },
-  { date: "2024-05-01", orders: 165, returns: 12 },
-  { date: "2024-05-02", orders: 293, returns: 22 },
-  { date: "2024-05-03", orders: 247, returns: 18 },
-  { date: "2024-05-04", orders: 385, returns: 29 },
-  { date: "2024-05-05", orders: 481, returns: 36 },
-  { date: "2024-05-06", orders: 498, returns: 37 },
-  { date: "2024-05-07", orders: 388, returns: 29 },
-  { date: "2024-05-08", orders: 149, returns: 11 },
-  { date: "2024-05-09", orders: 227, returns: 17 },
-  { date: "2024-05-10", orders: 293, returns: 22 },
-  { date: "2024-05-11", orders: 335, returns: 25 },
-  { date: "2024-05-12", orders: 197, returns: 15 },
-  { date: "2024-05-13", orders: 197, returns: 15 },
-  { date: "2024-05-14", orders: 448, returns: 34 },
-  { date: "2024-05-15", orders: 473, returns: 35 },
-  { date: "2024-05-16", orders: 338, returns: 25 },
-  { date: "2024-05-17", orders: 499, returns: 37 },
-  { date: "2024-05-18", orders: 315, returns: 23 },
-  { date: "2024-05-19", orders: 235, returns: 18 },
-  { date: "2024-05-20", orders: 177, returns: 13 },
-  { date: "2024-05-21", orders: 82, returns: 6 },
-  { date: "2024-05-22", orders: 81, returns: 6 },
-  { date: "2024-05-23", orders: 252, returns: 19 },
-  { date: "2024-05-24", orders: 294, returns: 22 },
-  { date: "2024-05-25", orders: 201, returns: 15 },
-  { date: "2024-05-26", orders: 213, returns: 16 },
-  { date: "2024-05-27", orders: 420, returns: 31 },
-  { date: "2024-05-28", orders: 233, returns: 17 },
-  { date: "2024-05-29", orders: 78, returns: 6 },
-  { date: "2024-05-30", orders: 340, returns: 25 },
-  { date: "2024-05-31", orders: 178, returns: 13 },
-  { date: "2024-06-01", orders: 178, returns: 13 },
-  { date: "2024-06-02", orders: 470, returns: 35 },
-  { date: "2024-06-03", orders: 103, returns: 8 },
-  { date: "2024-06-04", orders: 439, returns: 33 },
-  { date: "2024-06-05", orders: 88, returns: 7 },
-  { date: "2024-06-06", orders: 294, returns: 22 },
-  { date: "2024-06-07", orders: 323, returns: 24 },
-  { date: "2024-06-08", orders: 385, returns: 29 },
-  { date: "2024-06-09", orders: 438, returns: 33 },
-  { date: "2024-06-10", orders: 155, returns: 12 },
-  { date: "2024-06-11", orders: 92, returns: 7 },
-  { date: "2024-06-12", orders: 492, returns: 37 },
-  { date: "2024-06-13", orders: 81, returns: 6 },
-  { date: "2024-06-14", orders: 426, returns: 32 },
-  { date: "2024-06-15", orders: 307, returns: 23 },
-  { date: "2024-06-16", orders: 371, returns: 28 },
-  { date: "2024-06-17", orders: 475, returns: 36 },
-  { date: "2024-06-18", orders: 107, returns: 8 },
-  { date: "2024-06-19", orders: 341, returns: 26 },
-  { date: "2024-06-20", orders: 408, returns: 31 },
-  { date: "2024-06-21", orders: 169, returns: 13 },
-  { date: "2024-06-22", orders: 317, returns: 24 },
-  { date: "2024-06-23", orders: 480, returns: 36 },
-  { date: "2024-06-24", orders: 132, returns: 10 },
-  { date: "2024-06-25", orders: 141, returns: 11 },
-  { date: "2024-06-26", orders: 434, returns: 33 },
-  { date: "2024-06-27", orders: 448, returns: 34 },
-  { date: "2024-06-28", orders: 149, returns: 11 },
-  { date: "2024-06-29", orders: 103, returns: 8 },
-  { date: "2024-06-30", orders: 446, returns: 34 },
-]
 
 const chartConfig = {
   orders: {
@@ -134,7 +36,10 @@ const chartConfig = {
 
 export function ChartAreaInteractive() {
   const isMobile = useIsMobile()
-  const [timeRange, setTimeRange] = React.useState("90d")
+  const [timeRange, setTimeRange] = React.useState("30d")
+  const [chartData, setChartData] = React.useState([])
+  const [loading, setLoading] = React.useState(true)
+  const [error, setError] = React.useState(null)
 
   React.useEffect(() => {
     if (isMobile) {
@@ -142,23 +47,50 @@ export function ChartAreaInteractive() {
     }
   }, [isMobile])
 
-  const filteredData = React.useMemo(() => {
-    const today = new Date("2024-06-30") // Using the last date in our dataset as "today"
-    let daysToSubtract = 90
-    if (timeRange === "30d") {
-      daysToSubtract = 30
-    } else if (timeRange === "7d") {
-      daysToSubtract = 7
+  React.useEffect(() => {
+    const fetchOrderStats = async () => {
+      try {
+        setLoading(true)
+        let days = 30
+        if (timeRange === "90d") days = 90
+        if (timeRange === "7d") days = 7
+
+        const response = await fetch(`/api/admin/orders/stats?days=${days}`)
+        if (!response.ok) {
+          throw new Error('Failed to fetch order statistics')
+        }
+        const data = await response.json()
+        setChartData(data)
+      } catch (err) {
+        setError(err.message)
+      } finally {
+        setLoading(false)
+      }
     }
-    
-    const startDate = new Date(today)
-    startDate.setDate(startDate.getDate() - daysToSubtract)
-    
-    return chartData.filter((item) => {
-      const date = new Date(item.date)
-      return date >= startDate && date <= today
-    })
+
+    fetchOrderStats()
   }, [timeRange])
+
+  if (loading) return (
+    <Card className="@container/card">
+      <CardHeader>
+        <CardTitle>Orders Overview</CardTitle>
+        <CardDescription>Loading order data...</CardDescription>
+      </CardHeader>
+      <CardContent className="h-[250px] flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary"></div>
+      </CardContent>
+    </Card>
+  )
+
+  if (error) return (
+    <Card className="@container/card">
+      <CardHeader>
+        <CardTitle>Orders Overview</CardTitle>
+        <CardDescription className="text-destructive">{error}</CardDescription>
+      </CardHeader>
+    </Card>
+  )
 
   return (
     <Card className="@container/card">
@@ -188,7 +120,7 @@ export function ChartAreaInteractive() {
               className="flex w-40 **:data-[slot=select-value]:block **:data-[slot=select-value]:truncate @[767px]/card:hidden"
               size="sm"
               aria-label="Select a time range">
-              <SelectValue placeholder="Last 3 months" />
+              <SelectValue placeholder="Last 30 days" />
             </SelectTrigger>
             <SelectContent className="rounded-xl">
               <SelectItem value="90d" className="rounded-lg">
@@ -206,7 +138,7 @@ export function ChartAreaInteractive() {
       </CardHeader>
       <CardContent className="px-2 pt-4 sm:px-6 sm:pt-6">
         <ChartContainer config={chartConfig} className="aspect-auto h-[250px] w-full">
-          <AreaChart data={filteredData}>
+          <AreaChart data={chartData}>
             <defs>
               <linearGradient id="fillOrders" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="5%" stopColor="var(--color-orders)" stopOpacity={1.0} />
@@ -240,7 +172,17 @@ export function ChartAreaInteractive() {
                     return new Date(value).toLocaleDateString("en-US", {
                       month: "short",
                       day: "numeric",
+                      year: "numeric"
                     });
+                  }}
+                  formatter={(value, name) => {
+                    if (name === 'totalRevenue') {
+                      return [new Intl.NumberFormat('en-NG', {
+                        style: 'currency',
+                        currency: 'NGN'
+                      }).format(value), 'Revenue']
+                    }
+                    return [value, name === 'orders' ? 'Orders' : 'Returns']
                   }}
                   indicator="dot" />
               } />
