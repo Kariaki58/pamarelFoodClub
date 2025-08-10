@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import connectToDatabase from "@/lib/dbConnect";
 import Product from "@/models/product";
 import User from "@/models/user";
+import category from "@/models/category";
 import { getServerSession } from "next-auth";
 import { authOptions } from "../../auth/options";
 
