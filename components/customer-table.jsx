@@ -30,10 +30,12 @@ const AffiliatesAdminPage = () => {
       }).toString();
 
       const res = await fetch(`/api/admin/affiliates?${queryParams}`);
+
       const data = await res.json();
 
       if (res.ok) {
         setAffiliates(data.data);
+        console.log(data)
         setTotalPages(data.pagination.totalPages);
       } else {
         toast.error(data.error || 'Failed to fetch affiliates');

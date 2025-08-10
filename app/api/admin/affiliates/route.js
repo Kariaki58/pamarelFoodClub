@@ -4,7 +4,6 @@ import { getServerSession } from 'next-auth';
 import connectToDatabase from '@/lib/dbConnect';
 import { authOptions } from '../../auth/options';
 
-
 export async function GET(req) {
   try {
     const session = await getServerSession(authOptions);
@@ -13,7 +12,7 @@ export async function GET(req) {
     }
 
     await connectToDatabase();
-    const adminUser = await User.findOne({ email: session.user.email });
+    const adminUser = await User.findOne({ _id: session.user.id });
 
     if (!adminUser || adminUser.role !== 'admin') {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
@@ -29,8 +28,12 @@ export async function GET(req) {
 
     const skip = (page - 1) * limit;
 
-    // Build the query
-    let query = { type: 'affiliate' };
+    // Build the query - users with any plan
+    let query = { 
+      currentPlan: { $in: ['basic', 'classic', 'deluxe'] }
+    };
+
+    console.log(query)
 
     if (search) {
       query.$or = [
@@ -41,7 +44,7 @@ export async function GET(req) {
     }
 
     if (status !== 'all') {
-      query.status = status;
+      query.isActive = status === 'active';
     }
 
     if (plan !== 'all') {
@@ -54,12 +57,12 @@ export async function GET(req) {
 
     // Get affiliates with pagination
     const affiliates = await User.find(query)
-      .select('username email phone currentPlan currentBoard status isActive lastLogin planHistory boardProgress downlines referredBy createdAt')
+      .select('username email phone currentPlan currentBoard isActive lastLogin planHistory boardProgress downlines referredBy createdAt')
       .populate('referredBy', 'username')
       .skip(skip)
       .limit(limit)
       .lean();
-
+    
     // Count total affiliates for pagination
     const total = await User.countDocuments(query);
 
@@ -79,7 +82,8 @@ export async function GET(req) {
         directReferrals,
         indirectReferrals,
         totalDownlines: directDownlines + indirectDownlines,
-        boardRequirements: getBoardRequirements(affiliate.currentBoard)
+        boardRequirements: getBoardRequirements(affiliate.currentBoard),
+        status: affiliate.isActive ? 'active' : 'inactive' // Add status field for frontend
       };
     }));
 
