@@ -35,9 +35,13 @@ export async function POST(req) {
       cart = new Cart({ user: userId, items: [] });
     }
 
+    console.log({localCartItems});
+
     // Merge local cart with database cart
     for (const localItem of localCartItems) {
       // Validate item structure
+      console.log(localItem)
+      console.log(localItem.section)
       if (!localItem?.id || !localItem?.quantity) {
         continue;
       }
@@ -60,6 +64,7 @@ export async function POST(req) {
         cart.items.push({
           product: localItem.id,
           quantity: localItem.quantity,
+          section: localItem.section,
           price: product.price
         });
       }

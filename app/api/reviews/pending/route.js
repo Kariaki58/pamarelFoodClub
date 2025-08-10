@@ -1,30 +1,33 @@
-import { getServerSession } from "next-auth";
+import { getServerSession } from "next-auth/next";
 import { authOptions } from "../../auth/options";
 import connectToDatabase from "@/lib/dbConnect";
 import Order from "@/models/order";
 
+
 export async function GET() {
+  const session = await getServerSession(authOptions);
+
+  console.log("log... reviews")
+  
+  if (!session) {
+    return new Response(JSON.stringify({
+      success: false,
+      message: "Unauthorized"
+    }), { status: 401 });
+  }
+
   try {
-    const session = await getServerSession(authOptions);
-
-    if (!session?.user) {
-      return new Response(JSON.stringify({
-        success: false,
-        message: "Unauthorized"
-      }), { status: 401 });
-    }
-
+    // Find delivered orders with items not yet reviewed
     await connectToDatabase();
-
-
     const orders = await Order.find({
       user: session.user.id,
-      orderStatus: 'delivered'
-    }).populate({
-      path: 'items.product',
-      select: 'name images'
-    });
+      orderStatus: 'delivered',
+      'items.isReviewed': false
+    }).select('_id items');
 
+    console.log(orders)
+
+    // Format the response
     const pendingReviews = orders.flatMap(order => 
       order.items
         .filter(item => !item.isReviewed)
@@ -32,9 +35,9 @@ export async function GET() {
           orderId: order._id,
           itemId: item._id,
           product: {
-            id: item.product._id,
-            name: item.product.name,
-            imageUrl: item.product.images.find(img => img.isDefault)?.url || item.product.images[0]?.url
+            id: item.product,
+            name: item.name,
+            imageUrl: item.imageUrl
           }
         }))
     );
@@ -48,7 +51,7 @@ export async function GET() {
     console.error("Error fetching pending reviews:", error);
     return new Response(JSON.stringify({
       success: false,
-      message: "Failed to fetch pending reviews"
+      message: "Internal server error"
     }), { status: 500 });
   }
 }

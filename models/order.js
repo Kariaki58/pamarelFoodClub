@@ -21,6 +21,10 @@ const orderItemSchema = new mongoose.Schema({
   imageUrl: {
     type: String,
     required: true
+  },
+  isReviewed: {
+    type: Boolean,
+    default: false
   }
 });
 
@@ -83,7 +87,7 @@ const orderSchema = new mongoose.Schema({
   paymentMethod: {
     type: String,
     required: true,
-    enum: ['cash_wallet', 'bank_transfer', 'card', 'pay_on_delivery']
+    enum: ['cash_wallet', 'food_wallet', 'gadget_wallet', 'bank_transfer', 'card', 'pay_on_delivery']
   },
   paymentStatus: {
     type: String,

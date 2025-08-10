@@ -29,7 +29,7 @@ export async function GET() {
     })
     .sort({ "flashSale.start": 1 })
     .populate('category', 'name slug')
-    .select('name slug price flashSale images');
+    // .select('name slug price flashSale images');
 
     return NextResponse.json({
       success: true,

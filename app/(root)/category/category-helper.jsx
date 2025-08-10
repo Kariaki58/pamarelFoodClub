@@ -247,7 +247,7 @@ export default function CategoryPage() {
                 </AccordionContent>
               </AccordionItem>
 
-              <AccordionItem value="discount">
+              {/* <AccordionItem value="discount">
                 <AccordionTrigger className="text-lg font-semibold">Discount Percentage</AccordionTrigger>
                 <AccordionContent>
                     <div className="space-y-2">
@@ -265,7 +265,7 @@ export default function CategoryPage() {
                         ))}
                     </div>
                 </AccordionContent>
-              </AccordionItem>
+              </AccordionItem> */}
             </Accordion>
           </div>
         </aside>

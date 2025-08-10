@@ -19,8 +19,7 @@ export async function GET(request) {
       .sort({ "flashSale.discountPercent": -1 })
       .skip((page - 1) * limit)
       .limit(limit)
-      .populate('category', 'name slug')
-      .select('name slug price percentOff flashSale images rating numReviews'),
+      .populate('category', 'name slug'),
 
       Product.countDocuments({
         "flashSale.start": { $lte: now },

@@ -7,14 +7,15 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
 import Image from "next/image"
-import { Truck, Wallet, ChevronDown, ChevronUp, Plus } from "lucide-react"
+import { Truck, Wallet, ChevronDown, ChevronUp, Plus, AlertCircle } from "lucide-react"
 import { formatPrice } from "@/lib/utils"
 import { useSession } from "next-auth/react"
 import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
 import { Skeleton } from "@/components/ui/skeleton"
-import Link from "next/link"
 import { FundWalletModal } from "@/components/wallets/FundWalletModal"
+import { toast } from "sonner"
+import { Badge } from "@/components/ui/badge"
 
 export default function CheckoutPage() {
   const { cartItems, totalPrice, cartCount, clearCart } = useCart()
@@ -34,6 +35,7 @@ export default function CheckoutPage() {
   })
   const [isPlacingOrder, setIsPlacingOrder] = useState(false)
   const [activeModal, setActiveModal] = useState(null)
+  const [selectedWallet, setSelectedWallet] = useState('cash') // 'cash', 'food', or 'gadget'
 
   // Delivery options with prices
   const deliveryOptions = [
@@ -57,20 +59,58 @@ export default function CheckoutPage() {
   const deliveryPrice = deliveryOptions.find(opt => opt.id === deliveryMethod)?.price || 0
   const orderTotal = totalPrice + deliveryPrice
 
-  // Handle form input changes
-  const handleInputChange = (e) => {
-    const { id, value } = e.target
-    setFormData(prev => ({
-      ...prev,
-      [id]: value
-    }))
-  }
+  // Check if selected wallet can be used with current cart
+  const validateSelectedWallet = () => {
+    const sections = new Set(cartItems.map(item => item.section));
+    
+    // Cash wallet can always be used
+    if (selectedWallet === 'cash') {
+      return {
+        isValid: wallets.wallets?.cash >= orderTotal,
+        message: wallets.wallets?.cash >= orderTotal 
+          ? 'Payment will use cash wallet'
+          : 'Insufficient cash wallet balance',
+        canFund: true
+      };
+    }
+
+    // For food/gadget wallets, check if all items match
+    if (sections.size > 1 || !sections.has(selectedWallet)) {
+      return {
+        isValid: false,
+        message: `Cannot use ${selectedWallet} wallet with mixed or non-${selectedWallet} items`,
+        canFund: false
+      };
+    }
+
+    // Check wallet balance
+    return {
+      isValid: wallets.wallets?.[selectedWallet] >= orderTotal,
+      message: wallets.wallets?.[selectedWallet] >= orderTotal
+        ? `Payment will use ${selectedWallet} wallet`
+        : `Insufficient ${selectedWallet} wallet balance`,
+      canFund: false
+    };
+  };
 
   const handlePlaceOrder = async () => {
     try {
       setIsPlacingOrder(true);
       setError(null);
-      
+
+      // Validate form
+      if (!formData.address || !formData.email || !formData.name || !formData.city || !formData.zip) {
+        toast.error("All fields are required.");
+        return;
+      }
+
+      // Validate wallet payment
+      const paymentValidation = validateSelectedWallet();
+      if (!paymentValidation.isValid) {
+        toast.error(paymentValidation.message);
+        return;
+      }
+
       const orderData = {
         shippingInfo: formData,
         items: cartItems.map(item => ({
@@ -78,13 +118,16 @@ export default function CheckoutPage() {
           name: item.name,
           price: item.price,
           quantity: item.quantity,
-          imageUrl: item.imageUrl
+          imageUrl: item.imageUrl,
+          section: item.section
         })),
         deliveryMethod,
         deliveryPrice,
         subtotal: totalPrice,
         total: orderTotal,
-        paymentMethod: 'cash_wallet'
+        paymentMethod: selectedWallet === 'cash' 
+          ? 'cash_wallet' 
+          : `${selectedWallet}_wallet`
       };
 
       const response = await fetch('/api/orders', {
@@ -100,8 +143,6 @@ export default function CheckoutPage() {
       }
 
       const result = await response.json();
-      console.log('Order created:', result.order);
-      
       clearCart();
       router.push(`/order-confirmation/${result.order._id}`);
       
@@ -112,6 +153,15 @@ export default function CheckoutPage() {
       setIsPlacingOrder(false);
     }
   };
+
+  // Handle form input changes
+  const handleInputChange = (e) => {
+    const { id, value } = e.target
+    setFormData(prev => ({
+      ...prev,
+      [id]: value
+    }))
+  }
 
   // Refresh wallet balance after funding
   const handleWalletFunded = async () => {
@@ -183,10 +233,7 @@ export default function CheckoutPage() {
     fetchWallets()
   }, [status])
 
-  const cashBalance = wallets.wallets?.cash || 0
-  const hasSufficientFunds = cashBalance >= orderTotal
-
-  // Initial loading state (only for wallet/data loading)
+  // Initial loading state
   if (status === 'loading' || walletLoading) {
     return (
       <div className="container mx-auto max-w-6xl px-4 py-8 md:px-6 md:py-12">
@@ -221,6 +268,8 @@ export default function CheckoutPage() {
       </div>
     )
   }
+
+  const paymentValidation = validateSelectedWallet()
 
   return (
     <div className="container mx-auto max-w-6xl px-4 py-8 md:px-6 md:py-12">
@@ -322,58 +371,127 @@ export default function CheckoutPage() {
               onClick={() => !isPlacingOrder && setShowWallet(!showWallet)}
             >
               <div className="flex items-center justify-between">
-                <CardTitle>Cash Wallet</CardTitle>
+                <CardTitle>Payment Method</CardTitle>
                 <Button variant="ghost" size="icon" disabled={isPlacingOrder}>
                   {showWallet ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
                 </Button>
               </div>
               <CardDescription>
                 {!showWallet && (
-                  <span className="flex items-center gap-2">
-                    Balance: ₦{formatPrice(cashBalance)}
-                    {!hasSufficientFunds && (
-                      <span className="text-red-500">(Insufficient funds)</span>
+                  <div className="flex items-center gap-2">
+                    <span className="capitalize">{selectedWallet} wallet</span>
+                    <span>•</span>
+                    <span>₦{formatPrice(wallets.wallets?.[selectedWallet] || 0)}</span>
+                    {!paymentValidation.isValid && (
+                      <span className="text-red-500 text-sm">(Not available)</span>
                     )}
-                  </span>
+                  </div>
                 )}
               </CardDescription>
             </CardHeader>
             {showWallet && (
               <CardContent>
                 <div className="space-y-4">
-                  <div className="flex items-center justify-between p-4 border rounded-lg">
-                    <div className="flex items-center gap-4">
-                      <div className="p-3 rounded-full bg-primary/10">
-                        <Wallet className="h-6 w-6 text-primary" />
+                  {/* Wallet Selection */}
+                  <div className="grid grid-cols-3 gap-2">
+                    <button
+                      onClick={() => setSelectedWallet('cash')}
+                      className={`p-3 border rounded-lg flex flex-col items-center ${
+                        selectedWallet === 'cash' ? 'border-primary bg-primary/5' : 'border-transparent'
+                      }`}
+                    >
+                      <div className="p-2 rounded-full bg-primary/10 mb-2">
+                        <Wallet className="h-5 w-5 text-primary" />
                       </div>
-                      <div>
-                        <p className="font-medium">Cash Wallet</p>
-                        <p className="text-sm text-muted-foreground">Main wallet for purchases</p>
+                      <span className="text-sm">Cash</span>
+                      <span className="text-xs text-muted-foreground">Any items</span>
+                    </button>
+                    
+                    <button
+                      onClick={() => setSelectedWallet('food')}
+                      className={`p-3 border rounded-lg flex flex-col items-center ${
+                        selectedWallet === 'food' ? 'border-green-500 bg-green-50' : 'border-transparent'
+                      }`}
+                    >
+                      <div className="p-2 rounded-full bg-green-100 mb-2">
+                        <Wallet className="h-5 w-5 text-green-600" />
                       </div>
-                    </div>
-                    <p className="font-medium">₦{formatPrice(cashBalance)}</p>
+                      <span className="text-sm">Food</span>
+                      <span className="text-xs text-muted-foreground">Food only</span>
+                    </button>
+                    
+                    <button
+                      onClick={() => setSelectedWallet('gadget')}
+                      className={`p-3 border rounded-lg flex flex-col items-center ${
+                        selectedWallet === 'gadget' ? 'border-blue-500 bg-blue-50' : 'border-transparent'
+                      }`}
+                    >
+                      <div className="p-2 rounded-full bg-blue-100 mb-2">
+                        <Wallet className="h-5 w-5 text-blue-600" />
+                      </div>
+                      <span className="text-sm">Gadget</span>
+                      <span className="text-xs text-muted-foreground">Gadget only</span>
+                    </button>
                   </div>
-                  <Separator />
-                  <div className={`flex justify-between font-bold ${hasSufficientFunds ? 'text-green-600' : 'text-red-600'}`}>
-                    <p>Amount Needed</p>
-                    <p>₦{formatPrice(orderTotal)}</p>
-                  </div>
-                  {!hasSufficientFunds && (
-                    <div className="flex flex-col gap-2">
-                      <p className="text-red-500 text-sm">
-                        Insufficient funds. Please add ₦{formatPrice(orderTotal - cashBalance)} to your cash wallet.
-                      </p>
-                      <Button 
-                        variant="outline" 
-                        className="gap-2"
-                        onClick={() => setActiveModal('fund-cash')}
-                        disabled={isPlacingOrder}
-                      >
-                        <Plus className="h-4 w-4" />
-                        Add Funds
-                      </Button>
+
+                  {/* Wallet Details */}
+                  <div className={`p-4 border rounded-lg ${
+                    selectedWallet === 'cash' ? 'bg-primary/5' : 
+                    selectedWallet === 'food' ? 'bg-green-50' : 'bg-blue-50'
+                  }`}>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className={`p-2 rounded-full ${
+                          selectedWallet === 'cash' ? 'bg-primary/10' : 
+                          selectedWallet === 'food' ? 'bg-green-100' : 'bg-blue-100'
+                        }`}>
+                          <Wallet className={`h-5 w-5 ${
+                            selectedWallet === 'cash' ? 'text-primary' : 
+                            selectedWallet === 'food' ? 'text-green-600' : 'text-blue-600'
+                          }`} />
+                        </div>
+                        <div>
+                          <p className="font-medium capitalize">{selectedWallet} Wallet</p>
+                          <p className="text-sm text-muted-foreground">
+                            {selectedWallet === 'cash' 
+                              ? 'Pays for any products' 
+                              : `Only for ${selectedWallet} products`}
+                          </p>
+                        </div>
+                      </div>
+                      <p className="font-medium">₦{formatPrice(wallets.wallets?.[selectedWallet] || 0)}</p>
                     </div>
-                  )}
+                  </div>
+
+                  {/* Validation Message */}
+                  <div className={`p-3 rounded-lg flex items-start gap-2 ${
+                    paymentValidation.isValid ? 'bg-green-50 text-green-800' : 'bg-red-50 text-red-800'
+                  }`}>
+                    {!paymentValidation.isValid && (
+                      <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
+                    )}
+                    <div>
+                      <p className="font-medium">{paymentValidation.message}</p>
+                      {!paymentValidation.isValid && paymentValidation.canFund && (
+                        <Button 
+                          variant="link" 
+                          className="h-auto p-0 text-inherit mt-1"
+                          onClick={() => setActiveModal('fund-cash')}
+                        >
+                          Add funds to cash wallet
+                        </Button>
+                      )}
+                      {!paymentValidation.isValid && !paymentValidation.canFund && (
+                        <Button 
+                          variant="link" 
+                          className="h-auto p-0 text-inherit mt-1"
+                          onClick={() => setSelectedWallet('cash')}
+                        >
+                          Switch to cash wallet
+                        </Button>
+                      )}
+                    </div>
+                  </div>
                 </div>
               </CardContent>
             )}
@@ -401,6 +519,10 @@ export default function CheckoutPage() {
                       <p className="text-sm text-muted-foreground">
                         ₦{formatPrice(item.price)} × {item.quantity}
                       </p>
+                      {/* <p>{JSON.stringify(item)}</p> */}
+                      <Badge variant="outline" className="mt-1 text-xs">
+                        {item.section}
+                      </Badge>
                     </div>
                     <p className="font-medium">₦{formatPrice(item.price * item.quantity)}</p>
                   </div>
@@ -426,7 +548,7 @@ export default function CheckoutPage() {
             <CardFooter>
               <Button 
                 className="w-full bg-primary hover:bg-primary/90 text-primary-foreground"
-                disabled={!hasSufficientFunds || isPlacingOrder}
+                disabled={!paymentValidation.isValid || isPlacingOrder}
                 onClick={handlePlaceOrder}
               >
                 {isPlacingOrder ? (
@@ -437,17 +559,16 @@ export default function CheckoutPage() {
                     </svg>
                     Processing...
                   </>
-                ) : hasSufficientFunds ? 'Confirm Order' : 'Insufficient Funds'}
+                ) : paymentValidation.isValid ? 'Confirm Order' : 'Cannot Place Order'}
               </Button>
             </CardFooter>
           </Card>
         </div>
       </div>
 
-      {/* Fund Wallet Modal */}
+      {/* Wallet Funding Modal (only for cash wallet) */}
       {activeModal === 'fund-cash' && (
         <FundWalletModal
-          key="fund-modal-cash"
           walletType="cash"
           walletName="Cash Wallet"
           callbackUrl="/checkout"

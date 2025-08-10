@@ -11,7 +11,7 @@ export async function GET() {
       .sort({ createdAt: -1 })
       .limit(12)
       .populate('category', 'name slug')
-      .select('name slug price percentOff images rating numReviews flashSale');
+      // .select('name slug price percentOff images rating numReviews flashSale');
 
     const productsWithDiscount = products.map(product => {
       const discountPrice = product.percentOff > 0 

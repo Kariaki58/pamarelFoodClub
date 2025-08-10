@@ -20,6 +20,9 @@ export function ProductCard({ product }) {
   }
 
 
+
+
+
   console.log(product)
 
   return (
@@ -46,7 +49,7 @@ export function ProductCard({ product }) {
                 <div className="mt-1 flex items-center gap-1 text-xs text-muted-foreground">
                     <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
                     <span>{product.rating}</span>
-                    <span className="hidden sm:inline">({product.reviewCount})</span>
+                    {/* <span className="hidden sm:inline">({product.reviewCount})</span> */}
                 </div>
               </div>
               <div className="mt-2">

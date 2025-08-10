@@ -19,7 +19,7 @@ export async function GET(req) {
     .sort({ "flashSale.discountPercent": -1 })
     .limit(10)
     .populate('category', 'name slug')
-    .select('name slug price percentOff flashSale images rating numReviews');
+    // .select('name slug price percentOff flashSale images rating numReviews');
 
     if (!flashSaleProducts.length) {
       return NextResponse.json({

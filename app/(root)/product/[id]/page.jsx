@@ -64,7 +64,7 @@ function ReviewList({ reviews }) {
       <div className="md:col-span-1 space-y-4">
         <h3 className="text-lg font-semibold">Customer Reviews</h3>
         <div className="flex items-center gap-2">
-          <ReviewStars rating={averageRating} />
+          <ReviewStars rating={Math.round(averageRating)} />
           <span className="font-bold text-2xl">{averageRating.toFixed(1)}</span>
           <span className="text-sm text-muted-foreground">out of 5</span>
         </div>
@@ -85,35 +85,36 @@ function ReviewList({ reviews }) {
           })}
         </div>
         <Separator />
-        <h4 className="font-semibold">Write a review</h4>
-        <p className="text-sm text-muted-foreground">
-          Share your thoughts with other customers
-        </p>
-        <Button variant="outline">Write a customer review</Button>
       </div>
       <div className="md:col-span-2 space-y-6">
         {reviews.map((review) => (
           <div key={review.id} className="flex gap-4">
             <Avatar>
-              <AvatarFallback>{review.author.charAt(0)}</AvatarFallback>
+              <AvatarImage src="" />
+              <AvatarFallback>
+                {review.author?.charAt(0).toUpperCase() || 'U'}
+              </AvatarFallback>
             </Avatar>
             <div className="flex-1">
               <div className="flex items-center gap-2">
                 <p className="font-semibold">{review.author}</p>
+                {review.isVerifiedPurchase && (
+                  <Badge variant="secondary" className="text-xs">
+                    Verified Purchase
+                  </Badge>
+                )}
               </div>
               <div className="flex items-center gap-2 my-1">
                 <ReviewStars rating={review.rating} />
-                <p className="font-bold">{review.title}</p>
+                <span className="text-sm text-muted-foreground">
+                  {new Date(review.date).toLocaleDateString("en-US", {
+                    year: "numeric",
+                    month: "long",
+                    day: "numeric",
+                  })}
+                </span>
               </div>
-              <p className="text-sm text-muted-foreground mb-2">
-                Reviewed on{" "}
-                {new Date(review.date).toLocaleDateString("en-US", {
-                  year: "numeric",
-                  month: "long",
-                  day: "numeric",
-                })}
-              </p>
-              <p className="text-sm text-foreground">{review.comment}</p>
+              <p className="text-sm text-foreground mt-2">{review.comment}</p>
             </div>
           </div>
         ))}
@@ -488,7 +489,7 @@ export default function ProductDetailPage() {
                 </ul>
               </TabsContent>
               <TabsContent value="reviews" className="mt-0 text-muted-foreground">
-                <ReviewList reviews={dummyReviews} />
+                <ReviewList reviews={product.reviews || []} />
               </TabsContent>
             </CardContent>
           </Card>

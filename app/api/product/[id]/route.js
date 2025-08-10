@@ -2,7 +2,9 @@ import { NextResponse } from "next/server";
 import connectToDatabase from "@/lib/dbConnect";
 import product from "@/models/product";
 import mongoose from "mongoose";
+import Review from "@/models/Review";
 import category from "@/models/category";
+
 
 export async function GET(req, { params }) {
   try {
@@ -10,9 +12,6 @@ export async function GET(req, { params }) {
 
     const { id } = await params;
 
-    console.log({id})
-
-    // Check if ID is valid MongoDB ObjectId
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return NextResponse.json(
         { message: "Invalid product ID format" },
@@ -29,9 +28,28 @@ export async function GET(req, { params }) {
       );
     }
 
+    console.log({productData})
+
+    // Fetch reviews for this product
+    const reviews = await Review.find({ product: id })
+      .populate("user", "name email")
+      .sort({ createdAt: -1 });
+    
+
+    console.log({reviews})
+
     return NextResponse.json({
       ...productData.toObject(),
-      _id: productData._id.toString(), // Convert ObjectId to string
+      _id: productData._id.toString(),
+      reviews: reviews.map(review => ({
+        id: review._id.toString(),
+        author: review.user.name,
+        email: review.user.email,
+        rating: review.rating,
+        comment: review.comment,
+        date: review.createdAt,
+        isVerifiedPurchase: review.isVerifiedPurchase
+      }))
     });
   } catch (error) {
     console.error("API Error:", error);

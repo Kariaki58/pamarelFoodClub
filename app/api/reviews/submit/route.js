@@ -1,95 +1,90 @@
-import Review from "@/models/Review";
-import Order from "@/models/order";
-import { getServerSession } from "next-auth";
+import { getServerSession } from "next-auth/next";
 import { authOptions } from "../../auth/options";
-import { reviewSubmissionSchema } from "@/utils/validationSchemas";
 import connectToDatabase from "@/lib/dbConnect";
+import Order from "@/models/order";
+import Review from "@/models/Review";
 
-export async function POST(request) {
+
+export async function POST(req) {
+  const session = await getServerSession(authOptions);
+  
+  if (!session) {
+    return new Response(JSON.stringify({
+      success: false,
+      message: "Unauthorized"
+    }), { status: 401 });
+  }
+
   try {
-    await connectToDatabase();
-    const session = await getServerSession(authOptions);
+    const { orderId, itemId, productId, rating, comment } = await req.json();
 
-    if (!session?.user) {
+    // Validate input
+    if (!orderId || !itemId || !productId || !rating) {
       return new Response(JSON.stringify({
         success: false,
-        message: "Unauthorized"
-      }), { status: 401 });
-    }
-
-    // Parse and validate request body
-    const requestBody = await request.json();
-    const validation = reviewSubmissionSchema.safeParse(requestBody);
-
-    if (!validation.success) {
-      return new Response(JSON.stringify({
-        success: false,
-        message: "Validation failed",
-        errors: validation.error.errors
+        message: "Missing required fields"
       }), { status: 400 });
     }
 
-    const { orderId, itemId, productId, rating, comment } = validation.data;
+    await connectToDatabase();
 
-    // Verify the user ordered this product
+    // Check if order exists and is delivered
     const order = await Order.findOne({
       _id: orderId,
       user: session.user.id,
-      'items._id': itemId,
-      'items.product': productId
+      orderStatus: 'delivered'
     });
 
     if (!order) {
       return new Response(JSON.stringify({
         success: false,
-        message: "Order item not found or you don't have permission to review it"
+        message: "Order not found or not delivered"
+      }), { status: 404 });
+    }
+
+    // Find the specific item in the order
+    const orderItem = order.items.id(itemId);
+    if (!orderItem) {
+      return new Response(JSON.stringify({
+        success: false,
+        message: "Item not found in order"
       }), { status: 404 });
     }
 
     // Check if already reviewed
-    const existingReview = await Review.findOne({
-      user: session.user.id,
-      product: productId,
-      order: orderId
-    });
-
-    if (existingReview) {
+    if (orderItem.isReviewed) {
       return new Response(JSON.stringify({
         success: false,
-        message: "You've already reviewed this product"
+        message: "This item has already been reviewed"
       }), { status: 400 });
     }
 
-    // Create review
+    // Create the review
     const review = new Review({
       user: session.user.id,
       product: productId,
       order: orderId,
       rating,
-      comment: comment || null,
+      comment,
       isVerifiedPurchase: true
     });
 
     await review.save();
 
     // Mark item as reviewed
-    await Order.updateOne(
-      { _id: orderId, 'items._id': itemId },
-      { $set: { 'items.$.isReviewed': true, 'items.$.reviewId': review._id } }
-    );
+    orderItem.isReviewed = true;
+    await order.save();
 
     return new Response(JSON.stringify({
       success: true,
-      message: "Review submitted successfully",
-      reviewId: review._id
-    }), { status: 201 });
+      message: "Review submitted successfully"
+    }), { status: 200 });
 
   } catch (error) {
-    console.error("Error submitting review:", error);
+    console.error("Review submission error:", error);
     return new Response(JSON.stringify({
       success: false,
-      message: "Failed to submit review",
-      error: error.message
+      message: "Internal server error"
     }), { status: 500 });
   }
 }

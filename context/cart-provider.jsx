@@ -29,6 +29,9 @@ export const CartProvider = ({ children }) => {
           const response = await fetch('/api/cart');
           if (response.ok) {
             const data = await response.json();
+            console.log("cart provider")
+            console.log(data)
+            console.log("xxx")
             setCartItems(Array.isArray(data) ? data : []);
           }
         } else {
@@ -96,13 +99,15 @@ export const CartProvider = ({ children }) => {
       // Add new item
       console.log("########################")
       console.log(product)
+      console.log(product.section)
       console.log("########################")
 
       newItems = [...cartItems, { 
         id: product.id, 
         name: product.name, 
         price: product.price, 
-        imageUrl: product.images[0].url, 
+        imageUrl: product.images[0].url,
+        section: product.section,
         quantity: quantity 
       }];
     }

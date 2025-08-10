@@ -6,6 +6,7 @@ import { NextResponse } from "next/server";
 import Product from "@/models/product";
 import Category from "@/models/category";
 
+
 export async function POST(req) {
     try {
         // Connect to database

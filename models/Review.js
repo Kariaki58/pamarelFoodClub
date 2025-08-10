@@ -36,8 +36,8 @@ const reviewSchema = new mongoose.Schema({
   }
 });
 
-// Compound index to ensure one review per product per user
-reviewSchema.index({ user: 1, product: 1 }, { unique: true });
+// Compound index to ensure one review per product per user per order
+reviewSchema.index({ user: 1, product: 1, order: 1 }, { unique: true });
 
 // Update product ratings when a review is saved
 reviewSchema.post('save', async function(doc) {

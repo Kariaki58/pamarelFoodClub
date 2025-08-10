@@ -21,9 +21,11 @@ export async function GET() {
     const cart = await Cart.findOne({ user: session.user.id })
       .populate({
         path: 'items.product',
-        select: 'name images price'
+        // select: 'name images price'
       })
       .lean();
+    
+    console.log(cart)
 
     if (!cart) {
       return NextResponse.json({ items: [] });
@@ -35,7 +37,8 @@ export async function GET() {
       price: item.price || item.product.price,
       imageUrl: item.product.images?.find(img => img.isDefault)?.url || 
                item.product.images?.[0]?.url,
-      quantity: item.quantity
+      quantity: item.quantity,
+      section: item.section
     }));
 
     return NextResponse.json(formattedItems);
@@ -95,12 +98,14 @@ export async function POST(req) {
       // Update existing item's quantity
       cart.items[existingItemIndex].quantity += quantity;
       cart.items[existingItemIndex].price = product.price;
+      cart.items[existingItemIndex].section = product.section;
     } else {
       // Add new item
       cart.items.push({
         product: productId,
         quantity,
-        price: product.price
+        price: product.price,
+        section: product.section
       });
     }
 

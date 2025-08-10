@@ -17,7 +17,6 @@ function ReviewForm({ product, orderId, itemId, onReviewSubmit }) {
     const [rating, setRating] = useState(0);
     const [comment, setComment] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
-    const [validationErrors, setValidationErrors] = useState([]);
 
     const handleSubmit = async () => {
         if (rating === 0) {
@@ -26,7 +25,6 @@ function ReviewForm({ product, orderId, itemId, onReviewSubmit }) {
         }
 
         setIsSubmitting(true);
-        setValidationErrors([]);
         
         try {
             const response = await fetch('/api/reviews/submit', {
@@ -46,9 +44,6 @@ function ReviewForm({ product, orderId, itemId, onReviewSubmit }) {
             const result = await response.json();
 
             if (!response.ok) {
-                if (result.errors) {
-                    setValidationErrors(result.errors);
-                }
                 throw new Error(result.message || "Failed to submit review");
             }
 
@@ -83,18 +78,12 @@ function ReviewForm({ product, orderId, itemId, onReviewSubmit }) {
                     />
                 ))}
             </div>
-            {validationErrors.some(e => e.path.includes('rating')) && (
-                <p className="text-sm text-red-500 text-center">Please select a valid rating</p>
-            )}
             
             <Textarea 
                 placeholder="Share your experience with this product..." 
                 value={comment}
                 onChange={(e) => setComment(e.target.value)}
             />
-            {validationErrors.some(e => e.path.includes('comment')) && (
-                <p className="text-sm text-red-500">Comment is too long</p>
-            )}
             
             <Button 
                 className="w-full" 

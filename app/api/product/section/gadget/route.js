@@ -10,7 +10,7 @@ export async function GET() {
     const foodProducts = await product.find({ section: 'gadget' })
       .sort({ createdAt: -1 })
       .populate('category', 'name slug')
-      .select('name slug price percentOff images rating numReviews flashSale category');
+      // .select('name slug price percentOff images rating numReviews flashSale category');
 
     const productsWithDiscount = foodProducts.map(product => {
       const discountPrice = product.percentOff > 0 

@@ -15,6 +15,10 @@ const cartItemSchema = new mongoose.Schema({
     type: Number,
     required: true
   },
+  section: {
+    type: String,
+    required: true
+  },
   addedAt: {
     type: Date,
     default: Date.now
