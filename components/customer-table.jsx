@@ -35,7 +35,6 @@ const AffiliatesAdminPage = () => {
 
       if (res.ok) {
         setAffiliates(data.data);
-        console.log(data)
         setTotalPages(data.pagination.totalPages);
       } else {
         toast.error(data.error || 'Failed to fetch affiliates');
@@ -96,7 +95,7 @@ const AffiliatesAdminPage = () => {
       case 'active':
         bgColor = 'bg-green-100 text-green-800';
         break;
-      case 'inactive':
+      case 'suspended':
         bgColor = 'bg-red-100 text-red-800';
         break;
       case 'pending':
@@ -139,19 +138,16 @@ const AffiliatesAdminPage = () => {
   const BoardBadge = ({ board }) => {
     let bgColor = '';
     switch (board) {
-      case 'bronze':
+      case 'Bronze':
         bgColor = 'bg-amber-100 text-amber-800';
         break;
-      case 'silver':
+      case 'Silver':
         bgColor = 'bg-gray-100 text-gray-800';
         break;
-      case 'gold':
+      case 'Gold':
         bgColor = 'bg-yellow-100 text-yellow-800';
         break;
-      case 'platinum':
-        bgColor = 'bg-teal-100 text-teal-800';
-        break;
-      case 'exit':
+      case 'Completed':
         bgColor = 'bg-green-100 text-green-800';
         break;
       default:
@@ -159,7 +155,7 @@ const AffiliatesAdminPage = () => {
     }
     return (
       <span className={`px-2 py-1 rounded-full text-xs font-medium ${bgColor}`}>
-        {board ? board.charAt(0).toUpperCase() + board.slice(1) : 'None'}
+        {board ? board : 'None'}
       </span>
     );
   };
@@ -224,8 +220,8 @@ const AffiliatesAdminPage = () => {
               >
                 <option value="all">All Statuses</option>
                 <option value="active">Active</option>
-                <option value="inactive">Inactive</option>
                 <option value="pending">Pending</option>
+                <option value="suspended">Suspended</option>
               </select>
             </div>
             <div>
@@ -249,11 +245,10 @@ const AffiliatesAdminPage = () => {
                 onChange={(e) => handleFilterChange('board', e.target.value)}
               >
                 <option value="all">All Boards</option>
-                <option value="bronze">Bronze</option>
-                <option value="silver">Silver</option>
-                <option value="gold">Gold</option>
-                <option value="platinum">Platinum</option>
-                <option value="exit">Exit</option>
+                <option value="Bronze">Bronze</option>
+                <option value="Silver">Silver</option>
+                <option value="Gold">Gold</option>
+                <option value="Completed">Completed</option>
               </select>
             </div>
           </div>
@@ -340,13 +335,10 @@ const AffiliatesAdminPage = () => {
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <PlanBadge plan={affiliate.currentPlan} />
+                          <PlanBadge plan={affiliate.plan} />
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <BoardBadge board={affiliate.currentBoard} />
-                          <div className="text-xs text-gray-500 mt-1">
-                            {formatDate(affiliate.boardProgress?.find(b => b.boardType === affiliate.currentBoard)?.startDate)}
-                          </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="flex flex-col gap-1">
@@ -380,9 +372,6 @@ const AffiliatesAdminPage = () => {
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <StatusBadge status={affiliate.status} />
-                          <div className="text-xs text-gray-500 mt-1">
-                            {affiliate.isActive ? 'Active' : 'Inactive'}
-                          </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="text-sm text-gray-500">

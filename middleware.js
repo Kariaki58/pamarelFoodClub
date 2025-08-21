@@ -4,10 +4,13 @@ import { getToken } from 'next-auth/jwt';
 // Routes that don't require auth
 const PUBLIC_PATHS = [
   '/', // home page
-  '/auth/login',
   '/auth/register',
+  '/payment/failed',
+  '/payment/success',
+  '/auth/login',
+  '/join-member',
   '/auth/forgot-password',
-  '/auth/reset-password'
+  '/auth/reset-password',
 ];
 
 export async function middleware(req) {
@@ -17,7 +20,9 @@ export async function middleware(req) {
   if (
     pathname.startsWith('/_next') ||
     pathname.startsWith('/api') ||
-    pathname === '/favicon.ico'
+    pathname === '/favicon.ico' ||
+    pathname.startsWith('/img') || // allow public images
+    pathname.startsWith('/images') // if you keep them in /public/images
   ) {
     return NextResponse.next();
   }
@@ -44,5 +49,8 @@ export async function middleware(req) {
 }
 
 export const config = {
-  matcher: ['/((?!_next/static|_next/image|favicon.ico).*)'],
+  matcher: [
+    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:jpg|jpeg|png|gif|svg|webp|ico|avif|bmp|tiff|woff|woff2|ttf|eot|mp4|webm|ogg|mp3|wav|pdf)).*)',
+  ],
 };
+

@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 
 export async function POST(request) {
   try {
-    const { email, amount, planType, userId, metadata } = await request.json();
+    const { email, amount, planType, userId, planName } = await request.json();
     
     if (!email || !amount || !planType || !userId) {
       return NextResponse.json(
@@ -22,11 +22,11 @@ export async function POST(request) {
         amount: amount * 100, // Convert to kobo
         reference: `pamarel-${Date.now()}-${userId}`,
         currency: 'NGN',
-        callback_url: `${process.env.NEXTAUTH_URL}/payment/callback`,
+        callback_url: `${process.env.NEXTAUTH_URL}/api/payment/verify`,
         metadata: {
           planType,
           userId,
-          ...metadata
+          planName
         }
       })
     });

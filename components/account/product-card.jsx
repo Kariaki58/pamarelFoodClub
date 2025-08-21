@@ -20,11 +20,6 @@ export function ProductCard({ product }) {
   }
 
 
-
-
-
-  console.log(product)
-
   return (
     <Link href={`/product/${product._id}`} className="group relative block h-full">
         <Card className="flex h-full flex-col p-0 overflow-hidden transition-transform duration-300 group-hover:shadow-lg group-hover:-translate-y-1">

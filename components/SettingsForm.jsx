@@ -14,7 +14,6 @@ export default function SettingsForm({ initialValues }) {
 
   const handleSubmit = (e) => {
     e.preventDefault()
-    console.log('Form submitted:', formData)
     alert('Settings saved successfully!')
   }
 

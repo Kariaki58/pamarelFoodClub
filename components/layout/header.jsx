@@ -24,10 +24,6 @@ export function Header() {
   const { data: session }  = useSession();
   const { cartCount } = useCart()
 
-  console.log({session})
-  
-
-  console.log({cartCount})
   const handleSearch = (e) => {
     e.preventDefault();
     if (!searchQuery.trim()) return;

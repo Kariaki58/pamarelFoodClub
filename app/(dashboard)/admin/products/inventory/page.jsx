@@ -108,9 +108,6 @@ export default function InventoryDashboard() {
     fetchProducts();
   }, [currentPage, searchQuery, sortOption, filterOption]);
 
-  // console.log(products[0].unitsSold)
-
-  // console.log(products[0].price)
 
   // Calculate summary metrics
   const summaryMetrics = {

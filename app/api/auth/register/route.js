@@ -1,89 +1,78 @@
-import { NextResponse } from "next/server";
-import connectToDatabase from "@/lib/dbConnect";
-import User from "@/models/user";
+import { NextResponse } from 'next/server';
+import connectToDatabase from '@/lib/dbConnect';
+import User from '@/models/user';
 import bcrypt from 'bcryptjs';
-import crypto from 'crypto';
 
 export async function POST(request) {
-    try {
-        await connectToDatabase();
+  try {
+    await connectToDatabase();
+    
+    const { username, email, phone, password, referralCode, planType } = await request.json();
 
-        const { username, email, phone, password, referralCode } = await request.json();
+    // Check if user already exists
+    const existingUser = await User.findOne({
+      $or: [{ email }, { username }]
+    });
 
-        // Validation
-        if (!username || !email || !phone || !password) {
-            return NextResponse.json(
-                { success: false, error: "All fields are required" },
-                { status: 400 }
-            );
-        }
-
-        // Check existing user
-        const existingUser = await User.findOne({
-            $or: [{ email }, { username }, { phone }]
-        });
-
-        if (existingUser) {
-            let errorMessage = "User already exists";
-            if (existingUser.email === email) errorMessage = "Email already registered";
-            else if (existingUser.username === username) errorMessage = "Username taken";            
-            return NextResponse.json(
-                { success: false, error: errorMessage },
-                { status: 409 }
-            );
-        }
-
-        // Handle referral code
-        let referredByUser = null;
-        if (referralCode) {
-            referredByUser = await User.findOne({ referralCode });
-            if (!referredByUser) {
-                return NextResponse.json(
-                    { success: false, error: "Invalid referral code" },
-                    { status: 400 }
-                );
-            }
-        }
-
-        // Hash password
-        const hashedPassword = await bcrypt.hash(password, 10);
-
-        // Create new user
-        const newUser = new User({
-            username,
-            email,
-            phone,
-            password: hashedPassword,
-            referredBy: referredByUser?._id,
-            upline: referredByUser?._id,
-        });
-
-        await newUser.save();
-        
-        if (referredByUser) {
-            referredByUser.downlines.push(newUser._id);
-            await referredByUser.save();
-        }
-
-        return NextResponse.json({
-            success: true,
-            message: "Registration successful",
-            data: {
-                id: newUser._id,
-                username: newUser.username,
-                email: newUser.email,
-                referralCode: newUser.referralCode
-            }
-        }, { status: 201 });
-
-    } catch (error) {
-        console.error("Registration error:", error);
-        return NextResponse.json(
-            { 
-                success: false, 
-                error: error.message || "Registration failed. Please try again." 
-            },
-            { status: 500 }
-        );
+    if (existingUser) {
+      return NextResponse.json(
+        { error: 'User with this email or username already exists' },
+        { status: 400 }
+      );
     }
+
+    // Hash password
+    const hashedPassword = await bcrypt.hash(password, 12);
+
+    // Generate referral code
+    const userReferralCode = Math.random().toString(36).substring(2, 8).toUpperCase();
+
+    // Check if referredBy user exists if referral code is provided
+    let referredBy = null;
+    if (referralCode) {
+      const referrer = await User.findOne({ referralCode });
+      if (referrer) {
+        referredBy = referrer._id;
+      }
+    }
+
+    // Create user with pending status
+    const user = new User({
+      username,
+      email,
+      phone,
+      password: hashedPassword,
+      referralCode: userReferralCode,
+      referredBy,
+      plan: planType,
+      status: 'pending',
+      currentBoard: "Bronze",
+      createdAt: new Date(),
+      earnings: { foodWallet: 0, gadgetsWallet: 0, cashWallet: 0 },
+      boardProgress: {
+        Bronze: { directReferrals: [], completed: false },
+        Silver: { level1Referrals: [], level2Referrals: [], completed: false },
+        Gold: { level3Referrals: [], level4Referrals: [], completed: false },
+      },
+    });
+
+    await user.save();
+
+    await User.findByIdAndUpdate(referredBy, {
+      $push: { "boardProgress.Bronze.directReferrals": user._id },
+    });
+
+    return NextResponse.json({
+      success: true,
+      userId: user._id,
+      message: 'User registered successfully. Awaiting payment.'
+    });
+
+  } catch (error) {
+    console.error('Registration error:', error);
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    );
+  }
 }

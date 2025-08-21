@@ -42,7 +42,6 @@ export default function StoreShippingSettings() {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    console.log('Shipping settings:', shippingSettings);
     alert('Shipping settings saved successfully!');
   };
 

@@ -18,7 +18,6 @@ export function DealsByCategory() {
         setLoading(true);
         const response = await fetch('/api/deals-by-category');
         const data = await response.json();
-        console.log({ data })
         
         if (!data.success) {
           throw new Error(data.error || "Failed to fetch data");

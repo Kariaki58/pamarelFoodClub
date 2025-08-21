@@ -12,7 +12,7 @@ export async function GET(req) {
     }
 
     await connectToDatabase();
-    const adminUser = await User.findOne({ _id: session.user.id });
+    const adminUser = await User.findOne({ email: session.user.email });
 
     if (!adminUser || adminUser.role !== 'admin') {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
@@ -28,12 +28,10 @@ export async function GET(req) {
 
     const skip = (page - 1) * limit;
 
-    // Build the query - users with any plan
+    // Build the query based on existing schema
     let query = { 
-      currentPlan: { $in: ['basic', 'classic', 'deluxe'] }
+      plan: { $in: ['basic', 'classic', 'deluxe'] } // Use 'plan' instead of 'currentPlan'
     };
-
-    console.log(query)
 
     if (search) {
       query.$or = [
@@ -44,11 +42,11 @@ export async function GET(req) {
     }
 
     if (status !== 'all') {
-      query.isActive = status === 'active';
+      query.status = status; // Use 'status' instead of 'isActive'
     }
 
     if (plan !== 'all') {
-      query.currentPlan = plan;
+      query.plan = plan; // Use 'plan' instead of 'currentPlan'
     }
 
     if (board !== 'all') {
@@ -57,7 +55,7 @@ export async function GET(req) {
 
     // Get affiliates with pagination
     const affiliates = await User.find(query)
-      .select('username email phone currentPlan currentBoard isActive lastLogin planHistory boardProgress downlines referredBy createdAt')
+      .select('username email phone plan currentBoard status referralCode referredBy createdAt boardProgress earnings')
       .populate('referredBy', 'username')
       .skip(skip)
       .limit(limit)
@@ -68,12 +66,29 @@ export async function GET(req) {
 
     // Enhance affiliate data with additional calculated fields
     const enhancedAffiliates = await Promise.all(affiliates.map(async (affiliate) => {
-      const directDownlines = affiliate.downlines?.length || 0;
+      // Calculate direct downlines (users who were referred by this affiliate)
+      const directDownlines = await User.countDocuments({ referredBy: affiliate._id });
+      
+      // Calculate indirect downlines (recursively)
       const indirectDownlines = await calculateIndirectDownlines(affiliate._id);
       
-      const currentBoardProgress = affiliate.boardProgress?.find(b => b.boardType === affiliate.currentBoard) || {};
-      const directReferrals = currentBoardProgress.directReferrals?.length || 0;
-      const indirectReferrals = currentBoardProgress.indirectReferrals?.length || 0;
+      // Get board progress based on current board
+      const boardType = affiliate.currentBoard.toLowerCase();
+      const boardData = affiliate.boardProgress[boardType] || {};
+      
+      // Calculate referrals based on board type
+      let directReferrals = 0;
+      let indirectReferrals = 0;
+      
+      if (boardType === 'bronze') {
+        directReferrals = boardData.directReferrals?.length || 0;
+      } else if (boardType === 'silver') {
+        directReferrals = boardData.level1Referrals?.length || 0;
+        indirectReferrals = boardData.level2Referrals?.length || 0;
+      } else if (boardType === 'gold') {
+        directReferrals = boardData.level3Referrals?.length || 0;
+        indirectReferrals = boardData.level4Referrals?.length || 0;
+      }
 
       return {
         ...affiliate,
@@ -83,7 +98,7 @@ export async function GET(req) {
         indirectReferrals,
         totalDownlines: directDownlines + indirectDownlines,
         boardRequirements: getBoardRequirements(affiliate.currentBoard),
-        status: affiliate.isActive ? 'active' : 'inactive' // Add status field for frontend
+        isActive: affiliate.status === 'active' // Add isActive for frontend compatibility
       };
     }));
 
@@ -138,12 +153,12 @@ async function calculateIndirectDownlines(userId, maxLevel = 7) {
 
 // Helper function to get board requirements
 function getBoardRequirements(boardType) {
+  const board = boardType.toLowerCase();
   const requirements = {
     bronze: { direct: 7, indirect: 0 },
     silver: { direct: 7, indirect: 49 },   // 7^2
     gold: { direct: 7, indirect: 343 },    // 7^3
-    platinum: { direct: 7, indirect: 2401 }, // 7^4
-    exit: { direct: 7, indirect: 960799 }  // 7^7 - 1
+    completed: { direct: 0, indirect: 0 }
   };
-  return requirements[boardType] || { direct: 0, indirect: 0 };
+  return requirements[board] || { direct: 0, indirect: 0 };
 }

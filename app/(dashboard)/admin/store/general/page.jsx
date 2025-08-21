@@ -50,7 +50,6 @@ export default function StoreGeneralSetUp() {
   const handleSubmit = (e) => {
     e.preventDefault();
     // Here you would typically send the data to your backend
-    console.log('Store info submitted:', { storeInfo, socialLinks });
     alert('Store settings saved successfully!');
   };
 

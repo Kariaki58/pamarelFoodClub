@@ -28,7 +28,6 @@ export default function HelpCenter() {
     try {
       // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 1000));
-      console.log('Help request submitted:', formData);
       setSubmitSuccess(true);
       setFormData({
         issueType: 'technical',

@@ -24,8 +24,8 @@ export const authOptions = {
           }
 
           // 2. Check if account is active
-          if (!user.isActive) {
-            throw new Error('Your account has been deactivated. Please contact support.');
+          if (user.status === "pending") {
+            throw new Error('your account is not yet activated please contact support.');
           }
 
           // 3. Verify password

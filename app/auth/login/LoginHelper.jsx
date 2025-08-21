@@ -37,7 +37,7 @@ export default function LoginPage() {
         throw new Error(result.error);
       }
 
-      const callbackUrl = searchParams.get('callbackUrl') || '/join-member';
+      const callbackUrl = searchParams.get('callbackUrl') || '/account';
       router.push(callbackUrl);
     } catch (err) {
       console.error('Login error:', err);

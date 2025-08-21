@@ -195,11 +195,11 @@ export function AppSidebar({
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton asChild className="data-[slot=sidebar-menu-button]:!p-1.5">
-              <a href="#" className="flex items-center gap-2">
+              <a href="/" className="flex items-center gap-2">
                 <div className="bg-primary text-white p-2 rounded-lg">
                   <IconShoppingBag className="!size-5" />
                 </div>
-                <span className="text-base font-semibold">E-Shop Admin</span>
+                <span className="text-base font-semibold">Pamarel Admin</span>
               </a>
             </SidebarMenuButton>
           </SidebarMenuItem>

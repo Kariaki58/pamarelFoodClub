@@ -9,11 +9,14 @@ import {
   Users, 
   Settings, 
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  Shield // Added Shield icon for admin
 } from 'lucide-react'
+import { useSession } from 'next-auth/react'
 
-export default function Sidebar({ sidebarOpen, setSidebarOpen }) {
+export default function Sidebar({ sidebarOpen, setSidebarOpen, isAdmin }) {
   const router = useRouter()
+  const { data: session } = useSession()
 
   const toggleSidebar = () => {
     setSidebarOpen(!sidebarOpen)
@@ -26,6 +29,11 @@ export default function Sidebar({ sidebarOpen, setSidebarOpen }) {
   const navigateToHome = () => {
     router.push('/')
   }
+
+  const navigateToAdmin = () => {
+    router.push('/admin')
+  }
+
 
   return (
     <div className={`${sidebarOpen ? 'w-64' : 'w-20'} bg-white shadow-md transition-all duration-300 flex flex-col h-full`}>
@@ -69,6 +77,19 @@ export default function Sidebar({ sidebarOpen, setSidebarOpen }) {
               {sidebarOpen && <span className="ml-3">Settings</span>}
             </Link>
           </li>
+          
+          {/* Admin Link - Only shown if user is admin */}
+          {isAdmin && (
+            <li>
+              <button 
+                onClick={navigateToAdmin}
+                className="flex items-center p-3 rounded-lg hover:bg-gray-100 w-full text-left"
+              >
+                <Shield size={20} />
+                {sidebarOpen && <span className="ml-3">Admin Panel</span>}
+              </button>
+            </li>
+          )}
         </ul>
       </nav>
 

@@ -42,7 +42,6 @@ export default function WalletVerifyPage() {
   }, [searchParams, router]);
 
   const startRedirectTimer = () => {
-    console.log(callbackUrl)
     setTimeout(() => {
       if (callbackUrl !== "undefined") {
         router.push(callbackUrl)

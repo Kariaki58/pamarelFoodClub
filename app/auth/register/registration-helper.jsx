@@ -4,6 +4,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 import { Eye, EyeOff } from 'lucide-react';
+import { PLANS } from '@/lib/plans'; // Make sure this path is correct
 
 export default function RegistrationPage() {
   const router = useRouter();
@@ -15,7 +16,8 @@ export default function RegistrationPage() {
     phone: '',
     password: '',
     confirmPassword: '',
-    referralCode: ''
+    referralCode: '',
+    planType: '' // Added planType to form data
   });
 
   const [errors, setErrors] = useState({});
@@ -23,16 +25,36 @@ export default function RegistrationPage() {
   const [apiError, setApiError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [selectedPlan, setSelectedPlan] = useState(null);
 
   useEffect(() => {
     const refCode = searchParams.get('ref');
+    const planType = searchParams.get('planType');
+    
     if (refCode) {
       setFormData(prev => ({
         ...prev,
         referralCode: refCode
       }));
     }
-  }, [searchParams]);
+
+    if (planType) {
+      // Validate plan type
+      if (PLANS[planType]) {
+        setFormData(prev => ({
+          ...prev,
+          planType: planType
+        }));
+        setSelectedPlan(PLANS[planType]);
+      } else {
+        // Invalid plan type, redirect to plans page
+        router.push('/join-member');
+      }
+    } else {
+      // No plan type specified, redirect to plans page
+      router.push('/join-member');
+    }
+  }, [searchParams, router]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -69,6 +91,10 @@ export default function RegistrationPage() {
       newErrors.confirmPassword = 'Passwords do not match';
     }
 
+    if (!formData.planType) {
+      newErrors.planType = 'Please select a plan first';
+    }
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -82,34 +108,71 @@ export default function RegistrationPage() {
     setLoading(true);
 
     try {
-      const response = await fetch('/api/auth/register', {
+      // First create the user with pending status
+      const userResponse = await fetch('/api/auth/register', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           username: formData.username,
           email: formData.email,
           phone: formData.phone,
           password: formData.password,
-          referralCode: formData.referralCode || null
+          referralCode: formData.referralCode || null,
+          planType: formData.planType,
+          status: 'pending'
         })
       });
 
-      const data = await response.json();
+      const userData = await userResponse.json();
 
-      if (!response.ok) {
-        throw new Error(data.error || 'Registration failed');
+      if (!userResponse.ok) {
+        throw new Error(userData.error || 'User registration failed');
       }
 
-      router.push('/auth/login');
+      // Then initialize payment with the user ID
+      const paymentResponse = await fetch('/api/payment/initialize', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: formData.email,
+          amount: selectedPlan.price,
+          planType: formData.planType,
+          userId: userData.userId, // Pass the created user ID
+          planName: selectedPlan.name,
+        })
+      });
+
+      const paymentData = await paymentResponse.json();
+
+      if (!paymentResponse.ok) {
+        throw new Error(paymentData.error || 'Payment initialization failed');
+      }
+
+      // Redirect to payment page
+      window.location.href = paymentData.authorizationUrl;
+
     } catch (error) {
-      console.error('Registration error:', error);
+      console.error('Registration/Payment error:', error);
       setApiError(error.message);
     } finally {
       setLoading(false);
     }
   };
+
+  if (!selectedPlan) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-yellow-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading plan information...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
@@ -127,15 +190,24 @@ export default function RegistrationPage() {
         </div>
 
         <h2 className="mt-6 text-center text-3xl font-bold text-gray-900">
-          Join Pamarel
+          Join Pamarel - {selectedPlan.name}
         </h2>
         <p className="mt-2 text-center text-sm text-gray-600">
-          Create your account and start your journey
+          Register for the {selectedPlan.name} Plan - ₦{selectedPlan.price.toLocaleString()}
         </p>
       </div>
 
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
         <div className="bg-white py-8 px-6 shadow-lg rounded-xl sm:px-10 border border-gray-100">
+          {/* Plan Summary */}
+          <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+            <h3 className="font-semibold text-yellow-800">Selected Plan: {selectedPlan.name}</h3>
+            <p className="text-yellow-700">Price: ₦{selectedPlan.price.toLocaleString()}</p>
+            <p className="text-sm text-yellow-600 mt-1">
+              You'll be redirected to payment after registration
+            </p>
+          </div>
+
           {apiError && (
             <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4">
               <div className="flex items-center text-red-800">
@@ -293,9 +365,9 @@ export default function RegistrationPage() {
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                     </svg>
-                    Creating account...
+                    Registering & Processing Payment...
                   </>
-                ) : 'Create Account'}
+                ) : `Register & Pay ₦${selectedPlan.price.toLocaleString()}`}
               </button>
             </div>
           </form>

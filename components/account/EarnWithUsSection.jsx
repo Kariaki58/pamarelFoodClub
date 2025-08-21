@@ -110,7 +110,7 @@ export function EarnWithUsSection() {
               </motion.div>
 
               {/* Platinum Board */}
-              <motion.div 
+              {/* <motion.div 
                 className="bg-white rounded-xl p-6 shadow-lg border-l-4 border-blue-500 h-full"
                 whileHover={{ y: -5 }}
               >
@@ -131,7 +131,7 @@ export function EarnWithUsSection() {
                     <p className="text-lg font-bold text-blue-800">₦14M</p>
                   </div>
                 </div>
-              </motion.div>
+              </motion.div> */}
             </div>
 
             {/* CTA Buttons */}

@@ -17,7 +17,6 @@ export function GadgetEssentails() {
                     throw new Error('Failed to fetch products');
                 }
                 const data = await response.json();
-                console.log(data)
                 setDailyEssentialsProducts(data.products.slice(0, 8));
             } catch (err) {
                 setError(err instanceof Error ? err.message : 'An unknown error occurred');

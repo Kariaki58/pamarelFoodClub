@@ -190,37 +190,6 @@ export function SectionCards() {
           </div>
         </CardFooter>
       </Card>
-      <Card className="@container/card">
-        <CardHeader>
-          <CardDescription>Members Without Plan</CardDescription>
-          <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
-            {stats.membersWithoutPlan.toLocaleString()}
-          </CardTitle>
-          <CardAction>
-            <Badge variant="outline" className="flex items-center gap-1">
-              {stats.noPlanGrowth > 0 ? (
-                <IconTrendingUp className="size-3" />
-              ) : (
-                <IconTrendingDown className="size-3" />
-              )}
-              {stats.noPlanGrowth > 0 ? '+' : ''}{stats.noPlanGrowth}%
-            </Badge>
-          </CardAction>
-        </CardHeader>
-        <CardFooter className="flex-col items-start gap-1.5 text-sm">
-          <div className="line-clamp-1 flex gap-2 font-medium">
-            {stats.noPlanGrowth > 0 ? (
-              <>
-                More unsubscribed members <IconTrendingUp className="size-4 text-red-500" />
-              </>
-            ) : (
-              <>
-                Fewer unsubscribed members <IconTrendingDown className="size-4 text-green-500" />
-              </>
-            )}
-          </div>
-        </CardFooter>
-      </Card>
       <WalletCard />
     </div>
   );
