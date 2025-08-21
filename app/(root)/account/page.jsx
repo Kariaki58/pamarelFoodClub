@@ -1,6 +1,5 @@
 'use client';
 
-import AffiliateDashboard from "@/app/(affilate)/affiliate/page";
 import { DashboardSummary } from "@/components/account/dashboard-summary";
 import { OrderHistory } from "@/components/account/order-history";
 import { PendingReviews } from "@/components/account/pending-reviews";
