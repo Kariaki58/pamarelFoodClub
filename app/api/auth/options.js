@@ -14,11 +14,13 @@ export const authOptions = {
       async authorize(credentials, req) {
         try {
           await connectToDatabase();
+
+          console.log("user->>>>", credentials)
           
           // 1. Find user by username
           const user = await User.findOne({ username: credentials.username })
                               .select('+password +isActive');
-          
+          console.log({ user })
           if (!user) {
             throw new Error('No user found with this username');
           }
@@ -27,9 +29,12 @@ export const authOptions = {
           if (user.status === "pending") {
             throw new Error('your account is not yet activated please contact support.');
           }
+          console.log("line 32")
 
           // 3. Verify password
           const isValid = await bcrypt.compare(credentials.password, user.password);
+
+          console.log("isValid--->>", isValid)
           if (!isValid) {
             throw new Error('Incorrect password');
           }
