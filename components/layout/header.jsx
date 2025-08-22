@@ -16,6 +16,7 @@ import {
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { CartSheet } from "../account/cart-sheet";
+import Image from "next/image";
 
 export function Header() {
   const router = useRouter();
@@ -54,9 +55,15 @@ export function Header() {
             </SheetContent>
           </Sheet>
           <Link href="/" className="flex items-center gap-2">
-             <ShoppingCart className="h-7 w-7 text-primary" />
-             <span className="text-xl font-bold text-primary">pamarel</span>
+            <Image
+              src="/logo-55.png"
+              alt="logo"
+              width={100}
+              height={100}
+              className="object-contain"
+            />
           </Link>
+
         </div>
 
         <div className="hidden flex-1 justify-center px-8 md:flex">
