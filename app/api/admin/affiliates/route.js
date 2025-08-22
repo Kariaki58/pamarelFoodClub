@@ -1,164 +1,146 @@
-import { NextResponse } from 'next/server';
 import User from '@/models/user';
-import { getServerSession } from 'next-auth';
+import { NextResponse } from 'next/server';
 import connectToDatabase from '@/lib/dbConnect';
+import { getServerSession } from 'next-auth';
 import { authOptions } from '../../auth/options';
 
+// GET all users progress with filtering, sorting and pagination (Admin only)
 export async function GET(req) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session || !session.user?.email) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+
+    if (!session) {
+      return NextResponse.json({ error: "unauthenticated" }, { status: 400 })
     }
 
+    if (session.user.role !== "admin") {
+      return NextResponse.json({ error: "not Authorized" }, { status: 400 })
+    }
     await connectToDatabase();
-    const adminUser = await User.findOne({ email: session.user.email });
 
-    if (!adminUser || adminUser.role !== 'admin') {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    const findUserAdmin = await User.findOne({ _id: session.user.id })
+
+    if (!findUserAdmin) {
+      return NextResponse.json({ error: "Not found user" }, { status: 404 })
     }
 
+    if (findUserAdmin.role !== "admin") {
+      return NextResponse.json({ error: "you are not an admin" }, { status: 400 })
+    }
+
+    console.log("all passed----")
+
+    // Get query parameters
     const { searchParams } = new URL(req.url);
-    const page = parseInt(searchParams.get('page') || '1');
-    const limit = parseInt(searchParams.get('limit') || '10');
+    const page = parseInt(searchParams.get('page')) || 1;
+    const limit = parseInt(searchParams.get('limit')) || 10;
     const search = searchParams.get('search') || '';
     const status = searchParams.get('status') || 'all';
     const plan = searchParams.get('plan') || 'all';
     const board = searchParams.get('board') || 'all';
+    const sortBy = searchParams.get('sortBy') || 'createdAt';
+    const sortOrder = searchParams.get('sortOrder') || 'desc';
 
-    const skip = (page - 1) * limit;
-
-    // Build the query based on existing schema
-    let query = { 
-      plan: { $in: ['basic', 'classic', 'deluxe'] } // Use 'plan' instead of 'currentPlan'
-    };
-
+    // Build filter object
+    let filter = {};
+    
+    // Search filter
     if (search) {
-      query.$or = [
+      filter.$or = [
         { username: { $regex: search, $options: 'i' } },
         { email: { $regex: search, $options: 'i' } },
-        { phone: { $regex: search, $options: 'i' } }
+        { referralCode: { $regex: search, $options: 'i' } }
       ];
     }
-
-    if (status !== 'all') {
-      query.status = status; // Use 'status' instead of 'isActive'
-    }
-
-    if (plan !== 'all') {
-      query.plan = plan; // Use 'plan' instead of 'currentPlan'
-    }
-
-    if (board !== 'all') {
-      query.currentBoard = board;
-    }
-
-    // Get affiliates with pagination
-    const affiliates = await User.find(query)
-      .select('username email phone plan currentBoard status referralCode referredBy createdAt boardProgress earnings')
-      .populate('referredBy', 'username')
-      .skip(skip)
-      .limit(limit)
-      .lean();
     
-    // Count total affiliates for pagination
-    const total = await User.countDocuments(query);
+    // Status filter
+    if (status !== 'all') {
+      filter.status = status;
+    }
+    
+    // Plan filter
+    if (plan !== 'all') {
+      filter.plan = plan;
+    }
+    
+    // Board filter
+    if (board !== 'all') {
+      filter.currentBoard = board;
+    }
 
-    // Enhance affiliate data with additional calculated fields
-    const enhancedAffiliates = await Promise.all(affiliates.map(async (affiliate) => {
-      // Calculate direct downlines (users who were referred by this affiliate)
-      const directDownlines = await User.countDocuments({ referredBy: affiliate._id });
-      
-      // Calculate indirect downlines (recursively)
-      const indirectDownlines = await calculateIndirectDownlines(affiliate._id);
-      
-      // Get board progress based on current board
-      const boardType = affiliate.currentBoard.toLowerCase();
-      const boardData = affiliate.boardProgress[boardType] || {};
-      
-      // Calculate referrals based on board type
-      let directReferrals = 0;
-      let indirectReferrals = 0;
-      
-      if (boardType === 'bronze') {
-        directReferrals = boardData.directReferrals?.length || 0;
-      } else if (boardType === 'silver') {
-        directReferrals = boardData.level1Referrals?.length || 0;
-        indirectReferrals = boardData.level2Referrals?.length || 0;
-      } else if (boardType === 'gold') {
-        directReferrals = boardData.level3Referrals?.length || 0;
-        indirectReferrals = boardData.level4Referrals?.length || 0;
-      }
+    // Build sort object
+    const sort = {};
+    sort[sortBy] = sortOrder === 'asc' ? 1 : -1;
+
+    // Calculate skip for pagination
+    const skip = (page - 1) * limit;
+
+    // Fetch users with filtering, sorting and pagination
+    const users = await User.find(filter)
+      .populate('referredBy', 'username email referralCode')
+      .populate('boardProgress.Bronze.directReferrals', 'username email currentBoard')
+      .populate('boardProgress.Silver.level1Referrals', 'username email currentBoard')
+      .populate('boardProgress.Silver.level2Referrals', 'username email currentBoard')
+      .populate('boardProgress.Gold.level3Referrals', 'username email currentBoard')
+      .populate('boardProgress.Gold.level4Referrals', 'username email currentBoard')
+      .sort(sort)
+      .skip(skip)
+      .limit(limit);
+
+    // Get total count for pagination
+    const totalUsers = await User.countDocuments(filter);
+    const totalPages = Math.ceil(totalUsers / limit);
+
+    // Transform user data with counts
+    const formattedUsers = users.map(user => {
+      const counts = {
+        Bronze: {
+          directReferrals: user.boardProgress.Bronze.directReferrals.length
+        },
+        Silver: {
+          level1: user.boardProgress.Silver.level1Referrals.length,
+          level2: user.boardProgress.Silver.level2Referrals.length,
+          total: user.boardProgress.Silver.level1Referrals.length +
+                 user.boardProgress.Silver.level2Referrals.length
+        },
+        Gold: {
+          level3: user.boardProgress.Gold.level3Referrals.length,
+          level4: user.boardProgress.Gold.level4Referrals.length,
+          total: user.boardProgress.Gold.level3Referrals.length +
+                 user.boardProgress.Gold.level4Referrals.length
+        },
+      };
 
       return {
-        ...affiliate,
-        directDownlines,
-        indirectDownlines,
-        directReferrals,
-        indirectReferrals,
-        totalDownlines: directDownlines + indirectDownlines,
-        boardRequirements: getBoardRequirements(affiliate.currentBoard),
-        isActive: affiliate.status === 'active' // Add isActive for frontend compatibility
+        _id: user._id,
+        username: user.username,
+        email: user.email,
+        phone: user.phone,
+        referralCode: user.referralCode,
+        currentBoard: user.currentBoard,
+        plan: user.plan,
+        earnings: user.earnings,
+        referredBy: user.referredBy,
+        counts,
+        boardProgress: user.boardProgress,
+        createdAt: user.createdAt,
+        status: user.status,
+        role: user.role
       };
-    }));
+    });
 
-    return NextResponse.json({
-      message: 'Affiliates retrieved successfully',
-      data: enhancedAffiliates,
-      pagination: {
-        total,
-        page,
-        limit,
-        totalPages: Math.ceil(total / limit)
-      }
-    }, { status: 200 });
+    return NextResponse.json({ 
+      success: true, 
+      users: formattedUsers,
+      currentPage: page,
+      totalPages,
+      totalUsers,
+      hasNextPage: page < totalPages,
+      hasPrevPage: page > 1
+    });
 
   } catch (error) {
-    console.error('Admin Affiliates Error:', error);
-    return NextResponse.json(
-      { error: 'Something went wrong' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
-}
-
-// Helper function to calculate indirect downlines
-async function calculateIndirectDownlines(userId, maxLevel = 7) {
-  let total = 0;
-  
-  const directDownlines = await User.find({ 
-    referredBy: userId 
-  }).select('_id').lean();
-
-  const countDownlines = async (userId, currentLevel) => {
-    if (currentLevel > maxLevel) return 0;
-    
-    const downlines = await User.find({ 
-      referredBy: userId 
-    }).select('_id').lean();
-
-    let subtotal = downlines.length;
-    for (const dl of downlines) {
-      subtotal += await countDownlines(dl._id, currentLevel + 1);
-    }
-    return subtotal;
-  };
-
-  for (const dl of directDownlines) {
-    total += await countDownlines(dl._id, 2); // Start counting from Level 2
-  }
-
-  return total;
-}
-
-// Helper function to get board requirements
-function getBoardRequirements(boardType) {
-  const board = boardType.toLowerCase();
-  const requirements = {
-    bronze: { direct: 7, indirect: 0 },
-    silver: { direct: 7, indirect: 49 },   // 7^2
-    gold: { direct: 7, indirect: 343 },    // 7^3
-    completed: { direct: 0, indirect: 0 }
-  };
-  return requirements[board] || { direct: 0, indirect: 0 };
 }

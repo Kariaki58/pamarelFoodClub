@@ -88,13 +88,13 @@ async function checkBoardCompletion(userId, board) {
         updateData = {
           'boardProgress.Gold.completed': true,
           'boardProgress.Gold.completionDate': new Date(),
-          currentBoard: 'Platinum'
+          currentBoard: 'Completed'
         };
         
         earnings = extractEarnings(boardData.earnings);
 
         if (user.referredBy) {
-          await updateUplineReferences(user.referredBy._id, userId, 'Platinum', 5);
+          await updateUplineReferences(user.referredBy._id, userId, 'Completed', 5);
         }
       }
       break;

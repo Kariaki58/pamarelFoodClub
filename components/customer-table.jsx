@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect } from 'react';
-import { FiSearch, FiFilter, FiChevronDown, FiChevronUp, FiUser, FiMail, FiPhone, FiDollarSign, FiAward, FiUsers, FiTrendingUp } from 'react-icons/fi';
+import { FiSearch, FiFilter, FiChevronDown, FiChevronUp, FiUser, FiMail, FiPhone, FiDollarSign, FiAward, FiUsers, FiTrendingUp, FiEye } from 'react-icons/fi';
 import { toast } from 'react-hot-toast';
 
 const AffiliatesAdminPage = () => {
@@ -17,6 +17,8 @@ const AffiliatesAdminPage = () => {
   });
   const [showFilters, setShowFilters] = useState(false);
   const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' });
+  const [selectedAffiliate, setSelectedAffiliate] = useState(null);
+  const [showDetailModal, setShowDetailModal] = useState(false);
 
   // Fetch affiliates data
   const fetchAffiliates = async () => {
@@ -26,16 +28,18 @@ const AffiliatesAdminPage = () => {
         page: currentPage,
         limit: itemsPerPage,
         search: searchTerm,
-        ...filters
+        ...(filters.status !== 'all' && { status: filters.status }),
+        ...(filters.plan !== 'all' && { plan: filters.plan }),
+        ...(filters.board !== 'all' && { board: filters.board }),
       }).toString();
 
       const res = await fetch(`/api/admin/affiliates?${queryParams}`);
-
       const data = await res.json();
 
       if (res.ok) {
-        setAffiliates(data.data);
-        setTotalPages(data.pagination.totalPages);
+        // Changed from data.affiliates to data.users
+        setAffiliates(data.users || []);
+        setTotalPages(data.totalPages || 1);
       } else {
         toast.error(data.error || 'Failed to fetch affiliates');
       }
@@ -54,7 +58,7 @@ const AffiliatesAdminPage = () => {
   // Handle filter change
   const handleFilterChange = (key, value) => {
     setFilters(prev => ({ ...prev, [key]: value }));
-    setCurrentPage(1); // Reset to first page when filters change
+    setCurrentPage(1);
   };
 
   // Handle sort request
@@ -68,16 +72,33 @@ const AffiliatesAdminPage = () => {
 
   // Sort affiliates
   const sortedAffiliates = [...affiliates].sort((a, b) => {
-    if (sortConfig.key) {
-      if (a[sortConfig.key] < b[sortConfig.key]) {
+    if (!sortConfig.key) return 0;
+    
+    // Handle username sorting (replaces name sorting)
+    if (sortConfig.key === 'username') {
+      if (a.username < b.username) {
         return sortConfig.direction === 'asc' ? -1 : 1;
       }
-      if (a[sortConfig.key] > b[sortConfig.key]) {
+      if (a.username > b.username) {
         return sortConfig.direction === 'asc' ? 1 : -1;
       }
+      return 0;
+    }
+    
+    if (a[sortConfig.key] < b[sortConfig.key]) {
+      return sortConfig.direction === 'asc' ? -1 : 1;
+    }
+    if (a[sortConfig.key] > b[sortConfig.key]) {
+      return sortConfig.direction === 'asc' ? 1 : -1;
     }
     return 0;
   });
+
+  // View affiliate details
+  const viewAffiliateDetails = (affiliate) => {
+    setSelectedAffiliate(affiliate);
+    setShowDetailModal(true);
+  };
 
   // Format date
   const formatDate = (dateString) => {
@@ -116,7 +137,7 @@ const AffiliatesAdminPage = () => {
     let bgColor = '';
     switch (plan) {
       case 'basic':
-        bgColor = 'bg-blue-100 text-blue-800';
+        bgColor = 'bg-yellow-100 text-yellow-800';
         break;
       case 'classic':
         bgColor = 'bg-purple-100 text-purple-800';
@@ -171,12 +192,45 @@ const AffiliatesAdminPage = () => {
         </div>
         <div className="w-full bg-gray-200 rounded-full h-2">
           <div 
-            className="bg-blue-600 h-2 rounded-full" 
+            className="bg-yellow-600 h-2 rounded-full" 
             style={{ width: `${percentage}%` }}
           ></div>
         </div>
       </div>
     );
+  };
+
+  // Calculate board requirements based on current board
+  const getBoardRequirements = (affiliate) => {
+    const { currentBoard, boardProgress } = affiliate;
+    
+    if (currentBoard === 'Bronze') {
+      return {
+        direct: 7,
+        currentDirect: boardProgress?.Bronze?.directReferrals?.length || 0,
+        completed: boardProgress?.Bronze?.completed || false
+      };
+    } else if (currentBoard === 'Silver') {
+      return {
+        level1: 49,
+        level2: 343,
+        currentLevel1: boardProgress?.Silver?.level1Referrals?.length || 0,
+        currentLevel2: boardProgress?.Silver?.level2Referrals?.length || 0,
+        completed: boardProgress?.Silver?.completed || false
+      };
+    } else if (currentBoard === 'Gold') {
+      return {
+        level3: 2401,
+        level4: 16807,
+        currentLevel3: boardProgress?.Gold?.level3Referrals?.length || 0,
+        currentLevel4: boardProgress?.Gold?.level4Referrals?.length || 0,
+        completed: boardProgress?.Gold?.completed || false
+      };
+    } else if (currentBoard === 'Completed') {
+      return { completed: true };
+    }
+    
+    return {};
   };
 
   return (
@@ -192,8 +246,8 @@ const AffiliatesAdminPage = () => {
             </div>
             <input
               type="text"
-              placeholder="Search affiliates..."
-              className="pl-10 pr-4 py-2 w-full border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              placeholder="Search by username, email, or referral code..."
+              className="pl-10 pr-4 py-2 w-full border rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
@@ -214,7 +268,7 @@ const AffiliatesAdminPage = () => {
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
               <select
-                className="w-full border rounded-lg p-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="w-full border rounded-lg p-2 focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500"
                 value={filters.status}
                 onChange={(e) => handleFilterChange('status', e.target.value)}
               >
@@ -227,7 +281,7 @@ const AffiliatesAdminPage = () => {
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Plan</label>
               <select
-                className="w-full border rounded-lg p-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="w-full border rounded-lg p-2 focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500"
                 value={filters.plan}
                 onChange={(e) => handleFilterChange('plan', e.target.value)}
               >
@@ -240,7 +294,7 @@ const AffiliatesAdminPage = () => {
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Board</label>
               <select
-                className="w-full border rounded-lg p-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="w-full border rounded-lg p-2 focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500"
                 value={filters.board}
                 onChange={(e) => handleFilterChange('board', e.target.value)}
               >
@@ -255,11 +309,37 @@ const AffiliatesAdminPage = () => {
         )}
       </div>
 
+      {/* Stats Summary */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+        <div className="bg-white p-4 rounded-lg shadow">
+          <div className="text-sm text-gray-500">Total Affiliates</div>
+          <div className="text-2xl font-bold">{affiliates.length}</div>
+        </div>
+        <div className="bg-white p-4 rounded-lg shadow">
+          <div className="text-sm text-gray-500">Active</div>
+          <div className="text-2xl font-bold text-green-600">
+            {affiliates.filter(a => a.status === 'active').length}
+          </div>
+        </div>
+        <div className="bg-white p-4 rounded-lg shadow">
+          <div className="text-sm text-gray-500">Completed Boards</div>
+          <div className="text-2xl font-bold text-yellow-600">
+            {affiliates.filter(a => a.currentBoard === 'Completed').length}
+          </div>
+        </div>
+        <div className="bg-white p-4 rounded-lg shadow">
+          <div className="text-sm text-gray-500">Gold Level</div>
+          <div className="text-2xl font-bold text-yellow-600">
+            {affiliates.filter(a => a.currentBoard === 'Gold').length}
+          </div>
+        </div>
+      </div>
+
       {/* Affiliates Table */}
       <div className="bg-white shadow rounded-lg overflow-hidden">
         {loading ? (
           <div className="flex justify-center items-center py-20">
-            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-yellow-500"></div>
           </div>
         ) : (
           <>
@@ -288,7 +368,7 @@ const AffiliatesAdminPage = () => {
                       Board
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Downlines
+                      Referrals
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Board Progress
@@ -307,82 +387,144 @@ const AffiliatesAdminPage = () => {
                         )}
                       </div>
                     </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Actions
+                    </th>
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
                   {sortedAffiliates.length > 0 ? (
-                    sortedAffiliates.map((affiliate) => (
-                      <tr key={affiliate._id} className="hover:bg-gray-50">
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="flex items-center">
-                            <div className="flex-shrink-0 h-10 w-10 rounded-full bg-gray-200 flex items-center justify-center">
-                              <FiUser className="text-gray-500" />
+                    sortedAffiliates.map((affiliate) => {
+                      const requirements = getBoardRequirements(affiliate);
+                      
+                      return (
+                        <tr key={affiliate._id} className="hover:bg-gray-50">
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="flex items-center">
+                              <div className="flex-shrink-0 h-10 w-10 rounded-full bg-gray-200 flex items-center justify-center">
+                                <FiUser className="text-gray-500" />
+                              </div>
+                              <div className="ml-4">
+                                {/* Changed from name to username */}
+                                <div className="text-sm font-medium text-gray-900">{affiliate.username}</div>
+                                <div className="text-sm text-gray-500">Ref: {affiliate.referralCode}</div>
+                                {/* Added role display for admin users */}
+                                {affiliate.role === 'admin' && (
+                                  <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800">
+                                    Admin
+                                  </span>
+                                )}
+                              </div>
                             </div>
-                            <div className="ml-4">
-                              <div className="text-sm font-medium text-gray-900">{affiliate.username}</div>
-                              <div className="text-sm text-gray-500">ID: {affiliate._id.toString().slice(-6)}</div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="text-sm text-gray-900 flex items-center gap-1">
+                              <FiMail />
+                              {affiliate.email}
                             </div>
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm text-gray-900 flex items-center gap-1">
-                            <FiMail />
-                            {affiliate.email}
-                          </div>
-                          <div className="text-sm text-gray-500 flex items-center gap-1 mt-1">
-                            <FiPhone />
-                            {affiliate.phone}
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <PlanBadge plan={affiliate.plan} />
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <BoardBadge board={affiliate.currentBoard} />
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="flex flex-col gap-1">
-                            <div className="flex items-center gap-1 text-sm">
-                              <FiUser className="text-blue-500" />
-                              <span className="font-medium">{affiliate.directDownlines}</span> Direct
+                            <div className="text-sm text-gray-500 flex items-center gap-1 mt-1">
+                              <FiPhone />
+                              {affiliate.phone}
                             </div>
-                            <div className="flex items-center gap-1 text-sm">
-                              <FiUsers className="text-purple-500" />
-                              <span className="font-medium">{affiliate.indirectDownlines}</span> Indirect
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <PlanBadge plan={affiliate.plan} />
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <BoardBadge board={affiliate.currentBoard} />
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="flex flex-col gap-1">
+                              <div className="flex items-center gap-1 text-sm">
+                                <FiUser className="text-yellow-500" />
+                                <span className="font-medium">
+                                  {affiliate.boardProgress?.Bronze?.directReferrals?.length || 0}
+                                </span> Direct
+                              </div>
+                              {affiliate.currentBoard !== 'Bronze' && (
+                                <>
+                                  <div className="flex items-center gap-1 text-sm">
+                                    <FiUsers className="text-purple-500" />
+                                    <span className="font-medium">
+                                      {affiliate.boardProgress?.Silver?.level1Referrals?.length || 0}
+                                    </span> Level 1
+                                  </div>
+                                  <div className="flex items-center gap-1 text-sm">
+                                    <FiTrendingUp className="text-green-500" />
+                                    <span className="font-medium">
+                                      {affiliate.boardProgress?.Silver?.level2Referrals?.length || 0}
+                                    </span> Level 2
+                                  </div>
+                                </>
+                              )}
                             </div>
-                            <div className="flex items-center gap-1 text-sm">
-                              <FiTrendingUp className="text-green-500" />
-                              <span className="font-medium">{affiliate.totalDownlines}</span> Total
+                          </td>
+                          <td className="px-6 py-4">
+                            <div className="space-y-2">
+                              {affiliate.currentBoard === 'Bronze' && (
+                                <ProgressBar 
+                                  current={requirements.currentDirect} 
+                                  total={requirements.direct} 
+                                  label="Direct Referrals" 
+                                />
+                              )}
+                              {affiliate.currentBoard === 'Silver' && (
+                                <>
+                                  <ProgressBar 
+                                    current={requirements.currentLevel1} 
+                                    total={requirements.level1} 
+                                    label="Level 1 Referrals" 
+                                  />
+                                  <ProgressBar 
+                                    current={requirements.currentLevel2} 
+                                    total={requirements.level2} 
+                                    label="Level 2 Referrals" 
+                                  />
+                                </>
+                              )}
+                              {affiliate.currentBoard === 'Gold' && (
+                                <>
+                                  <ProgressBar 
+                                    current={requirements.currentLevel3} 
+                                    total={requirements.level3} 
+                                    label="Level 3 Referrals" 
+                                  />
+                                  <ProgressBar 
+                                    current={requirements.currentLevel4} 
+                                    total={requirements.level4} 
+                                    label="Level 4 Referrals" 
+                                  />
+                                </>
+                              )}
+                              {affiliate.currentBoard === 'Completed' && (
+                                <div className="text-sm text-green-600 font-medium">
+                                  All boards completed
+                                </div>
+                              )}
                             </div>
-                          </div>
-                        </td>
-                        <td className="px-6 py-4">
-                          <div className="space-y-2">
-                            <ProgressBar 
-                              current={affiliate.directReferrals} 
-                              total={affiliate.boardRequirements.direct} 
-                              label="Direct Referrals" 
-                            />
-                            <ProgressBar 
-                              current={affiliate.indirectReferrals} 
-                              total={affiliate.boardRequirements.indirect} 
-                              label="Indirect Referrals" 
-                            />
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <StatusBadge status={affiliate.status} />
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm text-gray-500">
-                            {formatDate(affiliate.createdAt)}
-                          </div>
-                        </td>
-                      </tr>
-                    ))
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <StatusBadge status={affiliate.status} />
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="text-sm text-gray-500">
+                              {formatDate(affiliate.createdAt)}
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                            <button
+                              onClick={() => viewAffiliateDetails(affiliate)}
+                              className="text-yellow-600 hover:text-yellow-900 flex items-center gap-1"
+                            >
+                              <FiEye /> View
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })
                   ) : (
                     <tr>
-                      <td colSpan="8" className="px-6 py-4 text-center text-sm text-gray-500">
+                      <td colSpan="9" className="px-6 py-4 text-center text-sm text-gray-500">
                         No affiliates found matching your criteria.
                       </td>
                     </tr>
@@ -414,9 +556,9 @@ const AffiliatesAdminPage = () => {
                   <p className="text-sm text-gray-700">
                     Showing <span className="font-medium">{(currentPage - 1) * itemsPerPage + 1}</span> to{' '}
                     <span className="font-medium">
-                      {Math.min(currentPage * itemsPerPage, totalPages * itemsPerPage)}
+                      {Math.min(currentPage * itemsPerPage, affiliates.length)}
                     </span>{' '}
-                    of <span className="font-medium">{totalPages * itemsPerPage}</span> results
+                    of <span className="font-medium">{affiliates.length}</span> results
                   </p>
                 </div>
                 <div>
@@ -435,7 +577,7 @@ const AffiliatesAdminPage = () => {
                         onClick={() => setCurrentPage(page)}
                         className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${
                           currentPage === page
-                            ? 'z-10 bg-blue-50 border-blue-500 text-blue-600'
+                            ? 'z-10 bg-yellow-50 border-yellow-500 text-yellow-600'
                             : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
                         }`}
                       >
@@ -457,6 +599,128 @@ const AffiliatesAdminPage = () => {
           </>
         )}
       </div>
+
+      {/* Affiliate Detail Modal */}
+      {showDetailModal && selectedAffiliate && (
+        <div className="fixed inset-0 backdrop-blur-sm bg-white/30 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-screen overflow-y-auto">
+            <div className="p-6">
+              <div className="flex justify-between items-center border-b pb-4">
+                <h2 className="text-xl font-semibold">Affiliate Details</h2>
+                <button 
+                  onClick={() => setShowDetailModal(false)}
+                  className="text-gray-500 hover:text-gray-700"
+                >
+                  &times;
+                </button>
+              </div>
+              
+              <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">Personal Information</h3>
+                  <div className="space-y-2">
+                    {/* Changed from name to username */}
+                    <p><span className="font-medium">Username:</span> {selectedAffiliate.username}</p>
+                    <p><span className="font-medium">Email:</span> {selectedAffiliate.email}</p>
+                    <p><span className="font-medium">Phone:</span> {selectedAffiliate.phone}</p>
+                    <p><span className="font-medium">Referral Code:</span> {selectedAffiliate.referralCode}</p>
+                    <p><span className="font-medium">Plan:</span> <PlanBadge plan={selectedAffiliate.plan} /></p>
+                    <p><span className="font-medium">Status:</span> <StatusBadge status={selectedAffiliate.status} /></p>
+                    <p><span className="font-medium">Current Board:</span> <BoardBadge board={selectedAffiliate.currentBoard} /></p>
+                    <p><span className="font-medium">Role:</span> {selectedAffiliate.role}</p>
+                    <p><span className="font-medium">Joined:</span> {formatDate(selectedAffiliate.createdAt)}</p>
+                    {/* Show referral info if available */}
+                    {selectedAffiliate.referredBy && (
+                      <p>
+                        <span className="font-medium">Referred By:</span> {selectedAffiliate.referredBy.username} 
+                        ({selectedAffiliate.referredBy.referralCode})
+                      </p>
+                    )}
+                  </div>
+                </div>
+                
+                <div>
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">Board Progress</h3>
+                  <div className="space-y-4">
+                    <div>
+                      <h4 className="font-medium mb-2">Bronze Board</h4>
+                      <ProgressBar 
+                        current={selectedAffiliate.boardProgress?.Bronze?.directReferrals?.length || 0} 
+                        total={7} 
+                        label="Direct Referrals" 
+                      />
+                      <p className="text-sm text-gray-500 mt-1">
+                        Status: {selectedAffiliate.boardProgress?.Bronze?.completed ? 'Completed' : 'In Progress'}
+                      </p>
+                    </div>
+                    
+                    <div>
+                      <h4 className="font-medium mb-2">Silver Board</h4>
+                      <ProgressBar 
+                        current={selectedAffiliate.boardProgress?.Silver?.level1Referrals?.length || 0} 
+                        total={49} 
+                        label="Level 1 Referrals" 
+                      />
+                      <ProgressBar 
+                        current={selectedAffiliate.boardProgress?.Silver?.level2Referrals?.length || 0} 
+                        total={343} 
+                        label="Level 2 Referrals" 
+                      />
+                      <p className="text-sm text-gray-500 mt-1">
+                        Status: {selectedAffiliate.boardProgress?.Silver?.completed ? 'Completed' : 'In Progress'}
+                      </p>
+                    </div>
+                    
+                    <div>
+                      <h4 className="font-medium mb-2">Gold Board</h4>
+                      <ProgressBar 
+                        current={selectedAffiliate.boardProgress?.Gold?.level3Referrals?.length || 0} 
+                        total={2401} 
+                        label="Level 3 Referrals" 
+                      />
+                      <ProgressBar 
+                        current={selectedAffiliate.boardProgress?.Gold?.level4Referrals?.length || 0} 
+                        total={16807} 
+                        label="Level 4 Referrals" 
+                      />
+                      <p className="text-sm text-gray-500 mt-1">
+                        Status: {selectedAffiliate.boardProgress?.Gold?.completed ? 'Completed' : 'In Progress'}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="mt-6">
+                <h3 className="text-lg font-medium text-gray-900 mb-2">Earnings</h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="bg-gray-50 p-3 rounded">
+                    <p className="font-medium">Food Wallet</p>
+                    <p className="text-xl">₦{selectedAffiliate.earnings?.foodWallet || 0}</p>
+                  </div>
+                  <div className="bg-gray-50 p-3 rounded">
+                    <p className="font-medium">Gadgets Wallet</p>
+                    <p className="text-xl">₦{selectedAffiliate.earnings?.gadgetsWallet || 0}</p>
+                  </div>
+                  <div className="bg-gray-50 p-3 rounded">
+                    <p className="font-medium">Cash Wallet</p>
+                    <p className="text-xl">₦{selectedAffiliate.earnings?.cashWallet || 0}</p>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="mt-6 flex justify-end">
+                <button
+                  onClick={() => setShowDetailModal(false)}
+                  className="px-4 py-2 bg-gray-200 rounded-md hover:bg-gray-300"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

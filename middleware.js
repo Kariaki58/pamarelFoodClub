@@ -3,7 +3,7 @@ import { getToken } from 'next-auth/jwt';
 
 // Routes that don't require auth
 const PUBLIC_PATHS = [
-  '/', // home page
+  '/',
   '/auth/register',
   '/payment/failed',
   '/payment/success',
@@ -21,7 +21,7 @@ export async function middleware(req) {
     pathname.startsWith('/_next') ||
     pathname.startsWith('/api') ||
     pathname === '/favicon.ico' ||
-    pathname.startsWith('/img') || // allow public images
+    pathname.startsWith('/img') || 
     pathname.startsWith('/images') // if you keep them in /public/images
   ) {
     return NextResponse.next();
