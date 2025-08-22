@@ -11,6 +11,9 @@ export async function POST(request) {
       );
     }
 
+    // Create the reference first
+    const reference = `pamarel-${Date.now()}-${userId}`;
+    
     const response = await fetch('https://api.paystack.co/transaction/initialize', {
       method: 'POST',
       headers: {
@@ -20,9 +23,9 @@ export async function POST(request) {
       body: JSON.stringify({
         email,
         amount: amount * 100, // Convert to kobo
-        reference: `pamarel-${Date.now()}-${userId}`,
+        reference: reference, // Use the reference variable we created
         currency: 'NGN',
-        callback_url: `${process.env.NEXTAUTH_URL}/api/payment/verify`,
+        callback_url: `${process.env.NEXTAUTH_URL}/payment/verify?reference=${reference}`, // Now reference is defined
         metadata: {
           planType,
           userId,

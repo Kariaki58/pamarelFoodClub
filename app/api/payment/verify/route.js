@@ -15,10 +15,7 @@ export async function GET(request) {
 
     // Basic validation
     if (!paymentReference) {
-      return NextResponse.json(
-        { success: false, error: 'Reference is required' },
-        { status: 400 }
-      );
+      return NextResponse.redirect(`${process.env.NEXTAUTH_URL}/payment/failed?error=no_reference`);
     }
 
     // Verify payment with Paystack
@@ -33,7 +30,8 @@ export async function GET(request) {
 
     if (!verifyResponse.ok) {
       const errorData = await verifyResponse.json();
-      throw new Error(errorData.message || 'Payment verification failed');
+      console.error('Paystack verification error:', errorData);
+      return NextResponse.redirect(`${process.env.NEXTAUTH_URL}/payment/failed?error=verification_failed`);
     }
 
     const verificationData = await verifyResponse.json();
@@ -41,7 +39,7 @@ export async function GET(request) {
     // Check payment status
     if (verificationData.data.status !== 'success') {
       // Redirect to failure page if payment wasn't successful
-      return NextResponse.redirect(`${process.env.NEXTAUTH_URL}/payment/failed`);
+      return NextResponse.redirect(`${process.env.NEXTAUTH_URL}/payment/failed?error=payment_failed`);
     }
 
     // Extract metadata
@@ -67,43 +65,11 @@ export async function GET(request) {
     user.status = 'active';
     await user.save();
 
-    const headers = Object.fromEntries(request.headers);
-    const isApiCall = headers['accept']?.includes('application/json') || 
-                      headers['content-type']?.includes('application/json');
-
-    if (isApiCall) {
-      return NextResponse.json({
-        success: true,
-        message: 'Payment verified and user activated successfully',
-        user: {
-          id: user._id,
-          email: user.email,
-          username: user.username
-        }
-      });
-    } else {
-      // Redirect to success page for browser requests
-      return NextResponse.redirect(`${process.env.NEXTAUTH_URL}/payment/success?reference=${paymentReference}&userId=${userId}`);
-    }
+    // Redirect to success page with reference and userId as query parameters
+    return NextResponse.redirect(`${process.env.NEXTAUTH_URL}/payment/success?reference=${paymentReference}&userId=${userId}`);
 
   } catch (error) {
     console.error('PAYMENT PROCESSING ERROR:', error);
-    
-    // Check if this is an API call or browser request
-    const headers = Object.fromEntries(request.headers);
-    const isApiCall = headers['accept']?.includes('application/json');
-
-    if (isApiCall) {
-      return NextResponse.json(
-        { 
-          success: false, 
-          error: "Payment verification failed",
-          message: error.message
-        },
-        { status: 500 }
-      );
-    } else {
-      return NextResponse.redirect(`${process.env.NEXTAUTH_URL}/payment/failed?error=verification_failed`);
-    }
+    return NextResponse.redirect(`${process.env.NEXTAUTH_URL}/payment/failed?error=server_error`);
   }
 }

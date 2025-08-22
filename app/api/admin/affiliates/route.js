@@ -29,8 +29,6 @@ export async function GET(req) {
       return NextResponse.json({ error: "you are not an admin" }, { status: 400 })
     }
 
-    console.log("all passed----")
-
     // Get query parameters
     const { searchParams } = new URL(req.url);
     const page = parseInt(searchParams.get('page')) || 1;

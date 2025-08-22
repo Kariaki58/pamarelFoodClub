@@ -1,8 +1,8 @@
-import React from 'react';
+// import React from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
 import Image from 'next/image';
-
+import Hero from '../Hero';
 
 const PamarelLandingPage = () => {
   return (
@@ -15,36 +15,7 @@ const PamarelLandingPage = () => {
 
       <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 font-sans">
         {/* Hero Section with Background Image */}
-        <header className="relative py-20 px-4 sm:px-6 lg:px-8 text-white">
-          {/* Background Image with Overlay */}
-          <div className="absolute inset-0 z-0">
-            <img
-              src="/img-2.jpeg"
-              alt="Example"
-              className="w-full h-full object-cover object-center"
-              loading="eager"
-              decoding="sync"
-            />
-          </div>
-          
-          <div className="max-w-7xl mx-auto text-center relative z-10">
-            <h1 className="text-5xl md:text-6xl font-bold mb-6 font-montserrat tracking-tight">
-              Welcome to <span className="text-yellow-300">Pamarel</span>
-            </h1>
-            <p className="text-xl md:text-2xl max-w-3xl mx-auto mb-10 font-light">
-              Your gateway to shopping, earning, and business opportunities
-            </p>
-            <div className="flex flex-wrap justify-center gap-4">
-              <Link href="/market" className="px-8 py-3 bg-yellow-400 hover:bg-yellow-500 text-gray-900 font-semibold rounded-lg transition-all transform hover:scale-105">
-                Explore Marketplace
-              </Link>
-              <Link href="/join-member" className="px-8 py-3 bg-white hover:bg-gray-100 text-blue-600 font-semibold rounded-lg transition-all transform hover:scale-105">
-                Earn With Us
-              </Link>
-            </div>
-          </div>
-          <div className="absolute bottom-0 left-0 right-0 h-16 bg-white transform skew-y-1 origin-top-left"></div>
-        </header>
+        <Hero />
 
         {/* Marketplace Section */}
         <section id="marketplace" className="py-20 px-4 sm:px-6 lg:px-8">
