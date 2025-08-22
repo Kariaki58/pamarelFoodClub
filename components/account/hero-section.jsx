@@ -36,8 +36,8 @@ export function HeroSection() {
                   src={slide.imageUrl}
                   alt={slide.title}
                   fill
+                  priority
                   className="object-cover"
-                  data-ai-hint={slide.dataAiHint}
                 />
                 <div className="absolute inset-0 bg-black/40" />
                 <div className="absolute inset-0 flex flex-col items-center justify-center text-center text-white">
@@ -48,9 +48,11 @@ export function HeroSection() {
                   </Button>
                 </div>
               </div>
+
             </CarouselItem>
           ))}
         </CarouselContent>
+
         <CarouselPrevious className="absolute left-4 top-1/2 -translate-y-1/2 text-white" />
         <CarouselNext className="absolute right-4 top-1/2 -translate-y-1/2 text-white" />
       </Carousel>

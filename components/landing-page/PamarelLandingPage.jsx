@@ -31,7 +31,7 @@ const PamarelLandingPage = () => {
               <div className="bg-white rounded-xl shadow-xl overflow-hidden transform transition-all hover:scale-[1.02] hover:shadow-2xl">
                 <div className="relative h-48 w-full overflow-hidden">
                   <Image
-                    src="/img-3.jpeg"
+                    src="/img-5.png"
                     alt="Pamarel Food Market"
                     fill
                     className='object-cover'
@@ -54,7 +54,7 @@ const PamarelLandingPage = () => {
               <div className="bg-white rounded-xl shadow-xl overflow-hidden transform transition-all hover:scale-[1.02] hover:shadow-2xl">
                 <div className="relative h-48 w-full overflow-hidden">
                   <Image
-                    src="/img-1.jpeg"
+                    src="/img-4.jpg"
                     alt="Pamarel Gadget Hub"
                     fill
                     className='object-cover'
