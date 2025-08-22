@@ -29,7 +29,6 @@ export async function PUT(req, { params }) {
       );
     }
 
-    console.log("image ->>>>>>>>>>>", image)
     const imageHolder = {
         image,
         publicId: "..."

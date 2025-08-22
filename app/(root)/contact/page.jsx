@@ -10,6 +10,7 @@ export default function ContactPage() {
     subject: '',
     message: ''
   });
+  const [loading, setLoading] = useState(false)
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -19,24 +20,40 @@ export default function ContactPage() {
     }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    
-    // Log all form data to console
-    console.log('Form submitted with data:', formData);
-    
-    // Show success message (in a real app, you would send data to a server)
-    alert('Thank you for your message! We will get back to you soon. Check the console for the submitted data.');
-    
-    // Reset form
-    setFormData({
-      firstName: '',
-      lastName: '',
-      email: '',
-      subject: '',
-      message: ''
-    });
+    setLoading(true)
+    try {
+      const res = await fetch("/api/contact", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(formData),
+      });
+
+      const data = await res.json();
+
+      if (data.success) {
+        alert("Thank you! Your message has been sent.");
+        setFormData({
+          firstName: "",
+          lastName: "",
+          email: "",
+          subject: "",
+          message: "",
+        });
+      } else {
+        alert("Something went wrong. Please try again later.");
+      }
+    } catch (err) {
+      console.error("Error submitting form:", err);
+      alert("Error submitting form.");
+    } finally {
+      setLoading(false)
+    }
   };
+
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-yellow-50 to-white">
@@ -206,11 +223,17 @@ export default function ContactPage() {
               </div>
 
               <button 
-                type="submit" 
-                className="w-full bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-3 px-4 rounded-lg transition duration-300 transform hover:scale-105"
+                type="submit"
+                disabled={loading}
+                className={`w-full font-bold py-3 px-4 rounded-lg transition duration-300 transform hover:scale-105
+                  ${loading 
+                    ? "bg-gray-400 cursor-not-allowed"   // disabled state
+                    : "bg-yellow-500 hover:bg-yellow-600 text-white"} 
+                `}
               >
-                Send Message
+                {loading ? "Sending..." : "Send Message"}
               </button>
+
             </form>
           </div>
         </div>

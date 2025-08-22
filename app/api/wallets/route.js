@@ -7,7 +7,6 @@ import User from "@/models/user";
 export async function GET() {
   try {
     const session = await getServerSession(authOptions);
-    console.log({session})
     if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }

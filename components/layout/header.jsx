@@ -7,7 +7,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useCart } from "@/context/cart-provider";
 import { useSession } from "next-auth/react";
-// import { CartSheet } from "@/components/cart-sheet";
 import {
   Sheet,
   SheetContent,
@@ -23,14 +22,13 @@ export function Header() {
   const [searchQuery, setSearchQuery] = useState("");
   const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
   const { data: session }  = useSession();
-  const { cartCount } = useCart()
 
   const handleSearch = (e) => {
     e.preventDefault();
     if (!searchQuery.trim()) return;
     router.push(`/category?q=${encodeURIComponent(searchQuery.trim())}`);
     setSearchQuery("");
-    setIsMobileSearchOpen(false); // Close sheet on search
+    setIsMobileSearchOpen(false);
   };
 
   return (
@@ -63,9 +61,7 @@ export function Header() {
               className="object-contain"
             />
           </Link>
-
         </div>
-
         <div className="hidden flex-1 justify-center px-8 md:flex">
           <form onSubmit={handleSearch} className="relative w-full max-w-lg">
             <Input

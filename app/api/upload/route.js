@@ -36,7 +36,6 @@ export async function POST(req) {
       })
     );
 
-    console.log(uploads)
 
     return NextResponse.json({ message: "Uploaded successfully", urls: uploads }, { status: 200 });
 

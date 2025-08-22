@@ -25,7 +25,6 @@ export async function GET() {
       })
       .lean();
     
-    console.log(cart)
 
     if (!cart) {
       return NextResponse.json({ items: [] });
@@ -247,7 +246,6 @@ export async function DELETE(req) {
     }
 
     await cart.save();
-    console.log("here line 245")
     
     return NextResponse.json({
       message: productId ? 'Item removed from cart' : 'Cart cleared',

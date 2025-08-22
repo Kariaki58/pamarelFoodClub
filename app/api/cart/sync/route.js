@@ -35,13 +35,9 @@ export async function POST(req) {
       cart = new Cart({ user: userId, items: [] });
     }
 
-    console.log({localCartItems});
 
     // Merge local cart with database cart
     for (const localItem of localCartItems) {
-      // Validate item structure
-      console.log(localItem)
-      console.log(localItem.section)
       if (!localItem?.id || !localItem?.quantity) {
         continue;
       }

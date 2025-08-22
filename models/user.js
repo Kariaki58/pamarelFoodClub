@@ -15,6 +15,12 @@ const userSchema = new mongoose.Schema({
     type: String,
     required: true
   },
+  verifyToken: {
+    type: String
+  },
+  expireToken: {
+    type: Date
+  },
   status: {
     type: String,
     enum: ['pending', 'active', 'suspended'],

@@ -7,7 +7,6 @@ import Order from "@/models/order";
 export async function GET() {
   const session = await getServerSession(authOptions);
 
-  console.log("log... reviews")
   
   if (!session) {
     return new Response(JSON.stringify({
@@ -25,7 +24,6 @@ export async function GET() {
       'items.isReviewed': false
     }).select('_id items');
 
-    console.log(orders)
 
     // Format the response
     const pendingReviews = orders.flatMap(order => 

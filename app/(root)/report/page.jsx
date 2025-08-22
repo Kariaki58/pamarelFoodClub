@@ -13,6 +13,7 @@ export default function ReportPage() {
     urgency: 'medium',
     attachments: null
   });
+  const [loading, setLoading] = useState(false)
 
   const [submitted, setSubmitted] = useState(false);
 
@@ -31,31 +32,46 @@ export default function ReportPage() {
     }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    
-    // Log the report data to console
-    console.log('Report submitted:', reportData);
-    
-    // Show success message
-    setSubmitted(true);
-    
-    // Reset form after submission
-    setTimeout(() => {
-      setReportData({
-        name: '',
-        email: '',
-        orderId: '',
-        product: '',
-        issueType: 'product-issue',
-        subject: '',
-        description: '',
-        urgency: 'medium',
-        attachments: null
+    setLoading(true);
+
+    try {
+      const res = await fetch("/api/report", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(reportData),
       });
-      setSubmitted(false);
-    }, 5000);
+
+      const data = await res.json();
+
+      if (data.success) {
+        setSubmitted(true);
+        setTimeout(() => {
+          setReportData({
+            name: "",
+            email: "",
+            orderId: "",
+            product: "",
+            issueType: "product-issue",
+            subject: "",
+            description: "",
+            urgency: "medium",
+            attachments: null,
+          });
+          setSubmitted(false);
+        }, 5000);
+      } else {
+        alert("Something went wrong. Please try again.");
+      }
+    } catch (err) {
+      console.error("Error submitting report:", err);
+      alert("Error submitting report.");
+    } finally {
+      setLoading(false);
+    }
   };
+
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-yellow-50 to-white py-8">
@@ -206,11 +222,16 @@ export default function ReportPage() {
 
               <div className="pt-4">
                 <button 
-                  type="submit" 
-                  className="w-full bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-3 px-4 rounded-lg transition duration-300 transform hover:scale-105"
-                >
-                  Submit Report
-                </button>
+                type="submit"
+                disabled={loading}
+                className={`w-full font-bold py-3 px-4 rounded-lg transition duration-300 transform hover:scale-105
+                  ${loading 
+                    ? "bg-gray-400 cursor-not-allowed"
+                    : "bg-yellow-500 hover:bg-yellow-600 text-white"} 
+                `}
+              >
+                {loading ? "Sending..." : "Report Message"}
+              </button>
               </div>
             </form>
           </div>

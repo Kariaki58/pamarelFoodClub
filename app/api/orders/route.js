@@ -57,7 +57,6 @@ export async function POST(req) {
 
     const body = await req.json();
 
-    console.log(body)
     const { shippingInfo, items, deliveryMethod, deliveryPrice, subtotal, total } = body;
     
     for (const item of items) {
@@ -76,9 +75,7 @@ export async function POST(req) {
 
     // Verify wallet balance if paying with wallet
     if (body.paymentMethod === 'cash_wallet') {
-        console.log(session.user.id)
       const Userwallet = await User.findOne({ _id: session.user.id });
-      console.log(Userwallet)
       const cashBalance = Userwallet?.wallets?.cash || 0;
 
       if (cashBalance < total) {

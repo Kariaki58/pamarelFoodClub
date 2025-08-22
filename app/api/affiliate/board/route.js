@@ -103,10 +103,6 @@ export async function GET() {
         totalRecruits: activeDownlines.length
       }
     };
-    console.log(responseData.boards.silver)
-    console.log(responseData.boards.gold)
-    console.log("lllllllllllll")
-    console.log(responseData)
 
     return NextResponse.json(responseData);
   } catch (error) {

@@ -28,7 +28,6 @@ export async function GET(req, { params }) {
       );
     }
 
-    console.log({productData})
 
     // Fetch reviews for this product
     const reviews = await Review.find({ product: id })
@@ -36,7 +35,6 @@ export async function GET(req, { params }) {
       .sort({ createdAt: -1 });
     
 
-    console.log({reviews})
 
     return NextResponse.json({
       ...productData.toObject(),

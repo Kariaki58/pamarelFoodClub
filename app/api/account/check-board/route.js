@@ -148,7 +148,6 @@ async function updateUplineReferences(uplineId, userId, targetBoard, currentLeve
   }
 
   if (updateField) {
-    console.log(`Adding ${userId} to ${uplineId}'s ${updateField}`);
     await User.findByIdAndUpdate(uplineId, {
       $addToSet: { [updateField]: userId }
     });
@@ -156,7 +155,6 @@ async function updateUplineReferences(uplineId, userId, targetBoard, currentLeve
   }
 
   if (upline.referredBy) {
-    console.log("upding....", upline.referredBy._id)
     await updateUplineReferences(
       upline.referredBy._id,
       userId,

@@ -12,7 +12,6 @@ export async function GET(request) {
     const limit = parseInt(searchParams.get('limit')) || 10;
     const categorySlug = searchParams.get('category');
 
-    console.log({categorySlug})
 
     // First get all active categories if no specific category is requested
     let categories = await Category.find({ isActive: true })
