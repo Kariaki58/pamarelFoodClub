@@ -16,6 +16,10 @@ export async function POST(req) {
       },
     });
 
+    console.log("user email", email)
+    console.log("password", process.env.EMAIL_PASS)
+    console.log("admin user", process.env.EMAIL_USER)
+
     // Send email
     await transporter.sendMail({
       from: `"Stockist Form" <${process.env.EMAIL_USER}>`,
