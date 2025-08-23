@@ -7,6 +7,7 @@ const PUBLIC_PATHS = [
   '/auth/register',
   '/payment/failed',
   '/payment/success',
+  '/payment/verify',
   '/auth/login',
   '/join-member',
   '/auth/forgot-password',
