@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getToken } from 'next-auth/jwt';
+import { isSiteDown } from './app/api/toggle-shutdown/route';
 
 // Routes that don't require auth
 const PUBLIC_PATHS = [
@@ -16,6 +17,16 @@ const PUBLIC_PATHS = [
 
 export async function middleware(req) {
   const { pathname } = req.nextUrl;
+
+  if (isSiteDown()) {
+    // Allow API route itself so you can turn it back on
+    if (req.nextUrl.pathname.startsWith("/api/toggle-shutdown")) {
+      return NextResponse.next();
+    }
+
+    // Show a maintenance page instead of your app
+    return NextResponse.rewrite(new URL("/maintenance", req.url));
+  }
 
   // Skip static files and API routes
   if (
