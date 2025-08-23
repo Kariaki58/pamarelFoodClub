@@ -11,6 +11,8 @@ export async function GET(req, { params }) {
         // Connect to database
         await connectToDatabase();
 
+        const { id } = await params
+
         // Verify admin session
         const session = await getServerSession(authOptions);
         if (!session || !session.user) {
@@ -23,7 +25,7 @@ export async function GET(req, { params }) {
         }
 
         // Get product by ID
-        const product = await Product.findById(params.id).populate('category');
+        const product = await Product.findById(id).populate('category');
         if (!product) {
             return NextResponse.json({ error: "Product not found" }, { status: 404 });
         }
@@ -43,6 +45,9 @@ export async function PUT(req, { params }) {
     try {
         // Connect to database
         await connectToDatabase();
+
+        const { id } = await params
+
 
         // Verify admin session
         const session = await getServerSession(authOptions);
@@ -65,7 +70,7 @@ export async function PUT(req, { params }) {
         }
 
         // Check if product exists
-        const existingProduct = await Product.findById(params.id);
+        const existingProduct = await Product.findById(id);
         if (!existingProduct) {
             return NextResponse.json({ error: "Product not found" }, { status: 404 });
         }

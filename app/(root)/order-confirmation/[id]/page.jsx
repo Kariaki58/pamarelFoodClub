@@ -88,7 +88,7 @@ export default async function OrderConfirmation({ params }) {
             </div>
             <div className="ml-3">
               <p className="text-sm text-green-700">
-                Your order has been placed successfully! We've sent a confirmation to your email.
+                Your order has been placed successfully!
               </p>
             </div>
           </div>

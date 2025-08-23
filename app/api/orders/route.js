@@ -73,10 +73,12 @@ export async function POST(req) {
       }
     }
 
+    console.log(body.paymentMethod)
+
     // Verify wallet balance if paying with wallet
     if (body.paymentMethod === 'cash_wallet') {
       const Userwallet = await User.findOne({ _id: session.user.id });
-      const cashBalance = Userwallet?.wallets?.cash || 0;
+      const cashBalance = Userwallet?.earnings?.cashWallet || 0;
 
       if (cashBalance < total) {
         return NextResponse.json(
@@ -85,8 +87,34 @@ export async function POST(req) {
         );
       }
 
-      Userwallet.wallets.cash -= total;
+      Userwallet.earnings.cashWallet -= total;
       await Userwallet.save();
+    } else if (body.paymentMethod === 'food_wallet') {
+        const Userwallet = await User.findOne({ _id: session.user.id });
+        const foodBalance = Userwallet?.earnings?.foodWallet || 0;
+
+        if (foodBalance < total) {
+          return NextResponse.json(
+            { message: 'Insufficient wallet balance' },
+            { status: 400 }
+          );
+        }
+
+        Userwallet.earnings.foodWallet -= total;
+        await Userwallet.save();
+    } else if (body.paymentMethod === 'gadget_wallet') {
+        const Userwallet = await User.findOne({ _id: session.user.id });
+        const gadgetBalance = Userwallet?.earnings?.gadgetsWallet || 0;
+
+        if (gadgetBalance < total) {
+          return NextResponse.json(
+            { message: 'Insufficient wallet balance' },
+            { status: 400 }
+          );
+        }
+
+        Userwallet.earnings.gadgetsWallet -= total;
+        await Userwallet.save();
     }
 
     // Create new order
@@ -99,7 +127,7 @@ export async function POST(req) {
       subtotal,
       total,
       paymentMethod: body.paymentMethod,
-      paymentStatus: body.paymentMethod === 'cash_wallet' ? 'paid' : 'pending',
+      paymentStatus: 'paid',
       walletBalanceUsed: body.paymentMethod === 'cash_wallet' ? total : 0
     });
 

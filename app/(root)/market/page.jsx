@@ -25,7 +25,7 @@ export default function MarketHub() {
             
             <DealsByCategory />
             <BestRatedProducts />
-            <NewArrivals />
+            {/* <NewArrivals /> */}
         </div>
     )
 }

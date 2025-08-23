@@ -74,7 +74,7 @@ export async function DELETE(req, { params }) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
-    const { id } = params;
+    const { id } = await params;
     const deletedCategory = await Category.findByIdAndDelete(id);
 
     if (!deletedCategory) {

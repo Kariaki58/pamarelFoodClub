@@ -7,55 +7,10 @@ export async function GET() {
         await connectToDatabase();
 
         const bestRatedProducts = await product.aggregate([
-            {
-                $match: {
-                    numReviews: { $gte: 3 }
-                }
-            },
-            {
-                $addFields: {
-                    averageRating: { $divide: ["$rating", "$numReviews"] }
-                }
-            },
-            {
-                $sort: { 
-                    averageRating: -1,
-                    numReviews: -1
-                }
-            },
-            {
-                $limit: 10
-            },
-            {
-                $lookup: {
-                    from: "categories",
-                    localField: "category",
-                    foreignField: "_id",
-                    as: "category"
-                }
-            },
-            {
-                $unwind: "$category"
-            },
-            {
-                $project: {
-                    name: 1,
-                    slug: 1,
-                    price: 1,
-                    percentOff: 1,
-                    rating: 1,
-                    numReviews: 1,
-                    images: { $slice: ["$images", 1] },
-                    category: {
-                        name: "$category.name",
-                        slug: "$category.slug"
-                    },
-                    averageRating: 1,
-                    isTopDeal: 1,
-                    isFeatured: 1
-                }
-            }
+            { $match: { rating: { $gte: 4 } } },  // filter first
+            { $sample: { size: 10 } }             // then pick 10 random docs
         ]);
+
 
         return NextResponse.json({
             success: true,

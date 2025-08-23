@@ -13,15 +13,22 @@ export async function GET() {
 
     await connectToDatabase();
 
-    const user = await User.findById(session.user.id)
-      .select('wallets')
+    const user = await User.findOne({ _id: session.user.id})
+      .select('earnings')
       .lean();
+
 
     if (!user) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    return NextResponse.json({ wallets: user.wallets });
+    const walletContent = {
+      cash: user.earnings.cashWallet,
+      food: user.earnings.foodWallet,
+      gadget: user.earnings.gadgetsWallet
+    }
+
+    return NextResponse.json({ wallets: walletContent });
     
   } catch (error) {
     console.error('Wallets API Error:', error);

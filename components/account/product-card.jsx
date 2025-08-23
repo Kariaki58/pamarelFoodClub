@@ -54,10 +54,10 @@ export function ProductCard({ product }) {
                     <p className="text-xs text-muted-foreground line-through">₦{formatPrice(product.originalPrice)}</p>
                     )}
                 </div>
-                 <Button size="sm" className="w-full mt-2 p-4 bg-yellow-500 text-black hover:bg-yellow/90" onClick={handleAddToCart}>
+                 {/* <Button size="sm" className="w-full mt-2 p-4 bg-yellow-500 text-black hover:bg-yellow/90" onClick={handleAddToCart}>
                     <ShoppingCart className="mr-2 h-4 w-4" />
                     Add to Cart
-                  </Button>
+                  </Button> */}
               </div>
             </div>
         </CardContent>

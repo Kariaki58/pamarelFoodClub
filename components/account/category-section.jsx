@@ -90,7 +90,7 @@ export async function CategorySection() {
         <div className="hidden md:grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {categoryData.map((category) => (
             <Link
-              href={`/category/${category.slug}`}
+              href={`/category?cat=${category.slug}`}
               key={category._id}
               className="group block h-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 rounded-lg transition-all duration-300 hover:shadow-lg"
               aria-label={`Browse ${category.name} category`}

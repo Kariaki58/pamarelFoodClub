@@ -8,19 +8,13 @@ export async function GET(req) {
   const session = await getServerSession(authOptions);
 
   if (!session) {
-    return NextResponse.json(
-      { success: false, error: 'Unauthorized' },
-      { status: 401 }
-    );
+    return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
   }
 
   const reference = req.nextUrl.searchParams.get('reference');
 
   if (!reference) {
-    return NextResponse.json(
-      { success: false, error: 'Missing reference' },
-      { status: 400 }
-    );
+    return NextResponse.json({ success: false, error: 'Missing reference' }, { status: 400 });
   }
 
   try {
@@ -33,8 +27,8 @@ export async function GET(req) {
         method: 'GET',
         headers: {
           Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`,
-          'Content-Type': 'application/json'
-        }
+          'Content-Type': 'application/json',
+        },
       }
     );
 
@@ -50,10 +44,10 @@ export async function GET(req) {
     const paymentData = result.data;
 
     if (paymentData.status === 'success') {
-      const amount = paymentData.amount / 100;
-      const { walletType, userId } = paymentData.metadata;
+      const amount = paymentData.amount / 100; // kobo → naira
+      const { userId } = paymentData.metadata || {};
 
-      // Verify the user matches the session
+      // Verify user matches session
       if (userId !== session.user.id) {
         return NextResponse.json(
           { success: false, error: 'Unauthorized transaction' },
@@ -61,7 +55,7 @@ export async function GET(req) {
         );
       }
 
-      // Update user's wallet
+      // Find user
       const user = await User.findById(userId);
       if (!user) {
         return NextResponse.json(
@@ -70,15 +64,15 @@ export async function GET(req) {
         );
       }
 
-      // Update the specific wallet
-      user.wallets[walletType] += amount;
+      // Update cash wallet only
+      user.earnings.cashWallet = (user.earnings.cashWallet || 0) + amount;
       await user.save();
 
       return NextResponse.json({
         success: true,
         amount,
-        walletType,
-        newBalance: user.wallets[walletType],
+        walletType: 'cashWallet',
+        newBalance: user.earnings.cashWallet,
         reference,
       });
     } else {
