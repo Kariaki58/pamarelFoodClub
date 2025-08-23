@@ -2,6 +2,8 @@
 import { ArrowLeft, Mail } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
+import emailjs from "@emailjs/browser"; // client-side package
+import crypto from "crypto-js"; // frontend-safe crypto library
 
 export default function ForgotPassword() {
   const [email, setEmail] = useState("");
@@ -14,22 +16,41 @@ export default function ForgotPassword() {
     setMessage({ text: "", isError: false });
 
     try {
+      // 1. Generate token on frontend
+      const token = crypto.lib.WordArray.random(32).toString(); // 32-byte token
+      const resetLink = `${process.env.NEXT_PUBLIC_APP_URL}/auth/reset-password?token=${token}`;
+
+      // 2. Call backend to store token
       const response = await fetch("/api/auth/forgot-password", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ email }),
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, token }),
       });
 
       const data = await response.json();
 
-      if (response.ok) {
-        setMessage({ text: data.message, isError: false });
-      } else {
+      if (!response.ok) {
         setMessage({ text: data.message || "Something went wrong", isError: true });
+        setIsLoading(false);
+        return;
       }
+
+      // 3. Send email via EmailJS (client-side with PUBLIC KEY)
+      const templateParams = {
+        link: resetLink,
+        email: email,
+      };
+
+      await emailjs.send(
+        process.env.NEXT_PUBLIC_EMAILJS_SERVICE_ID,
+        process.env.NEXT_PUBLIC_EMAILJS_TEMPLATE_ID,
+        templateParams,
+        process.env.NEXT_PUBLIC_EMAILJS_PUBLIC_KEY
+      );
+
+      setMessage({ text: "Password reset link sent to your email", isError: false });
     } catch (error) {
+      console.error("Forgot password error:", error);
       setMessage({ text: "Network error occurred", isError: true });
     } finally {
       setIsLoading(false);
@@ -52,9 +73,7 @@ export default function ForgotPassword() {
           {message.text && (
             <div
               className={`mb-4 p-4 rounded-md ${
-                message.isError
-                  ? "bg-red-50 text-red-700"
-                  : "bg-green-50 text-green-700"
+                message.isError ? "bg-red-50 text-red-700" : "bg-green-50 text-green-700"
               }`}
             >
               {message.text}
@@ -89,9 +108,7 @@ export default function ForgotPassword() {
                 type="submit"
                 disabled={isLoading}
                 className={`w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white ${
-                  isLoading
-                    ? "bg-yellow-400"
-                    : "bg-yellow-500 hover:bg-yellow-600"
+                  isLoading ? "bg-yellow-400" : "bg-yellow-500 hover:bg-yellow-600"
                 } focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500`}
               >
                 {isLoading ? "Sending..." : "Send reset link"}
@@ -105,9 +122,7 @@ export default function ForgotPassword() {
                 <div className="w-full border-t border-gray-300" />
               </div>
               <div className="relative flex justify-center text-sm">
-                <span className="px-2 bg-white text-gray-500">
-                  Remember your password?
-                </span>
+                <span className="px-2 bg-white text-gray-500">Remember your password?</span>
               </div>
             </div>
 
