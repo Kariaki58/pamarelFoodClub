@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect } from 'react';
-import { FiSearch, FiFilter, FiChevronDown, FiChevronUp, FiUser, FiMail, FiPhone, FiDollarSign, FiAward, FiUsers, FiTrendingUp, FiEye } from 'react-icons/fi';
+import { FiSearch, FiFilter, FiChevronDown, FiChevronUp, FiUser, FiMail, FiPhone, FiDollarSign, FiAward, FiUsers, FiTrendingUp, FiEye, FiEdit, FiTrash2 } from 'react-icons/fi';
 import { toast } from 'react-hot-toast';
 
 const AffiliatesAdminPage = () => {
@@ -19,6 +19,13 @@ const AffiliatesAdminPage = () => {
   const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' });
   const [selectedAffiliate, setSelectedAffiliate] = useState(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editForm, setEditForm] = useState({
+    plan: '',
+    currentBoard: '',
+    status: '',
+    role: ''
+  });
 
   // Fetch affiliates data
   const fetchAffiliates = async () => {
@@ -37,7 +44,6 @@ const AffiliatesAdminPage = () => {
       const data = await res.json();
 
       if (res.ok) {
-        // Changed from data.affiliates to data.users
         setAffiliates(data.users || []);
         setTotalPages(data.totalPages || 1);
       } else {
@@ -98,6 +104,75 @@ const AffiliatesAdminPage = () => {
   const viewAffiliateDetails = (affiliate) => {
     setSelectedAffiliate(affiliate);
     setShowDetailModal(true);
+  };
+
+  // Open edit modal
+  const openEditModal = (affiliate) => {
+    setSelectedAffiliate(affiliate);
+    setEditForm({
+      plan: affiliate.plan || '',
+      currentBoard: affiliate.currentBoard || '',
+      status: affiliate.status || '',
+      role: affiliate.role || ''
+    });
+    setShowEditModal(true);
+  };
+
+  // Handle edit form change
+  const handleEditChange = (e) => {
+    const { name, value } = e.target;
+    setEditForm(prev => ({ ...prev, [name]: value }));
+  };
+
+  // Update user
+  const updateUser = async () => {
+    try {
+      const res = await fetch(`/api/admin/users/${selectedAffiliate._id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(editForm),
+      });
+
+      const data = await res.json();
+
+      if (res.ok) {
+        toast.success('User updated successfully');
+        setShowEditModal(false);
+        fetchAffiliates(); // Refresh the list
+      } else {
+        toast.error(data.error || 'Failed to update user');
+      }
+    } catch (error) {
+      toast.error('Network error');
+      console.error(error);
+    }
+  };
+
+  // Delete user
+  const deleteUser = async (userId) => {
+    if (!confirm('Are you sure you want to delete this user? This action cannot be undone.')) {
+      return;
+    }
+
+    try {
+      const res = await fetch(`/api/admin/users/${userId}`, {
+        method: 'DELETE',
+      });
+
+      const data = await res.json();
+
+      if (res.ok) {
+        toast.success('User deleted successfully');
+        fetchAffiliates(); // Refresh the list
+      } else {
+        toast.error(data.error || 'Failed to delete user');
+      }
+    } catch (error) {
+      toast.error('Network error');
+      console.error(error);
+    }
   };
 
   // Format date
@@ -405,10 +480,8 @@ const AffiliatesAdminPage = () => {
                                 <FiUser className="text-gray-500" />
                               </div>
                               <div className="ml-4">
-                                {/* Changed from name to username */}
                                 <div className="text-sm font-medium text-gray-900">{affiliate.username}</div>
                                 <div className="text-sm text-gray-500">Ref: {affiliate.referralCode}</div>
-                                {/* Added role display for admin users */}
                                 {affiliate.role === 'admin' && (
                                   <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800">
                                     Admin
@@ -512,12 +585,26 @@ const AffiliatesAdminPage = () => {
                             </div>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                            <button
-                              onClick={() => viewAffiliateDetails(affiliate)}
-                              className="text-yellow-600 hover:text-yellow-900 flex items-center gap-1"
-                            >
-                              <FiEye /> View
-                            </button>
+                            <div className="flex items-center gap-2">
+                              <button
+                                onClick={() => viewAffiliateDetails(affiliate)}
+                                className="text-yellow-600 hover:text-yellow-900 flex items-center gap-1"
+                              >
+                                <FiEye /> View
+                              </button>
+                              <button
+                                onClick={() => openEditModal(affiliate)}
+                                className="text-blue-600 hover:text-blue-900 flex items-center gap-1"
+                              >
+                                <FiEdit /> Edit
+                              </button>
+                              <button
+                                onClick={() => deleteUser(affiliate._id)}
+                                className="text-red-600 hover:text-red-900 flex items-center gap-1"
+                              >
+                                <FiTrash2 /> Delete
+                              </button>
+                            </div>
                           </td>
                         </tr>
                       );
@@ -619,7 +706,6 @@ const AffiliatesAdminPage = () => {
                 <div>
                   <h3 className="text-lg font-medium text-gray-900 mb-2">Personal Information</h3>
                   <div className="space-y-2">
-                    {/* Changed from name to username */}
                     <p><span className="font-medium">Username:</span> {selectedAffiliate.username}</p>
                     <p><span className="font-medium">Email:</span> {selectedAffiliate.email}</p>
                     <p><span className="font-medium">Phone:</span> {selectedAffiliate.phone}</p>
@@ -629,7 +715,6 @@ const AffiliatesAdminPage = () => {
                     <p><span className="font-medium">Current Board:</span> <BoardBadge board={selectedAffiliate.currentBoard} /></p>
                     <p><span className="font-medium">Role:</span> {selectedAffiliate.role}</p>
                     <p><span className="font-medium">Joined:</span> {formatDate(selectedAffiliate.createdAt)}</p>
-                    {/* Show referral info if available */}
                     {selectedAffiliate.referredBy && (
                       <p>
                         <span className="font-medium">Referred By:</span> {selectedAffiliate.referredBy.username} 
@@ -715,6 +800,102 @@ const AffiliatesAdminPage = () => {
                   className="px-4 py-2 bg-gray-200 rounded-md hover:bg-gray-300"
                 >
                   Close
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit User Modal */}
+      {showEditModal && selectedAffiliate && (
+        <div className="fixed inset-0 backdrop-blur-sm bg-white/30 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full">
+            <div className="p-6">
+              <div className="flex justify-between items-center border-b pb-4">
+                <h2 className="text-xl font-semibold">Edit User</h2>
+                <button 
+                  onClick={() => setShowEditModal(false)}
+                  className="text-gray-500 hover:text-gray-700"
+                >
+                  &times;
+                </button>
+              </div>
+              
+              <div className="mt-4 space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Plan</label>
+                  <select
+                    name="plan"
+                    value={editForm.plan}
+                    onChange={handleEditChange}
+                    className="w-full border rounded-lg p-2 focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500"
+                  >
+                    <option value="">Select Plan</option>
+                    <option value="basic">Basic</option>
+                    <option value="classic">Classic</option>
+                    <option value="deluxe">Deluxe</option>
+                  </select>
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Current Board</label>
+                  <select
+                    name="currentBoard"
+                    value={editForm.currentBoard}
+                    onChange={handleEditChange}
+                    className="w-full border rounded-lg p-2 focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500"
+                  >
+                    <option value="">Select Board</option>
+                    <option value="Bronze">Bronze</option>
+                    <option value="Silver">Silver</option>
+                    <option value="Gold">Gold</option>
+                    <option value="Completed">Completed</option>
+                  </select>
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                  <select
+                    name="status"
+                    value={editForm.status}
+                    onChange={handleEditChange}
+                    className="w-full border rounded-lg p-2 focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500"
+                  >
+                    <option value="">Select Status</option>
+                    <option value="active">Active</option>
+                    <option value="pending">Pending</option>
+                    <option value="suspended">Suspended</option>
+                  </select>
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Role</label>
+                  <select
+                    name="role"
+                    value={editForm.role}
+                    onChange={handleEditChange}
+                    className="w-full border rounded-lg p-2 focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500"
+                  >
+                    <option value="">Select Role</option>
+                    <option value="user">User</option>
+                    <option value="admin">Admin</option>
+                  </select>
+                </div>
+              </div>
+              
+              <div className="mt-6 flex justify-end gap-3">
+                <button
+                  onClick={() => setShowEditModal(false)}
+                  className="px-4 py-2 bg-gray-200 rounded-md hover:bg-gray-300"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={updateUser}
+                  className="px-4 py-2 bg-yellow-600 text-white rounded-md hover:bg-yellow-700"
+                >
+                  Save Changes
                 </button>
               </div>
             </div>
