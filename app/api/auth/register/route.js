@@ -14,6 +14,8 @@ export async function POST(request) {
       $or: [{ email }, { username }]
     });
 
+    console.log({ existingUser })
+
     if (existingUser) {
       return NextResponse.json(
         { error: 'User with this email or username already exists' },
@@ -36,7 +38,6 @@ export async function POST(request) {
       }
     }
 
-    // Create user with pending status
     const user = new User({
       username,
       email,

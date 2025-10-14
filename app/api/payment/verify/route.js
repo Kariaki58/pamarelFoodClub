@@ -1,75 +1,88 @@
 import { NextResponse } from 'next/server';
 import connectToDatabase from '@/lib/dbConnect';
 import User from '@/models/user';
+import Transaction from '@/models/Transaction';
 
 export async function GET(request) {
   try {
     await connectToDatabase();
     
     const { searchParams } = new URL(request.url);
-    const reference = searchParams.get('reference');
-    const trxref = searchParams.get('trxref');
-    
-    // Use either reference or trxref (Paystack uses both)
-    const paymentReference = reference || trxref;
+    const transaction_id = searchParams.get('transaction_id');
+    const tx_ref = searchParams.get('tx_ref');
+    const status = searchParams.get('status');
+    const callbackUrl = searchParams.get('callbackUrl');
 
-    // Basic validation
-    if (!paymentReference) {
-      return NextResponse.redirect(`${process.env.NEXTAUTH_URL}/payment/failed?error=no_reference`);
+    console.log('Wallet verification called:', { transaction_id, tx_ref, status });
+
+
+    const checkTrans = await Transaction.findOne({ flutterwaveTxRef: tx_ref });
+
+
+    if (checkTrans) {
+      return NextResponse.json({ error: "payment already made" }, { status: 400 })
     }
 
-    // Verify payment with Paystack
-    const verifyResponse = await fetch(
-      `https://api.paystack.co/transaction/verify/${paymentReference}`,
-      {
-        headers: {
-          'Authorization': `Bearer ${process.env.PAYSTACK_SECRET_KEY}`
+    if ((status === 'successful' || status === 'completed') && tx_ref) {
+      // Verify with Flutterwave
+      const verifyResponse = await fetch(
+        `https://api.flutterwave.com/v3/transactions/${transaction_id}/verify`,
+        {
+          headers: {
+            'Authorization': `Bearer ${process.env.FLUTTERWAVE_SECRET_KEY}`
+          }
+        }
+      );
+
+      if (verifyResponse.ok) {
+        const verificationData = await verifyResponse.json();
+        
+        if (verificationData.data.status === 'successful') {
+          // Extract wallet info from tx_ref
+          const txRefParts = tx_ref.split('-');
+          const userId = txRefParts[3];
+          const walletType = txRefParts[4];
+          const amount = parseFloat(verificationData.data.amount);
+          
+          // Update user's wallet balance
+          const user = await User.findById(userId);
+          if (user) {
+            const currentBalance = user.earnings[walletType + 'Wallet'] || 0;
+            user.earnings[walletType + 'Wallet'] = currentBalance + amount;
+            await user.save();
+          }
+          
+          // Update transaction
+          await Transaction.findOneAndUpdate(
+            { flutterwaveTxRef: tx_ref },
+            {
+              status: 'successful',
+              paymentStatus: 'successful',
+              flutterwaveId: verificationData.data.id,
+              paymentMethod: verificationData.data.payment_type,
+              paidAt: new Date(),
+              updatedAt: new Date(),
+              flutterwaveResponse: verificationData
+            }
+          );
+          
+          // Redirect to frontend success page
+          return NextResponse.redirect(
+            `${process.env.NEXTAUTH_URL}/wallet/verify?status=success&walletType=${walletType}&amount=${amount}&tx_ref=${tx_ref}`
+          );
         }
       }
-    );
-
-    if (!verifyResponse.ok) {
-      const errorData = await verifyResponse.json();
-      console.error('Paystack verification error:', errorData);
-      return NextResponse.redirect(`${process.env.NEXTAUTH_URL}/payment/failed?error=verification_failed`);
-    }
-
-    const verificationData = await verifyResponse.json();
-
-    // Check payment status
-    if (verificationData.data.status !== 'success') {
-      // Redirect to failure page if payment wasn't successful
-      return NextResponse.redirect(`${process.env.NEXTAUTH_URL}/payment/failed?error=payment_failed`);
-    }
-
-    // Extract metadata
-    const { metadata } = verificationData.data;
-    if (!metadata || !metadata.planType || !metadata.userId) {
-      return NextResponse.redirect(`${process.env.NEXTAUTH_URL}/payment/failed?error=invalid_metadata`);
-    }
-
-    const { planType, userId } = metadata;
-
-    // Validate plan type
-    if (!['basic', 'classic', 'deluxe'].includes(planType.toLowerCase())) {
-      return NextResponse.redirect(`${process.env.NEXTAUTH_URL}/payment/failed?error=invalid_plan`);
-    }
-
-    // Find user
-    const user = await User.findById(userId);
-    if (!user) {
-      return NextResponse.redirect(`${process.env.NEXTAUTH_URL}/payment/failed?error=user_not_found`);
     }
     
-    // Activate user
-    user.status = 'active';
-    await user.save();
-
-    // Redirect to success page with reference and userId as query parameters
-    return NextResponse.redirect(`${process.env.NEXTAUTH_URL}/payment/success?reference=${paymentReference}&userId=${userId}`);
+    // If failed
+    return NextResponse.redirect(
+      `${process.env.NEXTAUTH_URL}/wallet/verify?status=failed&tx_ref=${tx_ref}`
+    );
 
   } catch (error) {
-    console.error('PAYMENT PROCESSING ERROR:', error);
-    return NextResponse.redirect(`${process.env.NEXTAUTH_URL}/payment/failed?error=server_error`);
+    console.error('Wallet funding verification error:', error);
+    return NextResponse.redirect(
+      `${process.env.NEXTAUTH_URL}/wallet/verify?status=error&tx_ref=${tx_ref}`
+    );
   }
 }

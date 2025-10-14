@@ -119,7 +119,7 @@ export function Footer() {
             <p className="text-sm order-2 sm:order-1">&copy; {new Date().getFullYear()} pamarel. All rights reserved.</p>
             <div className="flex items-center space-x-4 order-1 sm:order-2">
                 <span className="font-semibold text-sm">Payment Methods:</span>
-                <span className="text-sm font-mono">Paystack</span>
+                <span className="text-sm font-mono">Flutterwave</span>
                 <span className="text-sm font-mono">Wallet Transfer</span>
             </div>
         </div>

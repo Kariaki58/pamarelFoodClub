@@ -3,6 +3,7 @@ import { authOptions } from '../../auth/options';
 import { NextResponse } from 'next/server';
 import connectToDatabase from '@/lib/dbConnect';
 import User from '@/models/user';
+import Transaction from '@/models/Transaction';
 
 export async function GET(req) {
   const session = await getServerSession(authOptions);
@@ -11,28 +12,36 @@ export async function GET(req) {
     return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
   }
 
-  const reference = req.nextUrl.searchParams.get('reference');
+  const transaction_id = req.nextUrl.searchParams.get('transaction_id');
+  const tx_ref = req.nextUrl.searchParams.get('tx_ref');
+  const status = req.nextUrl.searchParams.get('status');
 
-  if (!reference) {
-    return NextResponse.json({ success: false, error: 'Missing reference' }, { status: 400 });
+  if (!transaction_id || !tx_ref) {
+    return NextResponse.json({ success: false, error: 'Missing transaction parameters' }, { status: 400 });
   }
 
   try {
     await connectToDatabase();
 
-    // Verify payment with Paystack
-    const paystackVerify = await fetch(
-      `https://api.paystack.co/transaction/verify/${reference}`,
+    const checkTrans = await Transaction.findOne({ flutterwaveTxRef: tx_ref });
+  
+    if (checkTrans) {
+      return NextResponse.json({ error: "payment already made" }, { status: 400 })
+    }
+
+    // Verify payment with Flutterwave
+    const flutterwaveVerify = await fetch(
+      `https://api.flutterwave.com/v3/transactions/${transaction_id}/verify`,
       {
         method: 'GET',
         headers: {
-          Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`,
+          Authorization: `Bearer ${process.env.FLUTTERWAVE_SECRET_KEY}`,
           'Content-Type': 'application/json',
         },
       }
     );
 
-    const result = await paystackVerify.json();
+    const result = await flutterwaveVerify.json();
 
     if (!result.status) {
       return NextResponse.json(
@@ -43,9 +52,14 @@ export async function GET(req) {
 
     const paymentData = result.data;
 
-    if (paymentData.status === 'success') {
-      const amount = paymentData.amount / 100; // kobo → naira
-      const { userId } = paymentData.metadata || {};
+    // Check if payment was successful
+    if (paymentData.status === 'successful') {
+      const amount = parseFloat(paymentData.amount);
+      
+      // Extract wallet info from tx_ref: wallet-fund-{timestamp}-{userId}-{walletType}
+      const txRefParts = tx_ref.split('-');
+      const userId = txRefParts[3];
+      const walletType = txRefParts[4];
 
       // Verify user matches session
       if (userId !== session.user.id) {
@@ -64,25 +78,65 @@ export async function GET(req) {
         );
       }
 
-      // Update cash wallet only
-      user.earnings.cashWallet = (user.earnings.cashWallet || 0) + amount;
+      // Update the appropriate wallet
+      const currentBalance = user.earnings[`${walletType}Wallet`] || 0;
+      user.earnings[`${walletType}Wallet`] = currentBalance + amount;
       await user.save();
+
+      // Update transaction
+      await Transaction.findOneAndUpdate(
+        { flutterwaveTxRef: tx_ref },
+        {
+          status: 'successful',
+          paymentStatus: 'successful',
+          flutterwaveId: paymentData.id,
+          paymentMethod: paymentData.payment_type,
+          paidAt: new Date(paymentData.created_at),
+          updatedAt: new Date(),
+          flutterwaveResponse: result
+        }
+      );
 
       return NextResponse.json({
         success: true,
         amount,
-        walletType: 'cashWallet',
-        newBalance: user.earnings.cashWallet,
-        reference,
+        walletType: `${walletType}Wallet`,
+        newBalance: user.earnings[`${walletType}Wallet`],
+        reference: tx_ref,
       });
     } else {
+      // Update transaction status to failed
+      await Transaction.findOneAndUpdate(
+        { flutterwaveTxRef: tx_ref },
+        {
+          status: 'failed',
+          paymentStatus: 'failed',
+          updatedAt: new Date(),
+          flutterwaveResponse: result
+        }
+      );
+
       return NextResponse.json(
-        { success: false, error: paymentData.status },
+        { success: false, error: `Payment ${paymentData.status}` },
         { status: 400 }
       );
     }
   } catch (error) {
-    console.error('Paystack verify error:', error);
+    console.error('Flutterwave verify error:', error);
+    
+    // Update transaction status to failed on error
+    const tx_ref = req.nextUrl.searchParams.get('tx_ref');
+    if (tx_ref) {
+      await Transaction.findOneAndUpdate(
+        { flutterwaveTxRef: tx_ref },
+        {
+          status: 'failed',
+          paymentStatus: 'failed',
+          updatedAt: new Date()
+        }
+      );
+    }
+
     return NextResponse.json(
       { success: false, error: 'Something went wrong' },
       { status: 500 }

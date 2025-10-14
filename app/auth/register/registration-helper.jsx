@@ -4,7 +4,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 import { Eye, EyeOff } from 'lucide-react';
-import { PLANS } from '@/lib/plans'; // Make sure this path is correct
+import { PLANS } from '@/lib/plans';
 
 export default function RegistrationPage() {
   const router = useRouter();
@@ -17,7 +17,7 @@ export default function RegistrationPage() {
     password: '',
     confirmPassword: '',
     referralCode: '',
-    planType: '' // Added planType to form data
+    planType: ''
   });
 
   const [errors, setErrors] = useState({});
@@ -39,7 +39,6 @@ export default function RegistrationPage() {
     }
 
     if (planType) {
-      // Validate plan type
       if (PLANS[planType]) {
         setFormData(prev => ({
           ...prev,
@@ -47,11 +46,9 @@ export default function RegistrationPage() {
         }));
         setSelectedPlan(PLANS[planType]);
       } else {
-        // Invalid plan type, redirect to plans page
         router.push('/join-member');
       }
     } else {
-      // No plan type specified, redirect to plans page
       router.push('/join-member');
     }
   }, [searchParams, router]);
@@ -131,7 +128,7 @@ export default function RegistrationPage() {
         throw new Error(userData.error || 'User registration failed');
       }
 
-      // Then initialize payment with the user ID
+      // Then initialize Flutterwave payment
       const paymentResponse = await fetch('/api/payment/initialize', {
         method: 'POST',
         headers: {
@@ -141,8 +138,10 @@ export default function RegistrationPage() {
           email: formData.email,
           amount: selectedPlan.price,
           planType: formData.planType,
-          userId: userData.userId, // Pass the created user ID
+          userId: userData.userId,
           planName: selectedPlan.name,
+          phone: formData.phone,
+          name: formData.username
         })
       });
 
@@ -152,8 +151,8 @@ export default function RegistrationPage() {
         throw new Error(paymentData.error || 'Payment initialization failed');
       }
 
-      // Redirect to payment page
-      window.location.href = paymentData.authorizationUrl;
+      // Redirect to Flutterwave checkout page
+      window.location.href = paymentData.checkoutLink;
 
     } catch (error) {
       console.error('Registration/Payment error:', error);
@@ -204,7 +203,7 @@ export default function RegistrationPage() {
             <h3 className="font-semibold text-yellow-800">Selected Plan: {selectedPlan.name}</h3>
             <p className="text-yellow-700">Price: ₦{selectedPlan.price.toLocaleString()}</p>
             <p className="text-sm text-yellow-600 mt-1">
-              You'll be redirected to payment after registration
+              You'll be redirected to Flutterwave payment after registration
             </p>
           </div>
 
@@ -220,7 +219,7 @@ export default function RegistrationPage() {
           )}
 
           <form className="space-y-5" onSubmit={handleSubmit}>
-            {/* Username */}
+            {/* Form fields remain the same as before */}
             <div>
               <label htmlFor="username" className="block text-sm font-medium text-gray-700 mb-1">
                 Username
@@ -238,7 +237,6 @@ export default function RegistrationPage() {
               {errors.username && <p className="mt-1.5 text-sm text-red-600">{errors.username}</p>}
             </div>
 
-            {/* Email */}
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
                 Email address
@@ -256,7 +254,6 @@ export default function RegistrationPage() {
               {errors.email && <p className="mt-1.5 text-sm text-red-600">{errors.email}</p>}
             </div>
 
-            {/* Phone */}
             <div>
               <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-1">
                 Phone number
@@ -269,12 +266,11 @@ export default function RegistrationPage() {
                 value={formData.phone}
                 onChange={handleChange}
                 className={`block w-full px-4 py-2.5 rounded-lg border ${errors.phone ? 'border-red-300 focus:ring-red-500 focus:border-red-500' : 'border-gray-300 focus:ring-yellow-500 focus:border-yellow-500'} shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-opacity-50`}
-                placeholder="+1 (555) 123-4567"
+                placeholder="+234 812 345 6789"
               />
               {errors.phone && <p className="mt-1.5 text-sm text-red-600">{errors.phone}</p>}
             </div>
 
-            {/* Password */}
             <div>
               <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
                 Password
@@ -305,7 +301,6 @@ export default function RegistrationPage() {
               {errors.password && <p className="mt-1.5 text-sm text-red-600">{errors.password}</p>}
             </div>
 
-            {/* Confirm Password */}
             <div>
               <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-1">
                 Confirm password
@@ -336,7 +331,6 @@ export default function RegistrationPage() {
               {errors.confirmPassword && <p className="mt-1.5 text-sm text-red-600">{errors.confirmPassword}</p>}
             </div>
 
-            {/* Referral Code */}
             <div>
               <label htmlFor="referralCode" className="block text-sm font-medium text-gray-700 mb-1">
                 Referral code (optional)
@@ -352,7 +346,6 @@ export default function RegistrationPage() {
               />
             </div>
 
-            {/* Submit Button */}
             <div className="pt-1">
               <button
                 type="submit"
@@ -365,7 +358,7 @@ export default function RegistrationPage() {
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                     </svg>
-                    Registering & Processing Payment...
+                    Registering & Redirecting to Payment...
                   </>
                 ) : `Register & Pay ₦${selectedPlan.price.toLocaleString()}`}
               </button>

@@ -1,9 +1,10 @@
 import { getServerSession } from 'next-auth';
 import { authOptions } from '../../auth/options';
-// import { authOptions } from '@/lib/authOptions';
 import { NextResponse } from 'next/server';
 import User from '@/models/user';
 import connectToDatabase from '@/lib/dbConnect';
+import Transaction from '@/models/Transaction';
+import mongoose from 'mongoose';
 
 export async function POST(req) {
   const session = await getServerSession(authOptions);
@@ -16,8 +17,7 @@ export async function POST(req) {
   }
 
   try {
-    const { amount, walletType, callbackUrl } = await req.json();
-
+    const { amount, walletType } = await req.json();
 
     // Validate amount
     if (!amount || isNaN(amount) || amount <= 0) {
@@ -45,51 +45,100 @@ export async function POST(req) {
       );
     }
 
-    // Generate reference
-    const reference = `FUND-${Date.now()}-${Math.random().toString(36).substring(2, 8)}`;
+    // Generate unique transaction reference
+    const tx_ref = `wallet-fund-${Date.now()}-${user._id}-${walletType}`;
 
-    // Call Paystack initialize endpoint
-    const paystackResponse = await fetch('https://api.paystack.co/transaction/initialize', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${process.env.PAYSTACK_SECRET_KEY}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        email: user.email,
-        amount: amount * 100, // Convert to kobo
-        reference,
-        callback_url: `${process.env.NEXTAUTH_URL}/wallet/verify?callbackUrl=${callbackUrl}`,
-        metadata: {
-          walletType,
-          userId: user._id.toString(),
-        }
-      })
+    // Create transaction record
+    const transaction = new Transaction({
+      transactionId: `WALLET_TXN_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      flutterwaveTxRef: tx_ref,
+      userId: user._id,
+      userEmail: user.email,
+      userName: user.name,
+      userPhone: user.phone,
+      amount: parseFloat(amount),
+      currency: 'NGN',
+      planType: 'wallet_funding', // Special type for wallet funding
+      planName: `${walletType.toUpperCase()} Wallet Funding`,
+      status: 'pending',
+      paymentStatus: 'pending',
     });
 
-    const paystackData = await paystackResponse.json();
+    // Save transaction to database
+    await transaction.save();
 
-    if (!paystackResponse.ok || !paystackData.status) {
-      return NextResponse.json(
+    // Prepare Flutterwave payload
+    const payload = {
+      tx_ref,
+      amount: amount.toString(), // Flutterwave expects string
+      currency: 'NGN',
+      payment_options: 'card, banktransfer, ussd, mobilemoney',
+      redirect_url: `${process.env.NEXTAUTH_URL}/wallet/verify`,
+      customer: {
+        email: user.email,
+        name: user.name || 'Customer',
+        phonenumber: user.phone || ''
+      },
+      customizations: {
+        title: 'Pamarel Investment',
+        description: `Funding ${walletType} wallet`,
+        logo: `${process.env.NEXTAUTH_URL}/pamarel-logo.jpeg`
+
+      },
+      meta: {
+        walletType,
+        userId: user._id.toString(),
+        purpose: 'wallet_funding',
+        transactionId: transaction.transactionId // Include our internal transaction ID
+      }
+    };
+
+    // Initialize Flutterwave payment
+    const response = await fetch('https://api.flutterwave.com/v3/payments', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${process.env.FLUTTERWAVE_SECRET_KEY}`
+      },
+      body: JSON.stringify(payload)
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      console.error('Flutterwave error:', errorData);
+      
+      // Update transaction status to failed
+      await Transaction.findOneAndUpdate(
+        { transactionId: transaction.transactionId },
         {
-          success: false,
-          error: paystackData.message || 'Failed to initialize payment'
-        },
-        { status: 400 }
+          status: 'failed',
+          paymentStatus: 'failed',
+          updatedAt: new Date(),
+          flutterwaveResponse: errorData
+        }
       );
+      
+      throw new Error(errorData.message || 'Failed to initialize payment');
     }
+
+    const data = await response.json();
 
     return NextResponse.json({
       success: true,
       message: 'Payment initialized successfully',
-      paymentUrl: paystackData.data.authorization_url,
-      reference,
+      paymentUrl: data.data.link,
+      checkoutLink: data.data.link,
+      reference: tx_ref,
+      transactionId: transaction.transactionId
     });
 
   } catch (error) {
-    console.error('Paystack funding error:', error);
+    console.error('Flutterwave funding error:', error);
     return NextResponse.json(
-      { success: false, error: 'An unexpected error occurred' },
+      { 
+        success: false, 
+        error: error.message || 'An unexpected error occurred' 
+      },
       { status: 500 }
     );
   }

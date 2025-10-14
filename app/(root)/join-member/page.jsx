@@ -12,7 +12,7 @@ export default function JoinMember() {
   const tabs = [
     { id: 'basic', label: 'Basic Plan', color: 'from-green-400 to-green-500' },
     { id: 'classic', label: 'Classic Plan', color: 'from-purple-500 to-purple-600' },
-    { id: 'Premium', label: 'DELUXE Plan', color: 'from-gray-700 to-gray-900' }
+    { id: 'premium', label: 'Deluxe Plan', color: 'from-gray-700 to-gray-900' }
   ];
 
   
@@ -75,7 +75,7 @@ export default function JoinMember() {
         >
           {activeTab === 'basic' && <BasicFoodPlan />}
           {activeTab === 'classic' && <ClassicFoodPlan />}
-          {activeTab === 'Premium' && <PremiumFoodPlan />}
+          {activeTab === 'premium' && <PremiumFoodPlan />}
         </motion.div>
 
         {/* Comparison CTA */}
@@ -114,7 +114,7 @@ export default function JoinMember() {
             {/* Scrollable container */}
             <div className="overflow-x-auto pb-4">
               <div className="inline-block min-w-full rounded-xl shadow-lg">
-                <div className="min-w-[700px] md:min-w-full bg-white rounded-xl overflow-hidden">
+                <div className="min-w-[800px] md:min-w-full bg-white rounded-xl overflow-hidden">
                   {/* Header Row */}
                   <div className="grid grid-cols-4 min-w-full">
                     <div className="p-4 sm:p-6 bg-gray-50 sticky left-0 z-10">
@@ -122,30 +122,35 @@ export default function JoinMember() {
                     </div>
                     <div className="p-4 sm:p-6 bg-green-800">
                       <h3 className="text-sm sm:text-base font-bold text-gray-50">Basic</h3>
-                      <p className="text-xs sm:text-sm text-gray-50 font-medium mt-1">₦4,000</p>
+                      <p className="text-xs sm:text-sm text-gray-50 font-medium mt-1">₦8,700</p>
                     </div>
                     <div className="p-4 sm:p-6 bg-purple-800">
                       <h3 className="text-sm sm:text-base font-bold text-gray-50">Classic</h3>
-                      <p className="text-xs sm:text-sm text-gray-50 font-medium mt-1">₦35,000</p>
+                      <p className="text-xs sm:text-sm text-gray-50 font-medium mt-1">₦88,000</p>
                     </div>
                     <div className="p-4 sm:text-sm sm:p-6 bg-gray-800 text-white">
                       <h3 className="text-sm sm:text-base font-bold">Deluxe</h3>
-                      <p className="text-xs sm:text-sm text-gray-300 font-medium mt-1">₦80,000</p>
+                      <p className="text-xs sm:text-sm text-gray-300 font-medium mt-1">₦200,000</p>
                     </div>
                   </div>
 
                   {/* Comparison Rows */}
                   {[
-                    { feature: "Registration Fee", basic: "₦4,000", classic: "₦35,000", Premium: "₦80,000" },
-                    { feature: "Max Earnings", basic: "₦14M", classic: "₦45M", Premium: "₦200M" },
-                    { feature: "Food Wallet", basic: "✓", classic: "✓", Premium: "✓" },
-                    { feature: "Cash Wallet", basic: "✓", classic: "✓", Premium: "✓" },
-                    { feature: "Gadget Wallet", basic: "✓", classic: "✓", Premium: "✓" },
-                    { feature: "Arising Leader Bonus", basic: "✓", classic: "✓", Premium: "✓" },
-                    { feature: "Car Incentive", basic: "Platinum", classic: "Gold & Platinum", Premium: "Gold & Platinum" },
-                    { feature: "Travel Incentive", basic: "✗", classic: "Platinum", Premium: "Gold & Platinum" },
-                    { feature: "Housing Bonus", basic: "✗", classic: "✗", Premium: "Platinum" },
-                    { feature: "Board Levels", basic: "4", classic: "4", Premium: "4" },
+                    { feature: "Registration Fee", basic: "₦8,700", classic: "₦88,000", premium: "₦200,000" },
+                    { feature: "Max Earnings", basic: "₦14M", classic: "₦40M", premium: "₦120M" },
+                    { feature: "Bronze Board Earnings", basic: "₦20,000", classic: "₦200,000", premium: "₦400,000" },
+                    { feature: "Silver Board Earnings", basic: "₦200,000", classic: "₦2,000,000", premium: "₦5,000,000" },
+                    { feature: "Gold Board Earnings", basic: "₦14,000,000", classic: "₦40,000,000", premium: "₦120,000,000" },
+                    { feature: "Food Wallet", basic: "✓", classic: "✓", premium: "✓" },
+                    { feature: "Cash Wallet", basic: "✓", classic: "✓", premium: "✓" },
+                    { feature: "Gadget Wallet", basic: "✓", classic: "✓", premium: "✓" },
+                    { feature: "Arising Leader Bonus", basic: "✓", classic: "✓", premium: "✓" },
+                    { feature: "Car Incentive", basic: "✓", classic: "✓", premium: "✓" },
+                    { feature: "Travel Incentive", basic: "✗", classic: "African Trip", premium: "International Trip" },
+                    { feature: "Health Insurance", basic: "✓", classic: "✓", premium: "✓" },
+                    { feature: "Housing Support", basic: "✗", classic: "✗", premium: "✓" },
+                    { feature: "CSR Donation", basic: "✓", classic: "✓", premium: "✓" },
+                    { feature: "Automatic Upgrade", basic: "→ Classic", classic: "→ Deluxe", premium: "✗" },
                   ].map((row, index) => (
                     <div key={index} className="grid grid-cols-4 min-w-full border-t border-gray-200 hover:bg-gray-50 transition-colors">
                       <div className="p-3 sm:p-4 bg-gray-50 sticky left-0 z-10">
@@ -158,7 +163,7 @@ export default function JoinMember() {
                         <p className="text-xs sm:text-sm text-gray-200">{row.classic}</p>
                       </div>
                       <div className="p-3 sm:p-4 bg-gray-900">
-                        <p className="text-xs sm:text-sm text-gray-200">{row.Premium}</p>
+                        <p className="text-xs sm:text-sm text-gray-200">{row.premium}</p>
                       </div>
                     </div>
                   ))}
@@ -193,6 +198,10 @@ export default function JoinMember() {
               <div className="flex items-center">
                 <span className="mr-2">M</span>
                 <span>Million</span>
+              </div>
+              <div className="flex items-center">
+                <span className="mr-2">→</span>
+                <span>Upgrade to</span>
               </div>
             </div>
           </div>
