@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import connectToDatabase from "@/lib/dbConnect";
 import User from "@/models/user";
 
+
 export async function POST(request) {
   try {
     const { email, token } = await request.json();
