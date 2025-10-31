@@ -91,7 +91,7 @@ const PamarelLandingPage = () => {
 
                 <div className="space-y-6">
                   <div className="bg-white p-6 rounded-xl shadow-lg border-l-4 border-yellow-400">
-                    <h3 className="text-2xl font-bold mb-3 text-gray-800">Become a Stockist or Packup Centre</h3>
+                    <h3 className="text-2xl font-bold mb-3 text-gray-800">Become a Stockist or pickup Centre</h3>
                     <p className="text-gray-600 mb-4">
                       Partner with us to distribute products in your area and earn additional income.
                     </p>

@@ -15,7 +15,7 @@ export async function POST(request) {
     }
 
     // Generate unique transaction reference
-    const tx_ref = `pamarel-${Date.now()}-${userId}`;
+    const tx_ref = `pamarel-${Date.now()}-${userId}_${Math.random().toString(36).substr(2, 9)}`;
     
     // Get user data to ensure we have email
     let userEmail = email;

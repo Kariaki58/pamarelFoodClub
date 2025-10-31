@@ -15,15 +15,18 @@ export async function GET(request) {
 
     console.log('Wallet verification called:', { transaction_id, tx_ref, status });
 
-
     const checkTrans = await Transaction.findOne({ flutterwaveTxRef: tx_ref });
 
+    console.log({checkTrans})
 
-    if (checkTrans) {
+
+    if (checkTrans.status === "successful") {
       return NextResponse.json({ error: "payment already made" }, { status: 400 })
     }
+    console.log({ status })
 
     if ((status === 'successful' || status === 'completed') && tx_ref) {
+      console.log("inside line 29")
       // Verify with Flutterwave
       const verifyResponse = await fetch(
         `https://api.flutterwave.com/v3/transactions/${transaction_id}/verify`,
@@ -33,6 +36,8 @@ export async function GET(request) {
           }
         }
       );
+
+      console.log({ verifyResponse })
 
       if (verifyResponse.ok) {
         const verificationData = await verifyResponse.json();
@@ -46,11 +51,15 @@ export async function GET(request) {
           
           // Update user's wallet balance
           const user = await User.findById(userId);
+
           if (user) {
+            user.status = "active"
             const currentBalance = user.earnings[walletType + 'Wallet'] || 0;
             user.earnings[walletType + 'Wallet'] = currentBalance + amount;
-            await user.save();
           }
+          
+          await user.save();
+
           
           // Update transaction
           await Transaction.findOneAndUpdate(

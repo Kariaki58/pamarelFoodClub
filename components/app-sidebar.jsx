@@ -41,8 +41,8 @@ import {
 
 const data = {
   user: {
-    name: "Store Admin",
-    email: "admin@example.com",
+    name: "Pamarel Admin",
+    email: "pamarelfoods@gmail.com",
     avatar: "/avatars/admin.jpg",
     role: "Super Admin",
   },

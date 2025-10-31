@@ -17,6 +17,21 @@ export async function POST(request) {
     console.log({ existingUser })
 
     if (existingUser) {
+      if (existingUser.status === "pending") {
+        existingUser.plan = planType;
+
+        const hashedPassword = await bcrypt.hash(password, 12);
+
+        existingUser.password = hashedPassword;
+
+        await existingUser.save();
+        
+        return NextResponse.json({
+          success: true,
+          userId: existingUser._id,
+          message: 'User registered successfully. Awaiting payment.'
+        });
+      }
       return NextResponse.json(
         { error: 'User with this email or username already exists' },
         { status: 400 }

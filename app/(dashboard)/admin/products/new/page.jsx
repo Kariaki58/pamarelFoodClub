@@ -173,12 +173,16 @@ const ProductUploadDashboard = () => {
     try {
       // Upload product images
       const productImageUrls = await uploadImages(productImages);
+
+      console.log({ productImageUrls })
       
       // For new categories, upload category image
       let categoryImageUrl = '';
       if (category.isNew) {
         const categoryImageUrls = await uploadImages([category.image]);
         categoryImageUrl = categoryImageUrls[0];
+
+        console.log({categoryImageUrl})
       } else {
         // Find the selected category to get its existing image
         const selectedCategory = databaseCategories.find(cat => cat.label === category.name);

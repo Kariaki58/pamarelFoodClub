@@ -132,13 +132,6 @@ export default function WalletVerifyPage() {
               <div className="text-right font-semibold">
                 {getWalletDisplayName(verificationData.walletType)}
               </div>
-              
-              <div className="text-left">
-                <span className="text-gray-600">New Balance:</span>
-              </div>
-              <div className="text-right font-semibold">
-                ₦{parseFloat(verificationData.newBalance).toLocaleString()}
-              </div>
             </div>
           </div>
         )}

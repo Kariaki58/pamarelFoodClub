@@ -21,7 +21,11 @@ export const formatCurrency = (amount) => {
 };
 
 const WalletCard = () => {
-  const [balance, setBalance] = useState(0);
+  const [balance, setBalance] = useState({
+    available_balance: 0,
+    ledger_balance: 0,
+    currency: "NGN",
+  });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [growthRate, setGrowthRate] = useState(0);
@@ -30,15 +34,19 @@ const WalletCard = () => {
     const fetchWalletBalance = async () => {
       try {
         setLoading(true);
-        const response = await fetch('/api/paystack/balance');
-        
+        const response = await fetch("/api/flutterwave/balance");
+
         if (!response.ok) {
-          throw new Error('Failed to fetch wallet balance');
+          throw new Error("Failed to fetch wallet balance");
         }
 
         const data = await response.json();
-        setBalance(data.balance);
-        setGrowthRate(data.growthRate);
+        setBalance({
+          available_balance: data.available_balance || 0,
+          ledger_balance: data.ledger_balance || 0,
+          currency: data.currency || "NGN",
+        });
+        setGrowthRate(data.growthRate || 0);
       } catch (err) {
         setError(err.message);
       } finally {
@@ -49,15 +57,16 @@ const WalletCard = () => {
     fetchWalletBalance();
   }, []);
 
-  if (loading) return <div className="text-sm text-gray-500">Loading wallet...</div>;
+  if (loading)
+    return <div className="text-sm text-gray-500">Loading wallet...</div>;
   if (error) return <div className="text-sm text-red-500">{error}</div>;
 
   return (
     <Card className="@container/card">
       <CardHeader>
-        <CardDescription>Wallet Balance</CardDescription>
+        <CardDescription>Wallet Balance ({balance.currency})</CardDescription>
         <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
-          {formatCurrency(balance)}
+          {formatCurrency(balance.available_balance)}
         </CardTitle>
         <CardAction>
           <Badge variant="outline" className="flex items-center gap-1">
@@ -66,10 +75,12 @@ const WalletCard = () => {
             ) : (
               <IconTrendingDown className="size-3" />
             )}
-            {growthRate > 0 ? '+' : ''}{growthRate}%
+            {growthRate > 0 ? "+" : ""}
+            {growthRate}%
           </Badge>
         </CardAction>
       </CardHeader>
+
       <CardFooter className="flex-col items-start gap-1.5 text-sm">
         <div className="line-clamp-1 flex items-center gap-2 font-medium">
           {growthRate > 0 ? (
@@ -84,10 +95,23 @@ const WalletCard = () => {
             </>
           )}
         </div>
+
+        {/* 💰 Show Ledger and Available Balances */}
+        <div className="text-xs text-gray-500 mt-2">
+          <div>
+            <span className="font-medium text-gray-700">Ledger Balance:</span>{" "}
+            {formatCurrency(balance.ledger_balance)}
+          </div>
+          <div>
+            <span className="font-medium text-gray-700">Available Balance:</span>{" "}
+            {formatCurrency(balance.available_balance)}
+          </div>
+        </div>
       </CardFooter>
     </Card>
   );
 };
+
 
 export function SectionCards() {
   const [stats, setStats] = useState({
@@ -127,7 +151,7 @@ export function SectionCards() {
   if (error) return <div className="text-sm text-red-500">{error}</div>;
 
   return (
-    <div className="*:data-[slot=card]:from-primary/5 *:data-[slot=card]:to-card dark:*:data-[slot=card]:bg-card grid grid-cols-1 gap-4 px-4 *:data-[slot=card]:bg-gradient-to-t *:data-[slot=card]:shadow-xs lg:px-6 @xl/main:grid-cols-2 @5xl/main:grid-cols-4">
+    <div className="*:data-[slot=card]:from-primary/5 *:data-[slot=card]:to-card dark:*:data-[slot=card]:bg-card grid grid-cols-1 gap-4 px-4 *:data-[slot=card]:bg-gradient-to-t *:data-[slot=card]:shadow-xs lg:px-6 @xl/main:grid-cols-2 @5xl/main:grid-cols-3">
       <Card className="@container/card">
         <CardHeader>
           <CardDescription>Total Revenue</CardDescription>

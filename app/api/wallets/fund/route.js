@@ -46,7 +46,9 @@ export async function POST(req) {
     }
 
     // Generate unique transaction reference
-    const tx_ref = `wallet-fund-${Date.now()}-${user._id}-${walletType}`;
+    const tx_ref = `wallet-fund-${Date.now()}-${user._id}-${walletType}_${Math.random().toString(36).substr(2, 9)}`;
+
+    console.log({ tx_ref })
 
     // Create transaction record
     const transaction = new Transaction({
