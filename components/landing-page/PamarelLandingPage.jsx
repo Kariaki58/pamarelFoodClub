@@ -28,37 +28,37 @@ const PamarelLandingPage = () => {
             </div>
 
             <div className="grid md:grid-cols-2 gap-10">
-              <div className="bg-white rounded-xl shadow-xl overflow-hidden transform transition-all hover:scale-[1.02] hover:shadow-2xl">
-                <div className="relative h-48 w-full overflow-hidden">
+              <div className="bg-white rounded-xl shadow-xl transform transition-all hover:scale-[1.02] hover:shadow-2xl">
+                <div className="relative flex justify-center">
                   <Image
-                    src="/img-5.png"
+                    src="/food_plan.jpeg"
                     alt="Pamarel Food Market"
-                    fill
-                    className='object-cover'
-                    // className="transition-transform duration-500 group-hover:scale-105"
+                    width={500}
+                    height={300}
+                    className="rounded-t-xl"
                   />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex items-center justify-center">
-                    <h3 className="text-3xl font-bold text-white font-montserrat">Pamarel Food Market</h3>
-                  </div>
                 </div>
                 <div className="p-6">
-                  <p className="text-gray-600 mb-6">
+                  <p className="text-gray-600 mb-6 text-left">
                     Discover fresh groceries, organic produce, and gourmet foods at unbeatable prices.
                   </p>
-                  <Link href="/market?hub=food" className="inline-block px-6 py-2 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg transition-all">
+                  <Link
+                    href="/market?hub=food"
+                    className="inline-block px-6 py-2 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg transition-all"
+                  >
                     Shop Now
                   </Link>
                 </div>
               </div>
 
+
               <div className="bg-white rounded-xl shadow-xl overflow-hidden transform transition-all hover:scale-[1.02] hover:shadow-2xl">
-                <div className="relative h-48 w-full overflow-hidden">
+                <div className="relative">
                   <Image
                     src="/img-4.jpg"
                     alt="Pamarel Gadget Hub"
-                    fill
-                    className='object-cover'
-                    // className="transition-transform duration-500 group-hover:scale-105"
+                    width={1400}
+                    height={800}
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex items-center justify-center">
                     <h3 className="text-3xl font-bold text-white font-montserrat">Pamarel Gadget Hub</h3>

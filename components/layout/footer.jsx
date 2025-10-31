@@ -2,6 +2,7 @@ import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
 import { Facebook, Twitter, Instagram, Youtube, ShoppingCart } from "lucide-react"
+import Image from "next/image";
 
 export function Footer() {
   const shopCategories = [
@@ -21,8 +22,13 @@ export function Footer() {
           {/* Column 1: Company Info */}
           <div className="space-y-6 lg:col-span-2">
             <Link href="/" className="flex items-center gap-2">
-              <ShoppingCart className="h-7 w-7 text-primary" />
-              <span className="text-xl font-bold text-white">pamarel</span>
+              <Image
+                src="/logo-55.png"
+                alt="logo"
+                width={100}
+                height={100}
+                className="object-contain"
+              />
             </Link>
             <p className="text-sm text-gray-400">Your one-stop shop for everything, delivering quality and convenience right to your doorstep.</p>
             {/* <div className="flex flex-col space-y-2">
