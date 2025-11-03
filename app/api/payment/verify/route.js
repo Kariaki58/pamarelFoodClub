@@ -56,10 +56,9 @@ export async function GET(request) {
             user.status = "active"
             const currentBalance = user.earnings[walletType + 'Wallet'] || 0;
             user.earnings[walletType + 'Wallet'] = currentBalance + amount;
-          }
-          
-          await user.save();
+            await user.save();
 
+          }
           
           // Update transaction
           await Transaction.findOneAndUpdate(
