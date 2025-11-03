@@ -12,18 +12,13 @@ export async function GET(request) {
     const tx_ref = searchParams.get('tx_ref');
     const status = searchParams.get('status');
     const callbackUrl = searchParams.get('callbackUrl');
-
-    console.log('Wallet verification called:', { transaction_id, tx_ref, status });
-
     const checkTrans = await Transaction.findOne({ flutterwaveTxRef: tx_ref });
 
-    console.log({checkTrans})
 
 
     if (checkTrans.status === "successful") {
       return NextResponse.json({ error: "payment already made" }, { status: 400 })
     }
-    console.log({ status })
 
     if ((status === 'successful' || status === 'completed') && tx_ref) {
       console.log("inside line 29")
@@ -37,25 +32,24 @@ export async function GET(request) {
         }
       );
 
-      console.log({ verifyResponse })
 
       if (verifyResponse.ok) {
         const verificationData = await verifyResponse.json();
         
         if (verificationData.data.status === 'successful') {
-          // Extract wallet info from tx_ref
           const txRefParts = tx_ref.split('-');
-          const userId = txRefParts[3];
+          const userId = txRefParts[2].split('_')[0];
           const walletType = txRefParts[4];
           const amount = parseFloat(verificationData.data.amount);
           
-          // Update user's wallet balance
+          console.log({ userId })
+          console.log({txRefParts})
           const user = await User.findById(userId);
 
           if (user) {
             user.status = "active"
-            const currentBalance = user.earnings[walletType + 'Wallet'] || 0;
-            user.earnings[walletType + 'Wallet'] = currentBalance + amount;
+            // const currentBalance = user.earnings[walletType + 'Wallet'] || 0;
+            // user.earnings[walletType + 'Wallet'] = currentBalance + amount;
             await user.save();
 
           }
