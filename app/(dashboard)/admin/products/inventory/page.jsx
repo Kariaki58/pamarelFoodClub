@@ -15,6 +15,7 @@ import {
 } from 'react-icons/fi';
 import { toast } from 'react-hot-toast';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 
 const ITEMS_PER_PAGE = 10;
 
@@ -187,10 +188,10 @@ export default function InventoryDashboard() {
         {/* Header */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8">
           <h1 className="text-2xl md:text-3xl font-bold text-gray-800">Inventory Dashboard</h1>
-          <button className="mt-4 md:mt-0 flex items-center bg-yellow-600 text-white px-4 py-2 rounded-lg hover:bg-yellow-700 transition-colors">
+          <Link href="/admin/products/new" className="mt-4 md:mt-0 flex items-center bg-yellow-600 text-white px-4 py-2 rounded-lg hover:bg-yellow-700 transition-colors">
             <FiPlus className="mr-2" />
             Add New Product
-          </button>
+          </Link>
         </div>
         
         {/* Summary Cards */}
