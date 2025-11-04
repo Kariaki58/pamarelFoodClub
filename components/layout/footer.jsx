@@ -76,7 +76,7 @@ export function Footer() {
           <div className="space-y-4">
             <h4 className="font-semibold text-white">MAKE MONEY WITH pamarel</h4>
             <ul className="space-y-2 text-sm">
-              <li><Link href="/join-member" className="hover:underline">Become a club member</Link></li>
+              <li><Link href="/join-member" className="hover:underline">Become a community member</Link></li>
             </ul>
           </div>
           <div className="border-gray-700 flex flex-col md:flex-row items-center gap-8">
