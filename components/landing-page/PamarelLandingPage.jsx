@@ -95,6 +95,9 @@ const PamarelLandingPage = () => {
                     <p className="text-gray-600 mb-4">
                       Partner with us to distribute products in your area and earn additional income.
                     </p>
+                    <p>
+                      <strong>Note: Only available to deluxe plan members</strong>
+                    </p>
                     <Link href="/apply-stockist" className="inline-block px-6 py-2 bg-gray-800 hover:bg-gray-900 text-white font-medium rounded-lg transition-all">
                       Apply Here
                     </Link>
