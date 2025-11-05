@@ -1,48 +1,65 @@
-import Link from "next/link";
-import { Card, CardContent } from "@/components/ui/card";
-import { ArrowRight } from "lucide-react";
-import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
-import { Button } from "../ui/button";
-import connectToDatabase from "@/lib/dbConnect";
-import category from "@/models/category";
-import Image from "next/image";
-import { Skeleton } from "../ui/skeleton";
+"use client";
 
-export async function CategorySection() {
-  let categoryData = [];
-  let isLoading = true;
-  let error = null;
+import Link from 'next/link';
+import { useState, useEffect } from 'react';
+import { ChevronRight, FolderOpen } from 'lucide-react';
 
-  try {
-    await connectToDatabase();
-    categoryData = await category.find({});
-  } catch (err) {
-    console.error("Failed to load categories:", err);
-    error = "Failed to load categories. Please try again later.";
-  } finally {
-    isLoading = false;
-  }
+// Function to create slug from category name
+const createSlug = (name) => {
+  return name
+    .toLowerCase()
+    .trim()
+    .replace(/[^\w\s-]/g, '') // Remove special characters
+    .replace(/[\s_-]+/g, '-') // Replace spaces and underscores with hyphens
+    .replace(/^-+|-+$/g, ''); // Remove leading/trailing hyphens
+};
 
-  if (isLoading) {
+export default function CategorySection() {
+  const [categories, setCategories] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  // Fetch categories
+  const fetchCategories = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const response = await fetch('/api/categories');
+      const data = await response.json();
+
+      if (data.success) {
+        setCategories(data.categories);
+      } else {
+        setError('Failed to load categories');
+      }
+    } catch (error) {
+      console.error('Error fetching categories:', error);
+      setError('Error loading categories');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchCategories();
+  }, []);
+
+  if (loading) {
     return (
-      <section className="py-12 md:py-16">
-        <div className="container mx-auto px-4">
-          <div className="flex justify-between items-center mb-8">
-            <Skeleton className="h-8 w-48 rounded-lg" />
-            <Skeleton className="h-10 w-32 rounded-lg" />
+      <section className="py-16 bg-gray-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl font-bold text-gray-900 mb-4">Shop by Category</h2>
+            <p className="text-lg text-gray-600">Discover our wide range of products</p>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {[...Array(4)].map((_, i) => (
-              <Card key={i} className="overflow-hidden">
-                <CardContent className="p-0">
-                  <Skeleton className="h-48 w-full rounded-t-lg" />
-                  <div className="p-4">
-                    <Skeleton className="h-6 w-3/4 mb-2 rounded-lg" />
-                    <Skeleton className="h-4 w-full mb-1 rounded-lg" />
-                    <Skeleton className="h-4 w-5/6 mb-1 rounded-lg" />
-                  </div>
-                </CardContent>
-              </Card>
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-6">
+            {[...Array(6)].map((_, index) => (
+              <div key={index} className="animate-pulse">
+                <div className="bg-gray-300 aspect-square rounded-lg mb-3"></div>
+                <div className="h-4 bg-gray-300 rounded mb-2"></div>
+                <div className="h-3 bg-gray-300 rounded w-3/4"></div>
+              </div>
             ))}
           </div>
         </div>
@@ -52,118 +69,85 @@ export async function CategorySection() {
 
   if (error) {
     return (
-      <section className="py-12 md:py-16">
-        <div className="container mx-auto px-4 text-center">
-          <div className="bg-red-50 border border-red-200 text-red-600 p-4 rounded-lg max-w-2xl mx-auto">
-            {error}
+      <section className="py-16 bg-gray-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+          <div className="bg-red-50 border border-red-200 rounded-lg p-6 max-w-md mx-auto">
+            <FolderOpen className="w-12 h-12 text-red-400 mx-auto mb-4" />
+            <h3 className="text-lg font-medium text-red-800 mb-2">Unable to load categories</h3>
+            <p className="text-red-700 mb-4">{error}</p>
+            <button
+              onClick={fetchCategories}
+              className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500"
+            >
+              Try Again
+            </button>
           </div>
         </div>
       </section>
     );
   }
 
+  if (categories.length === 0) {
+    return (
+      <section className="py-16 bg-gray-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+          <FolderOpen className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+          <h3 className="text-xl font-medium text-gray-900 mb-2">No categories available</h3>
+          <p className="text-gray-600">Check back later for new categories</p>
+        </div>
+      </section>
+    );
+  }
+
   return (
-    <section className="py-12 md:py-16">
-      <div className="container mx-auto px-4">
-        <div className="flex flex-col md:flex-row md:justify-between md:items-center mb-8 gap-4">
-          <div>
-            <h2 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white">
-              Featured Categories
-            </h2>
-            <p className="text-gray-600 dark:text-gray-400 mt-1">
-              Discover our curated collections
-            </p>
-          </div>
-          <Button
-            asChild
-            variant="outline"
-            className="md:w-auto w-full flex items-center gap-2"
-          >
-            <Link href="/category">
-              Explore All
-              <ArrowRight className="h-4 w-4" />
-            </Link>
-          </Button>
+    <section className="py-16 bg-white">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        {/* Section Header */}
+        <div className="text-center mb-12">
+          <h2 className="text-4xl font-bold text-gray-900 mb-4">
+            Shop by Category
+          </h2>
+          <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+            Explore our carefully curated collection of products organized by category. 
+            Find exactly what you're looking for with ease.
+          </p>
         </div>
 
-        {/* Desktop Grid - Enhanced Layout */}
-        <div className="hidden md:grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {categoryData.map((category) => (
+        {/* Categories Grid */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6">
+          {categories.map((category) => (
             <Link
-              href={`/category?cat=${category.slug}`}
               key={category._id}
-              className="group block h-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 rounded-lg transition-all duration-300 hover:shadow-lg"
-              aria-label={`Browse ${category.name} category`}
+              href={`/category?cat=${createSlug(category.name)}`}
+              className="group"
             >
-              <Card className="h-full overflow-hidden border border-gray-200 dark:border-gray-700">
-                <div className="relative h-48 w-full overflow-hidden">
-                  <Image
-                    src={category.image.url}
+              <div className="bg-white rounded-xl shadow-sm border border-gray-100 hover:shadow-lg hover:border-yellow-200 transition-all duration-300 overflow-hidden group-hover:scale-105 transform">
+                {/* Category Image */}
+                <div className="aspect-square bg-gray-50 overflow-hidden">
+                  <img
+                    src={category.image}
                     alt={category.name}
-                    fill
-                    className="object-cover transition-transform duration-500 group-hover:scale-105"
-                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                    loading="lazy"
+                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
                   />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                 </div>
-                <CardContent className="p-4">
-                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+                
+                {/* Category Info */}
+                <div className="p-4">
+                  <h3 className="font-semibold text-gray-900 text-sm md:text-base mb-2 line-clamp-2 group-hover:text-yellow-600 transition-colors">
                     {category.name}
                   </h3>
-                  <p className="text-sm text-gray-600 dark:text-gray-400 line-clamp-2">
-                    {category.description}
-                  </p>
-                  <div className="mt-4 flex items-center text-primary font-medium text-sm group-hover:underline">
-                    Shop now
-                    <ArrowRight className="ml-1 h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
+                  
+                  {/* View Products Link */}
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-gray-500">
+                      Shop now
+                    </span>
+                    <ChevronRight className="w-4 h-4 text-gray-400 group-hover:text-yellow-500 group-hover:translate-x-1 transition-all" />
                   </div>
-                </CardContent>
-              </Card>
+                </div>
+              </div>
             </Link>
           ))}
-        </div>
-
-        {/* Mobile Horizontal Scroll */}
-        <div className="md:hidden">
-          <ScrollArea className="w-full whitespace-nowrap">
-            <div className="flex w-max space-x-4 pb-4">
-              {categoryData.map((category) => (
-                <Link
-                  href={`/category/${category.slug}`}
-                  key={category._id}
-                  className="group block w-[280px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 rounded-lg"
-                  aria-label={`Browse ${category.name} category`}
-                >
-                  <Card className="h-full overflow-hidden border border-gray-200 dark:border-gray-700">
-                    <div className="relative h-40 w-full overflow-hidden">
-                      <Image
-                        src={category.image.url}
-                        alt={category.name}
-                        fill
-                        className="object-cover"
-                        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                        loading="lazy"
-                      />
-                    </div>
-                    <CardContent className="p-4">
-                      <h3 className="text-base font-semibold text-gray-900 dark:text-white mb-1">
-                        {category.name}
-                      </h3>
-                      <p className="text-xs text-gray-600 dark:text-gray-400 line-clamp-2 mb-2">
-                        {category.description}
-                      </p>
-                      <div className="text-primary font-medium text-xs flex items-center">
-                        View collection
-                        <ArrowRight className="ml-1 h-3 w-3" />
-                      </div>
-                    </CardContent>
-                  </Card>
-                </Link>
-              ))}
-            </div>
-            <ScrollBar orientation="horizontal" />
-          </ScrollArea>
         </div>
       </div>
     </section>

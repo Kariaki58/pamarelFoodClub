@@ -2,23 +2,18 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { Star, ShoppingCart } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Star } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
-import { useCart } from "@/context/cart-provider";
 import { formatPrice } from "@/lib/utils";
 
-
 export function ProductCard({ product }) {
-  const { addToCart } = useCart();
-  const discount = product.originalPrice ? Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100) : 0;
+  // Safely calculate discount
+  const discount = product.originalPrice && product.price 
+    ? Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)
+    : 0;
 
-  const handleAddToCart = (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    addToCart(product);
-  }
-
+  // Safe image handling
+  const mainImage = product.images?.[0]?.url || '/images/placeholder.jpg';
 
   return (
     <Link href={`/product/${product._id}`} className="group relative block h-full">
@@ -26,11 +21,11 @@ export function ProductCard({ product }) {
         <CardContent className="flex flex-1 flex-col p-0">
             <div className="relative w-full aspect-square">
             <Image
-                src={product.images[0].url}
-                alt={product.name}
+                src={mainImage}
+                alt={product.name || 'Product image'}
                 fill
                 className="object-cover"
-                data-ai-hint="product image"
+                sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 25vw"
             />
             {discount > 0 && (
                 <div className="absolute top-2 right-2 flex h-8 w-8 items-center justify-center rounded-full bg-destructive text-xs font-bold text-destructive-foreground">
@@ -40,24 +35,20 @@ export function ProductCard({ product }) {
             </div>
             <div className="flex flex-1 flex-col justify-between p-3">
               <div>
-                <h3 className="font-semibold text-sm leading-tight truncate">{product.name}</h3>
+                <h3 className="font-semibold text-sm leading-tight truncate">
+                  {product.name || 'Unnamed Product'}
+                </h3>
                 <div className="mt-1 flex items-center gap-1 text-xs text-muted-foreground">
                     <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                    <span>{product.rating}</span>
-                    {/* <span className="hidden sm:inline">({product.reviewCount})</span> */}
+                    <span>{product.rating || 0}</span>
                 </div>
               </div>
               <div className="mt-2">
                 <div className="flex items-baseline gap-2">
-                    <p className="text-base font-bold text-primary">₦{formatPrice(product.price)}</p>
-                    {product.originalPrice && (
-                    <p className="text-xs text-muted-foreground line-through">₦{formatPrice(product.originalPrice)}</p>
-                    )}
+                    <p className="text-base font-bold text-primary">
+                      ₦{formatPrice(product.price || 0)}
+                    </p>
                 </div>
-                 {/* <Button size="sm" className="w-full mt-2 p-4 bg-yellow-500 text-black hover:bg-yellow/90" onClick={handleAddToCart}>
-                    <ShoppingCart className="mr-2 h-4 w-4" />
-                    Add to Cart
-                  </Button> */}
               </div>
             </div>
         </CardContent>

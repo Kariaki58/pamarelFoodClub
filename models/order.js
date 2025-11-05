@@ -25,6 +25,16 @@ const orderItemSchema = new mongoose.Schema({
   isReviewed: {
     type: Boolean,
     default: false
+  },
+  // Add selected variants to store the chosen options
+  selectedVariants: {
+    type: Map,
+    of: String,
+    default: {}
+  },
+  // Optional: Store the variant SKU if available
+  variantSku: {
+    type: String
   }
 });
 

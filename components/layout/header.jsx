@@ -5,7 +5,7 @@ import Link from "next/link";
 import { Search, User, Menu, ShoppingCart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useCart } from "@/context/cart-provider";
+import { useCart } from "@/hooks/use-cart";
 import { useSession } from "next-auth/react";
 import {
   Sheet,
@@ -22,6 +22,10 @@ export function Header() {
   const [searchQuery, setSearchQuery] = useState("");
   const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
   const { data: session }  = useSession();
+  const { cartCount } = useCart();
+
+
+  console.log({ cartCount })
 
   const handleSearch = (e) => {
     e.preventDefault();

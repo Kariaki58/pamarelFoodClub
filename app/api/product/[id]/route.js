@@ -1,10 +1,7 @@
 import { NextResponse } from "next/server";
 import connectToDatabase from "@/lib/dbConnect";
-import product from "@/models/product";
-import mongoose from "mongoose";
-import Review from "@/models/Review";
-import category from "@/models/category";
-
+import Product from "@/models/product";
+import Category from "@/models/category";
 
 export async function GET(req, { params }) {
   try {
@@ -12,85 +9,69 @@ export async function GET(req, { params }) {
 
     const { id } = await params;
 
-    if (!mongoose.Types.ObjectId.isValid(id)) {
+    // Validate product ID
+    if (!id || id === 'undefined') {
       return NextResponse.json(
-        { message: "Invalid product ID format" },
+        { success: false, error: "Product ID is required" },
         { status: 400 }
       );
     }
 
-    const productData = await product.findById(id).populate("category");
+    const product = await Product.findById(id)
+      .populate('category', 'name image')
+      .lean();
 
-    if (!productData) {
+    if (!product) {
       return NextResponse.json(
-        { message: "Product not found" },
+        { success: false, error: "Product not found" },
         { status: 404 }
       );
     }
 
+    // Get related products (same category)
+    const relatedProducts = await Product.find({
+      category: product.category,
+      _id: { $ne: id }
+    })
+      .populate('category', 'name')
+      .limit(4)
+      .select('name images price ratings flashSale featured')
+      .lean();
 
-    // Fetch reviews for this product
-    const reviews = await Review.find({ product: id })
-      .populate("user", "name email")
-      .sort({ createdAt: -1 });
-    
+    // Calculate if flash sale is active
+    const now = new Date();
+    const isFlashSaleActive = product.flashSale?.active && 
+      new Date(product.flashSale.startDate) <= now && 
+      new Date(product.flashSale.endDate) >= now;
 
-
-    return NextResponse.json({
-      ...productData.toObject(),
-      _id: productData._id.toString(),
-      reviews: reviews.map(review => ({
-        id: review._id.toString(),
-        author: review.user.name,
-        email: review.user.email,
-        rating: review.rating,
-        comment: review.comment,
-        date: review.createdAt,
-        isVerifiedPurchase: review.isVerifiedPurchase
-      }))
-    });
-  } catch (error) {
-    console.error("API Error:", error);
-    return NextResponse.json(
-      { message: "Internal server error" },
-      { status: 500 }
-    );
-  }
-}
-
-export async function DELETE(req, { params }) {
-  try {
-    await connectToDatabase();
-
-    const { id } = await params;
-
-    if (!mongoose.Types.ObjectId.isValid(id)) {
-      return NextResponse.json(
-        { success: false, message: "Invalid product ID format" },
-        { status: 400 }
-      );
+    // Calculate discounted price if flash sale is active
+    let discountedPrice = null;
+    if (isFlashSaleActive && product.flashSale?.discountPercentage) {
+      discountedPrice = product.price * (1 - product.flashSale.discountPercentage / 100);
     }
-
-    const deletedProduct = await product.findByIdAndDelete(id);
-
-    if (!deletedProduct) {
-      return NextResponse.json(
-        { success: false, message: "Product not found" },
-        { status: 404 }
-      );
-    }
-
-    // Optionally also delete related reviews
-    await Review.deleteMany({ product: id });
 
     return NextResponse.json({
       success: true,
-      message: "Product deleted successfully",
+      product: {
+        ...product,
+        isFlashSaleActive,
+        discountedPrice
+      },
+      relatedProducts
     });
+
   } catch (error) {
-    console.error("Delete API Error:", error);
+    console.error('Error fetching product:', error);
+    
+    if (error.name === 'CastError') {
+      return NextResponse.json(
+        { success: false, error: "Invalid product ID" },
+        { status: 400 }
+      );
+    }
+
     return NextResponse.json(
-      { success: false, message: "Internal server error" },
+      { success: false, error: "Internal server error" },
       { status: 500 }
     );
   }

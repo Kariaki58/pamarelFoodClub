@@ -1,25 +1,33 @@
 import { NextResponse } from "next/server";
 import connectToDatabase from "@/lib/dbConnect";
-import product from "@/models/product";
+import Product from "@/models/product";
 import category from "@/models/category";
 
 export async function GET() {
   try {
     await connectToDatabase();
 
-    const foodProducts = await product.find({ section: 'gadget' })
+    const gadgetProducts = await Product.find({ section: 'gadget' })
       .sort({ createdAt: -1 })
-      .populate('category', 'name slug')
-      // .select('name slug price percentOff images rating numReviews flashSale category');
+      .populate('category', 'name slug');
 
-    const productsWithDiscount = foodProducts.map(product => {
-      const discountPrice = product.percentOff > 0 
-        ? product.price * (1 - product.percentOff / 100)
+    const productsWithFormattedData = gadgetProducts.map(product => {
+      // Calculate original price if there's a percentage off
+      const originalPrice = product.percentOff > 0 
+        ? product.price / (1 - product.percentOff / 100)
         : null;
       
       return {
-        ...product.toObject(),
-        discountPrice,
+        _id: product._id,
+        name: product.name,
+        price: product.basePrice,
+        originalPrice: originalPrice ? Math.round(originalPrice) : null,
+        images: product.images || [],
+        rating: product.rating || 0,
+        reviewCount: product.numReviews || 0,
+        category: product.category,
+        slug: product.slug,
+        section: product.section,
         hasFlashSale: !!product.flashSale && 
                      new Date(product.flashSale.start) <= new Date() && 
                      new Date(product.flashSale.end) >= new Date()
@@ -28,14 +36,14 @@ export async function GET() {
 
     return NextResponse.json({
       success: true,
-      products: productsWithDiscount,
-      count: productsWithDiscount.length
+      products: productsWithFormattedData,
+      count: productsWithFormattedData.length
     });
 
   } catch (error) {
-    console.error("Error fetching food products:", error);
+    console.error("Error fetching gadget products:", error);
     return NextResponse.json(
-      { error: error.message || "Failed to fetch food products" },
+      { error: error.message || "Failed to fetch gadget products" },
       { status: 500 }
     );
   }

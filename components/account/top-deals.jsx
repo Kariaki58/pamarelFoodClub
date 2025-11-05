@@ -15,16 +15,21 @@ export default function TopDeals() {
             try {
                 setLoading(true);
                 const response = await fetch('/api/product/top-deals');
-                const data = await response.json();
                 
                 if (!response.ok) {
+                    throw new Error(`Failed to fetch top deals: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                
+                if (!data.success) {
                     throw new Error(data.error || 'Failed to fetch top deals');
                 }
                 
-                setProducts(data.products);
+                setProducts(data.products || []);
             } catch (err) {
                 setError(err.message);
-                console.error("Error:", err);
+                console.error("Error fetching top deals:", err);
             } finally {
                 setLoading(false);
             }

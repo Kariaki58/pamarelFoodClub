@@ -95,10 +95,6 @@ const data = {
       icon: IconShoppingBag,
       items: [
         {
-          title: "All Products",
-          url: "/admin/products",
-        },
-        {
           title: "Add New",
           url: "/admin/products/new",
         },

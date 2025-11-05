@@ -1,318 +1,372 @@
 "use client";
-import React, { useState, useEffect, useRef, useCallback } from 'react';
-import dynamic from 'next/dynamic';
-import 'quill/dist/quill.snow.css';
-import { useDropzone } from 'react-dropzone';
-import { FaTrash, FaPlus, FaMinus, FaEdit, FaTimes } from 'react-icons/fa';
-import { Toaster, toast } from 'react-hot-toast';
 
-const Quill = typeof window === 'object' ? require('quill') : () => false;
+import { useState, useEffect, useRef } from 'react';
+import { 
+  Upload, 
+  X, 
+  Plus, 
+  Minus,
+  Image as ImageIcon,
+  Tag,
+  Star,
+  Clock,
+  DollarSign,
+  Package,
+  Hash,
+  ChevronDown,
+  FolderOpen,
+  CheckCircle,
+  AlertCircle,
+  Loader2,
+  Trash2
+} from 'lucide-react';
 
-async function uploadImages(images) {
-  const formData = new FormData();
-  images.forEach(file => formData.append("images", file));
-
-  const response = await fetch("/api/upload", {
-    method: "POST",
-    body: formData,
+export default function UploadNewProduct() {
+  const [formData, setFormData] = useState({
+    name: '',
+    description: '',
+    section: '',
+    category: '',
+    price: '',
+    images: [],
+    variants: [],
+    stock: '',
+    featured: false,
+    flashSale: {
+      active: false,
+      discountPercentage: '',
+      startDate: '',
+      endDate: ''
+    },
+    tags: []
   });
 
-  const data = await response.json();
-
-  if (!response.ok) {
-    console.error("Upload failed:", data.error || "Unknown error");
-    throw new Error(data.error || "Upload failed");
-  }
-
-  return data.urls || [];
-}
-
-const ProductUploadDashboard = () => {
-  // State management
-  const [productName, setProductName] = useState('');
-  const [basePrice, setBasePrice] = useState(0);
-  const [section, setSection] = useState('food');
-  const [tags, setTags] = useState([]);
-  const [newTag, setNewTag] = useState('');
-  const [isTopDeal, setIsTopDeal] = useState(false);
-  const [isFeatured, setIsFeatured] = useState(false);
-  const [flashSale, setFlashSale] = useState({
-    active: false,
-    start: '',
-    end: '',
-    discountPercent: 0
-  });
-  const [category, setCategory] = useState({
+  const [categories, setCategories] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [currentTag, setCurrentTag] = useState('');
+  const [currentVariant, setCurrentVariant] = useState({ name: '', options: [] });
+  const [currentOption, setCurrentOption] = useState('');
+  const [newCategory, setNewCategory] = useState({
     name: '',
     image: null,
-    imagePreview: '',
-    description: '',
-    isNew: true
+    imagePreview: ''
   });
-  const [databaseCategories, setDatabaseCategories] = useState([]);
-  const [description, setDescription] = useState('');
-  const [productImages, setProductImages] = useState([]);
-  const [imagePreviews, setImagePreviews] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [specifications, setSpecifications] = useState([]);
+  const [showNewCategory, setShowNewCategory] = useState(false);
+  const [categoryDropdownOpen, setCategoryDropdownOpen] = useState(false);
   
-  // Variants state
-  const [variants, setVariants] = useState([]);
-  const [variantTypes, setVariantTypes] = useState([]);
-  const [newVariantType, setNewVariantType] = useState('');
-  const [newVariantValue, setNewVariantValue] = useState('');
+  // Enhanced image upload states
+  const [uploadProgress, setUploadProgress] = useState({});
+  const [uploadErrors, setUploadErrors] = useState({});
+  const [isUploading, setIsUploading] = useState(false);
+  const [dragActive, setDragActive] = useState(false);
+  const fileInputRef = useRef(null);
+  const categoryFileInputRef = useRef(null);
 
-  const editorRef = useRef(null);
-  const quillInstance = useRef(null);
-
-  // Initialize Quill editor and fetch categories
+  // Fetch categories on component mount
   useEffect(() => {
-    const loadQuill = async () => {
-      const Quill = (await import('quill')).default;
-
-      if (editorRef.current && !quillInstance.current) {
-        quillInstance.current = new Quill(editorRef.current, {
-          theme: 'snow',
-          modules: {
-            toolbar: [
-              [{ 'header': [1, 2, 3, false] }],
-              ['bold', 'italic', 'underline', 'strike'],
-              [{ 'color': [] }, { 'background': [] }],
-              [{ 'align': [] }],
-              [{ 'list': 'ordered' }, { 'list': 'bullet' }],
-              ['image', 'video', 'blockquote', 'code-block'],
-              ['clean'],
-            ],
-          },
-        });
-
-        quillInstance.current.on('text-change', () => {
-          const currentContent = quillInstance.current.root.innerHTML;
-          setDescription(currentContent);
-        });
-      }
-    };
-
-    const fetchCategories = async () => {
-      try {
-        const response = await fetch("/api/category", {
-          method: "GET"
-        });
-        const data = await response.json();
-        
-        if (response.ok) {
-          const formattedCategories = data.message.map(cat => ({
-            value: cat._id,
-            label: cat.name,
-            description: cat.description,
-            image: cat.image
-          }));
-          setDatabaseCategories(formattedCategories);
-        } else {
-          throw new Error(data.message || "Failed to fetch categories");
-        }
-      } catch (error) {
-        console.error("Error fetching categories:", error);
-        toast.error("Failed to load categories");
-      }
-    };
-
     fetchCategories();
-
-    if (typeof window !== 'undefined') {
-      loadQuill();
-    }
   }, []);
 
-  // Generate variants when variant types change
-  useEffect(() => {
-    if (variantTypes.length > 0) {
-      generateVariants();
-    } else {
-      setVariants([]);
+  const fetchCategories = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch('/api/categories');
+      const data = await response.json();
+      
+      if (data.success) {
+        setCategories(data.categories);
+      }
+    } catch (error) {
+      console.error('Error fetching categories:', error);
+    } finally {
+      setLoading(false);
     }
-  }, [variantTypes]);
+  };
 
-  const generateVariants = () => {
-    if (variantTypes.length === 0) return;
+  // Enhanced image upload handler
+  const handleImageUpload = async (files, type = 'product') => {
+    const fileArray = Array.from(files);
+    const validFiles = [];
+    const newErrors = {};
 
-    const generateCombinations = (types, index = 0, current = {}) => {
-      if (index === types.length) {
-        return [current];
+    console.log({fileArray})
+
+    // Client-side validation
+    fileArray.forEach((file, index) => {
+      const allowedTypes = ["image/png", "image/jpeg", "image/jpg", "image/webp"];
+      const maxFileSize = 10 * 1024 * 1024;
+
+      if (!allowedTypes.includes(file.type)) {
+        newErrors[file.name] = `File type not allowed: ${file.type}`;
+        return;
       }
 
-      const type = types[index];
-      const combinations = [];
+      if (file.size > maxFileSize) {
+        newErrors[file.name] = `File too large (max 10MB)`;
+        return;
+      }
 
-      type.values.forEach(value => {
-        const newCurrent = { ...current, [type.name]: value };
-        combinations.push(...generateCombinations(types, index + 1, newCurrent));
+      validFiles.push(file);
+    });
+
+    if (Object.keys(newErrors).length > 0) {
+      setUploadErrors(prev => ({ ...prev, ...newErrors }));
+      setTimeout(() => {
+        setUploadErrors(prev => {
+          const updated = { ...prev };
+          Object.keys(newErrors).forEach(key => delete updated[key]);
+          return updated;
+        });
+      }, 5000);
+    }
+
+    if (validFiles.length === 0) return;
+
+    setIsUploading(true);
+    const uploadPromises = validFiles.map(file => uploadSingleFile(file, type));
+    
+    try {
+      const results = await Promise.all(uploadPromises);
+      const successfulUploads = results.filter(result => result.success);
+      
+      if (type === 'product') {
+        setFormData(prev => ({
+          ...prev,
+          images: [...prev.images, ...successfulUploads.map(result => result.url)]
+        }));
+      } else if (type === 'category') {
+        if (successfulUploads.length > 0) {
+          setNewCategory(prev => ({
+            ...prev,
+            image: successfulUploads[0].url,
+            imagePreview: successfulUploads[0].url
+          }));
+        }
+      }
+    } catch (error) {
+      console.error('Upload failed:', error);
+    } finally {
+      setIsUploading(false);
+      // Clear progress after a delay
+      setTimeout(() => {
+        setUploadProgress({});
+      }, 2000);
+    }
+  };
+
+  const uploadSingleFile = async (file, type) => {
+    return new Promise((resolve) => {
+      const formData = new FormData();
+      formData.append('files', file);
+
+      const xhr = new XMLHttpRequest();
+      
+      // Track upload progress
+      xhr.upload.addEventListener('progress', (event) => {
+        if (event.lengthComputable) {
+          const progress = Math.round((event.loaded * 100) / event.total);
+          setUploadProgress(prev => ({
+            ...prev,
+            [file.name]: progress
+          }));
+        }
       });
 
-      return combinations;
-    };
+      xhr.addEventListener('load', () => {
+        if (xhr.status === 200) {
+          const response = JSON.parse(xhr.responseText);
+          resolve({ success: true, url: response.message[0] });
+        } else {
+          const error = `Upload failed: ${xhr.statusText}`;
+          setUploadErrors(prev => ({ ...prev, [file.name]: error }));
+          resolve({ success: false, error });
+        }
+      });
 
-    const combinations = generateCombinations(variantTypes);
-    const newVariants = combinations.map(combination => {
-      // Check if variant already exists
-      const existingVariant = variants.find(variant => 
-        JSON.stringify(variant.combination) === JSON.stringify(combination)
-      );
+      xhr.addEventListener('error', () => {
+        const error = 'Upload failed: Network error';
+        setUploadErrors(prev => ({ ...prev, [file.name]: error }));
+        resolve({ success: false, error });
+      });
 
-      if (existingVariant) {
-        return existingVariant;
-      }
-
-      return {
-        combination,
-        price: basePrice,
-        stock: 0,
-        sku: generateSKU(combination),
-        image: null,
-        imagePreview: ''
-      };
-    });
-
-    setVariants(newVariants);
-  };
-
-  const generateSKU = (combination) => {
-    const combinationString = Object.values(combination).join('-').toUpperCase();
-    return `${productName.substring(0, 3).toUpperCase()}-${combinationString}-${Math.random().toString(36).substring(2, 5).toUpperCase()}`;
-  };
-
-  // Handle variant image upload
-  const handleVariantImageDrop = useCallback((acceptedFiles, variantIndex) => {
-    if (acceptedFiles.length > 0) {
-      const file = acceptedFiles[0];
-      const updatedVariants = [...variants];
-      updatedVariants[variantIndex] = {
-        ...updatedVariants[variantIndex],
-        image: file,
-        imagePreview: URL.createObjectURL(file)
-      };
-      setVariants(updatedVariants);
-    }
-  }, [variants]);
-
-  // Create dropzone for variant images
-  const useVariantImageDropzone = (variantIndex) => {
-    return useDropzone({
-      onDrop: (acceptedFiles) => handleVariantImageDrop(acceptedFiles, variantIndex),
-      accept: 'image/*',
-      multiple: false
+      xhr.open('POST', '/api/image-upload');
+      xhr.send(formData);
     });
   };
 
-  const handleSubmit = async (e) => {
+  // Drag and drop handlers
+  const handleDrag = (e) => {
     e.preventDefault();
-    setLoading(true);
+    e.stopPropagation();
+    if (e.type === "dragenter" || e.type === "dragover") {
+      setDragActive(true);
+    } else if (e.type === "dragleave") {
+      setDragActive(false);
+    }
+  };
 
-    // Validation
-    if (!productName) {
-      toast.error("Product Name is required");
-      setLoading(false);
-      return;
-    } else if (!description) {
-      toast.error("Description is required");
-      setLoading(false);
-      return;
-    } else if (!category.name) {
-      toast.error("Category is required");
-      setLoading(false);
-      return;
-    } else if (category.isNew && !category.image) {
-      toast.error("Category image is required for new categories");
-      setLoading(false);
-      return;
-    } else if (category.isNew && category.description.length > 50) {
-      toast.error("Category description must be 50 characters or less");
-      setLoading(false);
-      return;
-    } else if (productImages.length < 1) {
-      toast.error("Product images are required");
-      setLoading(false);
-      return;
-    } else if (basePrice < 0) {
-      toast.error("Base price must be a positive number");
-      setLoading(false);
-      return;
-    } else if (flashSale.active && (!flashSale.start || !flashSale.end)) {
-      toast.error("Flash sale requires both start and end dates");
-      setLoading(false);
-      return;
-    } else if (variants.length > 0 && variants.some(v => v.stock < 0)) {
-      toast.error("All variant stocks must be positive numbers");
-      setLoading(false);
-      return;
-    } else if (variants.length > 0 && variants.some(v => v.price < 0)) {
-      toast.error("All variant prices must be positive numbers");
-      setLoading(false);
+  const handleDrop = (e, type = 'product') => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragActive(false);
+    
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      handleImageUpload(e.dataTransfer.files, type);
+    }
+  };
+
+  const removeImage = (index) => {
+    setFormData(prev => ({
+      ...prev,
+      images: prev.images.filter((_, i) => i !== index)
+    }));
+  };
+
+  const handleCategoryImageUpload = (files) => {
+    handleImageUpload(files, 'category');
+  };
+
+  const removeCategoryImage = () => {
+    setNewCategory(prev => ({
+      ...prev,
+      image: null,
+      imagePreview: ''
+    }));
+  };
+
+  // Update the createNewCategory function in your UploadNewProduct component
+  const createNewCategory = async () => {
+    if (!newCategory.name.trim() || !newCategory.image) {
+      alert('Please provide both category name and image');
       return;
     }
 
     try {
-      // Upload product images
-      const productImageUrls = await uploadImages(productImages);
-      
-      // Upload variant images
-      const variantsWithImages = await Promise.all(
-        variants.map(async (variant) => {
-          if (variant.image) {
-            const variantImageUrls = await uploadImages([variant.image]);
-            return {
-              ...variant,
-              image: variantImageUrls[0]
-            };
-          }
-          return variant;
-        })
-      );
-      
-      // For new categories, upload category image
-      let categoryImageUrl = '';
-      if (category.isNew) {
-        const categoryImageUrls = await uploadImages([category.image]);
-        categoryImageUrl = categoryImageUrls[0];
-      } else {
-        // Find the selected category to get its existing image
-        const selectedCategory = databaseCategories.find(cat => cat.label === category.name);
-        if (selectedCategory) {
-          categoryImageUrl = selectedCategory.image;
-        }
-      }
-
-      const payload = {
-        product: {
-          name: productName,
-          description: description,
-          images: productImageUrls,
-          specifications: specifications.filter(spec => spec.key && spec.value),
-          basePrice: parseFloat(basePrice),
-          section: section,
-          tags: tags,
-          isTopDeal: isTopDeal,
-          isFeatured: isFeatured,
-          flashSale: flashSale.active ? {
-            start: new Date(flashSale.start),
-            end: new Date(flashSale.end),
-            discountPercent: parseFloat(flashSale.discountPercent)
-          } : null,
-          variantTypes: variantTypes,
-          variants: variantsWithImages.map(variant => ({
-            combination: variant.combination,
-            price: parseFloat(variant.price),
-            stock: parseInt(variant.stock),
-            sku: variant.sku,
-            image: variant.image
-          }))
+      setLoading(true);
+      const response = await fetch('/api/categories', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
         },
-        category: {
-          name: category.name,
-          description: category.description,
-          image: categoryImageUrl,
-          isNew: category.isNew
-        }
+        body: JSON.stringify({
+          name: newCategory.name,
+          image: newCategory.image
+        }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        // Add new category to the list and select it
+        const updatedCategories = [...categories, data.category];
+        setCategories(updatedCategories);
+        setFormData(prev => ({ ...prev, category: data.category._id }));
+        setNewCategory({ name: '', image: null, imagePreview: '' });
+        setShowNewCategory(false);
+        setCategoryDropdownOpen(false);
+        
+        // Show success message
+        alert('Category created successfully!');
+      } else {
+        alert(data.error || 'Failed to create category');
+      }
+    } catch (error) {
+      console.error('Error creating category:', error);
+      alert('An error occurred while creating the category');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Rest of the functions remain the same...
+  const addTag = () => {
+    if (currentTag.trim() && !formData.tags.includes(currentTag.trim())) {
+      setFormData(prev => ({
+        ...prev,
+        tags: [...prev.tags, currentTag.trim()]
+      }));
+      setCurrentTag('');
+    }
+  };
+
+  const removeTag = (index) => {
+    setFormData(prev => ({
+      ...prev,
+      tags: prev.tags.filter((_, i) => i !== index)
+    }));
+  };
+
+  const addVariant = () => {
+    if (currentVariant.name.trim() && currentVariant.options.length > 0) {
+      setFormData(prev => ({
+        ...prev,
+        variants: [...prev.variants, { ...currentVariant }]
+      }));
+      setCurrentVariant({ name: '', options: [] });
+    }
+  };
+
+  const removeVariant = (index) => {
+    setFormData(prev => ({
+      ...prev,
+      variants: prev.variants.filter((_, i) => i !== index)
+    }));
+  };
+
+  const addOption = () => {
+    if (currentOption.trim() && !currentVariant.options.includes(currentOption.trim())) {
+      setCurrentVariant(prev => ({
+        ...prev,
+        options: [...prev.options, currentOption.trim()]
+      }));
+      setCurrentOption('');
+    }
+  };
+
+  const removeOption = (index) => {
+    setCurrentVariant(prev => ({
+      ...prev,
+      options: prev.options.filter((_, i) => i !== index)
+    }));
+  };
+
+  // Update the handleSubmit function in your UploadNewProduct component
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    
+    // Validate category is selected
+    if (!formData.category) {
+      alert('Please select a category');
+      return;
+    }
+
+    // Validate required fields
+    if (!formData.name || !formData.section || !formData.price || formData.images.length === 0) {
+      alert('Please fill in all required fields');
+      return;
+    }
+
+    try {
+      setLoading(true);
+
+      // Prepare the data for API
+      const productData = {
+        name: formData.name,
+        description: formData.description,
+        section: formData.section,
+        category: formData.category, // This should now have the correct category ID
+        price: formData.price,
+        images: formData.images,
+        stock: formData.stock || 0,
+        featured: formData.featured,
+        tags: formData.tags,
+        variants: formData.variants,
+        flashSale: formData.flashSale.active ? {
+          active: true,
+          discountPercentage: formData.flashSale.discountPercentage,
+          startDate: formData.flashSale.startDate,
+          endDate: formData.flashSale.endDate
+        } : { active: false }
       };
 
       const response = await fetch('/api/product/upload', {
@@ -320,754 +374,737 @@ const ProductUploadDashboard = () => {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(payload),
+        body: JSON.stringify(productData),
       });
 
       const data = await response.json();
 
-      if (!response.ok) {
-        throw new Error(data.message || 'Failed to upload product');
+      if (response.ok) {
+        alert('Product uploaded successfully!');
+        // Reset form
+        setFormData({
+          name: '',
+          description: '',
+          section: '',
+          category: '',
+          price: '',
+          images: [],
+          variants: [],
+          stock: '',
+          featured: false,
+          flashSale: {
+            active: false,
+            discountPercentage: '',
+            startDate: '',
+            endDate: ''
+          },
+          tags: []
+        });
+      } else {
+        alert(data.error || 'Failed to upload product');
       }
-
-      toast.success("Product uploaded successfully!");
-      
-      // Reset form after successful submission
-      resetForm();
     } catch (error) {
-      toast.error(error.message || "Error uploading product");
-      console.error("Error details:", error);
+      console.error('Error uploading product:', error);
+      alert('An error occurred while uploading the product');
     } finally {
       setLoading(false);
     }
   };
 
-  const resetForm = () => {
-    setProductName('');
-    setBasePrice(0);
-    setSection('food');
-    setTags([]);
-    setIsTopDeal(false);
-    setIsFeatured(false);
-    setFlashSale({
-      active: false,
-      start: '',
-      end: '',
-      discountPercent: 0
-    });
-    setCategory({
-      name: '',
-      image: null,
-      imagePreview: '',
-      description: '',
-      isNew: true
-    });
-    setDescription('');
-    setProductImages([]);
-    setImagePreviews([]);
-    setSpecifications([]);
-    setVariants([]);
-    setVariantTypes([]);
-    if (quillInstance.current) {
-      quillInstance.current.root.innerHTML = '';
-    }
-  };
-
-  // Handle product image upload
-  const onDrop = (acceptedFiles) => {
-    if (productImages.length + acceptedFiles.length > 10) {
-      toast.error("Maximum 10 images allowed");
-      return;
-    }
-    const newPreviews = acceptedFiles.map(file => URL.createObjectURL(file));
-    setImagePreviews([...imagePreviews, ...newPreviews]);
-    setProductImages([...productImages, ...acceptedFiles]);
-  };
-
-  // Handle category image upload
-  const onCategoryImageDrop = (acceptedFiles) => {
-    if (acceptedFiles.length > 0) {
-      const file = acceptedFiles[0];
-      setCategory({
-        ...category,
-        image: file,
-        imagePreview: URL.createObjectURL(file)
-      });
-    }
-  };
-
-  const { getRootProps, getInputProps } = useDropzone({
-    onDrop,
-    accept: 'image/*',
-    multiple: true
-  });
-
-  const { getRootProps: getCategoryImageRootProps, getInputProps: getCategoryImageInputProps } = useDropzone({
-    onDrop: onCategoryImageDrop,
-    accept: 'image/*',
-    multiple: false
-  });
-
-  const removeImage = (index) => {
-    const updatedPreviews = [...imagePreviews];
-    updatedPreviews.splice(index, 1);
-    setImagePreviews(updatedPreviews);
-    
-    const updatedImages = [...productImages];
-    updatedImages.splice(index, 1);
-    setProductImages(updatedImages);
-  };
-
-  const removeCategoryImage = () => {
-    setCategory({
-      ...category,
-      image: null,
-      imagePreview: ''
-    });
-  };
-
-  const removeVariantImage = (variantIndex) => {
-    const updatedVariants = [...variants];
-    updatedVariants[variantIndex] = {
-      ...updatedVariants[variantIndex],
-      image: null,
-      imagePreview: ''
-    };
-    setVariants(updatedVariants);
-  };
-
-  // Delete variant
-  const deleteVariant = (variantIndex) => {
-    const updatedVariants = [...variants];
-    updatedVariants.splice(variantIndex, 1);
-    setVariants(updatedVariants);
-  };
-
-  // Variant type management
-  const addVariantType = () => {
-    if (newVariantType.trim() && !variantTypes.find(vt => vt.name === newVariantType.trim())) {
-      setVariantTypes([...variantTypes, { name: newVariantType.trim(), values: [] }]);
-      setNewVariantType('');
-    }
-  };
-
-  const removeVariantType = (typeIndex) => {
-    const updatedTypes = [...variantTypes];
-    updatedTypes.splice(typeIndex, 1);
-    setVariantTypes(updatedTypes);
-  };
-
-  const addVariantValue = (typeIndex) => {
-    if (newVariantValue.trim() && !variantTypes[typeIndex].values.includes(newVariantValue.trim())) {
-      const updatedTypes = [...variantTypes];
-      updatedTypes[typeIndex].values.push(newVariantValue.trim());
-      setVariantTypes(updatedTypes);
-      setNewVariantValue('');
-    }
-  };
-
-  const removeVariantValue = (typeIndex, valueIndex) => {
-    const updatedTypes = [...variantTypes];
-    updatedTypes[typeIndex].values.splice(valueIndex, 1);
-    setVariantTypes(updatedTypes);
-  };
-
-  // Variant management
-  const updateVariant = (index, field, value) => {
-    const updatedVariants = [...variants];
-    updatedVariants[index][field] = value;
-    
-    // Regenerate SKU if product name or combination changes
-    if (field === 'combination' || (field === 'price' && index === 0)) {
-      updatedVariants[index].sku = generateSKU(updatedVariants[index].combination);
-    }
-    
-    setVariants(updatedVariants);
-  };
-
-  // Update base price and all variants when base price changes
-  useEffect(() => {
-    if (variants.length > 0) {
-      const updatedVariants = variants.map(variant => ({
-        ...variant,
-        price: basePrice
-      }));
-      setVariants(updatedVariants);
-    }
-  }, [basePrice]);
-
-  // Specifications management
-  const addSpecification = () => {
-    setSpecifications([...specifications, { key: '', value: '' }]);
-  };
-
-  const removeSpecification = (index) => {
-    const updatedSpecs = [...specifications];
-    updatedSpecs.splice(index, 1);
-    setSpecifications(updatedSpecs);
-  };
-
-  const updateSpecification = (index, field, value) => {
-    const updatedSpecs = [...specifications];
-    updatedSpecs[index][field] = value;
-    setSpecifications(updatedSpecs);
-  };
-
-  // Tags management
-  const addTag = () => {
-    if (newTag.trim() && !tags.includes(newTag.trim())) {
-      setTags([...tags, newTag.trim()]);
-      setNewTag('');
-    }
-  };
-
-  const removeTag = (index) => {
-    const updatedTags = [...tags];
-    updatedTags.splice(index, 1);
-    setTags(updatedTags);
-  };
-
-  // Create a component for variant image upload to fix hooks order issue
-  const VariantImageUpload = ({ variant, variantIndex }) => {
-    const { getRootProps: getVariantImageRootProps, getInputProps: getVariantImageInputProps } = useVariantImageDropzone(variantIndex);
-    
-    return (
-      <div className="md:col-span-3">
-        <label className="block text-xs font-medium text-gray-500 mb-1">Variant Image</label>
-        {variant.imagePreview ? (
-          <div className="relative w-20 h-20">
-            <img 
-              src={variant.imagePreview} 
-              alt="Variant preview" 
-              className="w-full h-full object-cover rounded-md border border-gray-200"
-            />
-            <button
-              type="button"
-              onClick={() => removeVariantImage(variantIndex)}
-              className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 transition-colors"
-            >
-              <FaTrash className="w-3 h-3" />
-            </button>
-          </div>
-        ) : (
-          <div 
-            {...getVariantImageRootProps()} 
-            className="border border-dashed border-gray-300 rounded-md p-2 text-center cursor-pointer hover:border-blue-500 transition-colors bg-white"
-          >
-            <input {...getVariantImageInputProps()} />
-            <p className="text-xs text-gray-500">Click to upload</p>
-          </div>
-        )}
-      </div>
-    );
-  };
-
   return (
-    <div className="max-w-7xl mx-auto p-6 bg-white rounded-lg shadow-md">
-      <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Basic Information Section */}
-        <div className="bg-gray-50 p-4 rounded-lg">
-          <h3 className="text-lg font-semibold mb-4 text-gray-700">Basic Information</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Product Name*</label>
-              <input
-                type="text"
-                value={productName}
-                onChange={(e) => setProductName(e.target.value)}
-                className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                required
-              />
+    <div className="min-h-screen bg-gray-50 py-8">
+      <div className="max-w-4xl mx-auto p-6 bg-white rounded-lg shadow-md">
+        <h1 className="text-3xl font-bold text-gray-900 mb-8 flex items-center gap-2">
+          <Upload className="w-8 h-8 text-yellow-500" />
+          Upload New Product
+        </h1>
+
+        <form onSubmit={handleSubmit} className="space-y-8">
+          {/* Basic Information Section - Same as before */}
+          <div className="space-y-6">
+            <h2 className="text-xl font-semibold text-gray-800 border-b pb-2">
+              Basic Information
+            </h2>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Product Name *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={formData.name}
+                  onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
+                  placeholder="Enter product name"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Section *
+                </label>
+                <select
+                  required
+                  value={formData.section}
+                  onChange={(e) => setFormData(prev => ({ ...prev, section: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
+                >
+                  <option value="">Select Section</option>
+                  <option value="food">Food</option>
+                  <option value="gadget">Gadget</option>
+                </select>
+              </div>
+
+              {/* Category Selection - Same as before */}
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Category *
+                </label>
+                
+                <div className="relative mb-4">
+                  <button
+                    type="button"
+                    onClick={() => setCategoryDropdownOpen(!categoryDropdownOpen)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent bg-white flex items-center justify-between"
+                  >
+                    <span className="flex items-center gap-2">
+                      {formData.category ? (
+                        <>
+                          <FolderOpen className="w-4 h-4 text-yellow-500" />
+                          {categories.find(cat => cat._id === formData.category)?.name || 'Selected Category'}
+                        </>
+                      ) : (
+                        'Select a category'
+                      )}
+                    </span>
+                    <ChevronDown className={`w-4 h-4 transition-transform ${categoryDropdownOpen ? 'rotate-180' : ''}`} />
+                  </button>
+
+                  {categoryDropdownOpen && (
+                    <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto">
+                      {loading ? (
+                        <div className="px-3 py-2 text-gray-500">Loading categories...</div>
+                      ) : categories.length > 0 ? (
+                        categories.map((category) => (
+                          <button
+                            key={category._id}
+                            type="button"
+                            onClick={() => {
+                              setFormData(prev => ({ ...prev, category: category._id }));
+                              setCategoryDropdownOpen(false);
+                              setShowNewCategory(false);
+                            }}
+                            className="w-full px-3 py-2 text-left hover:bg-yellow-50 flex items-center gap-2 border-b border-gray-100 last:border-b-0"
+                          >
+                            {category.image && (
+                              <img 
+                                src={category.image} 
+                                alt="" 
+                                className="w-6 h-6 object-cover rounded" 
+                              />
+                            )}
+                            <FolderOpen className="w-4 h-4 text-yellow-500 flex-shrink-0" />
+                            <span className="truncate">{category.name}</span>
+                          </button>
+                        ))
+                      ) : (
+                        <div className="px-3 py-2 text-gray-500">No categories found</div>
+                      )}
+                      
+                      <div className="border-t border-gray-200">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setShowNewCategory(true);
+                            setCategoryDropdownOpen(false);
+                          }}
+                          className="w-full px-3 py-2 text-left hover:bg-yellow-50 flex items-center gap-2 text-yellow-600 font-medium"
+                        >
+                          <Plus className="w-4 h-4" />
+                          Create New Category
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Show selected category info */}
+                {formData.category && (
+                  <div className="flex items-center gap-2 p-2 bg-green-50 border border-green-200 rounded-md">
+                    <CheckCircle className="w-4 h-4 text-green-500" />
+                    <span className="text-sm text-green-700">
+                      Selected: {categories.find(cat => cat._id === formData.category)?.name}
+                    </span>
+                  </div>
+                )}
+
+                {/* New Category Form */}
+                {showNewCategory && (
+                  <div className="border border-yellow-200 rounded-lg p-4 bg-yellow-50 mt-4">
+                    <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center gap-2">
+                      <Plus className="w-5 h-5 text-yellow-500" />
+                      Create New Category
+                    </h3>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Category Name *
+                        </label>
+                        <input
+                          type="text"
+                          value={newCategory.name}
+                          onChange={(e) => setNewCategory(prev => ({ ...prev, name: e.target.value }))}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
+                          placeholder="Enter category name"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Category Image *
+                        </label>
+                        <div className="space-y-2">
+                          <input
+                            type="file"
+                            accept="image/*"
+                            onChange={(e) => handleCategoryImageUpload(e.target.files)}
+                            className="hidden"
+                            id="category-image-upload"
+                            ref={categoryFileInputRef}
+                          />
+                          
+                          {newCategory.imagePreview ? (
+                            <div className="flex items-center gap-3">
+                              <div className="relative">
+                                <img
+                                  src={newCategory.imagePreview}
+                                  alt="Category preview"
+                                  className="w-20 h-20 object-cover rounded-lg border"
+                                />
+                                <button
+                                  type="button"
+                                  onClick={removeCategoryImage}
+                                  className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600"
+                                >
+                                  <X className="w-3 h-3" />
+                                </button>
+                              </div>
+                              <span className="text-sm text-green-600 flex items-center gap-1">
+                                <CheckCircle className="w-4 h-4" />
+                                Image ready
+                              </span>
+                            </div>
+                          ) : (
+                            <label
+                              htmlFor="category-image-upload"
+                              className="cursor-pointer flex items-center gap-2 text-yellow-600 hover:text-yellow-700 border-2 border-dashed border-yellow-300 rounded-lg p-4 text-center hover:bg-yellow-25 transition-colors"
+                            >
+                              <Upload className="w-6 h-6" />
+                              <div className="text-left">
+                                <p className="font-medium">Upload Category Image</p>
+                                <p className="text-sm text-gray-500">PNG, JPG, JPEG, WEBP up to 10MB</p>
+                              </div>
+                            </label>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex gap-2 mt-4">
+                      <button
+                        type="button"
+                        onClick={createNewCategory}
+                        disabled={!newCategory.name.trim() || !newCategory.image || loading}
+                        className="px-4 py-2 bg-yellow-500 text-white rounded-md hover:bg-yellow-600 disabled:bg-gray-300 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-yellow-500 transition-colors"
+                      >
+                        {loading ? (
+                          <span className="flex items-center gap-2">
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                            Creating...
+                          </span>
+                        ) : (
+                          'Create Category'
+                        )}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowNewCategory(false);
+                          setNewCategory({ name: '', image: null, imagePreview: '' });
+                        }}
+                        className="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-500 transition-colors"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Price *
+                </label>
+                <div className="relative">
+                  <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                  <input
+                    type="number"
+                    required
+                    min="0"
+                    step="0.01"
+                    value={formData.price}
+                    onChange={(e) => setFormData(prev => ({ ...prev, price: e.target.value }))}
+                    className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
+                    placeholder="0.00"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Stock Quantity
+                </label>
+                <div className="relative">
+                  <Package className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                  <input
+                    type="number"
+                    min="0"
+                    value={formData.stock}
+                    onChange={(e) => setFormData(prev => ({ ...prev, stock: e.target.value }))}
+                    className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
+                    placeholder="Enter stock quantity"
+                  />
+                </div>
+              </div>
             </div>
+
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Base Price*</label>
-              <input
-                type="number"
-                min="0"
-                step="0.01"
-                value={basePrice}
-                onChange={(e) => setBasePrice(e.target.value)}
-                className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                required
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Description
+              </label>
+              <textarea
+                value={formData.description}
+                onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                rows={4}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
+                placeholder="Enter product description"
               />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Section*</label>
-              <select
-                value={section}
-                onChange={(e) => setSection(e.target.value)}
-                className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                required
-              >
-                <option value="food">Food</option>
-                <option value="gadget">Gadget</option>
-              </select>
             </div>
           </div>
-        </div>
 
-        {/* Variants Section */}
-        <div className="bg-gray-50 p-4 rounded-lg">
-          <h3 className="text-lg font-semibold mb-4 text-gray-700">Product Variants</h3>
-          
-          {/* Variant Types */}
-          <div className="mb-6">
-            <h4 className="text-md font-medium mb-3 text-gray-700">Variant Types</h4>
+          {/* Enhanced Professional Image Upload Section */}
+          <div className="space-y-6">
+            <h2 className="text-xl font-semibold text-gray-800 border-b pb-2 flex items-center gap-2">
+              <ImageIcon className="w-5 h-5" />
+              Product Images *
+            </h2>
+
+            {/* Upload Area */}
+            <div
+              className={`border-2 border-dashed rounded-lg p-8 text-center transition-all duration-200 ${
+                dragActive 
+                  ? 'border-yellow-400 bg-yellow-50' 
+                  : 'border-gray-300 hover:border-yellow-300 hover:bg-yellow-25'
+              } ${isUploading ? 'opacity-50' : ''}`}
+              onDragEnter={handleDrag}
+              onDragLeave={handleDrag}
+              onDragOver={handleDrag}
+              onDrop={(e) => handleDrop(e, 'product')}
+            >
+              <input
+                type="file"
+                multiple
+                accept="image/png, image/jpeg, image/jpg, image/webp"
+                onChange={(e) => handleImageUpload(e.target.files, 'product')}
+                className="hidden"
+                id="image-upload"
+                ref={fileInputRef}
+                disabled={isUploading}
+              />
+              
+              <div className="max-w-md mx-auto">
+                <div className="flex justify-center mb-4">
+                  {isUploading ? (
+                    <Loader2 className="w-12 h-12 text-yellow-500 animate-spin" />
+                  ) : (
+                    <Upload className="w-12 h-12 text-gray-400" />
+                  )}
+                </div>
+                
+                <div className="space-y-2">
+                  <p className="text-lg font-medium text-gray-900">
+                    {isUploading ? 'Uploading...' : 'Drag & drop your images here'}
+                  </p>
+                  <p className="text-sm text-gray-500">
+                    PNG, JPG, JPEG, WEBP up to 10MB each
+                  </p>
+                  <p className="text-xs text-gray-400">
+                    {formData.images.length > 0 
+                      ? `${formData.images.length} image${formData.images.length > 1 ? 's' : ''} uploaded`
+                      : 'No images uploaded yet'
+                    }
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={isUploading}
+                  className="mt-4 px-6 py-2 bg-yellow-500 text-white rounded-md hover:bg-yellow-600 disabled:bg-gray-300 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-yellow-500 transition-colors"
+                >
+                  {isUploading ? 'Uploading...' : 'Browse Files'}
+                </button>
+              </div>
+            </div>
+
+            {/* Upload Progress and Errors */}
             <div className="space-y-3">
-              {variantTypes.map((type, typeIndex) => (
-                <div key={typeIndex} className="border border-gray-200 rounded-lg p-4 bg-white">
-                  <div className="flex justify-between items-center mb-3">
-                    <span className="font-medium text-gray-700">{type.name}</span>
-                    <button
-                      type="button"
-                      onClick={() => removeVariantType(typeIndex)}
-                      className="text-red-500 hover:text-red-700"
-                    >
-                      <FaTrash className="w-4 h-4" />
-                    </button>
+              {/* Active Uploads */}
+              {Object.keys(uploadProgress).map(filename => (
+                <div key={filename} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                  <div className="flex items-center gap-3 flex-1 min-w-0">
+                    <ImageIcon className="w-5 h-5 text-gray-400 flex-shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-gray-900 truncate">{filename}</p>
+                      <div className="w-full bg-gray-200 rounded-full h-2 mt-1">
+                        <div 
+                          className="bg-yellow-500 h-2 rounded-full transition-all duration-300"
+                          style={{ width: `${uploadProgress[filename]}%` }}
+                        ></div>
+                      </div>
+                    </div>
                   </div>
-                  
-                  <div className="flex items-center mb-2">
+                  <span className="text-sm text-gray-500 flex-shrink-0">
+                    {uploadProgress[filename]}%
+                  </span>
+                </div>
+              ))}
+
+              {/* Upload Errors */}
+              {Object.keys(uploadErrors).map(filename => (
+                <div key={filename} className="flex items-center gap-3 p-3 bg-red-50 border border-red-200 rounded-lg">
+                  <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0" />
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-red-900">{filename}</p>
+                    <p className="text-sm text-red-700">{uploadErrors[filename]}</p>
+                  </div>
+                  <button
+                    onClick={() => setUploadErrors(prev => {
+                      const updated = { ...prev };
+                      delete updated[filename];
+                      return updated;
+                    })}
+                    className="text-red-500 hover:text-red-700"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              ))}
+            </div>
+
+            {/* Image Gallery */}
+            {formData.images.length > 0 && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-3">
+                  Uploaded Images ({formData.images.length})
+                </label>
+                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                  {formData.images.map((image, index) => (
+                    <div key={index} className="relative group">
+                      <div className="aspect-square rounded-lg overflow-hidden border bg-gray-100">
+                        <img
+                          src={image}
+                          alt={`Product preview ${index + 1}`}
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                      <div className="absolute inset-0 bg-blur bg-opacity-0 group-hover:bg-opacity-30 transition-all duration-200 rounded-lg flex items-center justify-center">
+                        <button
+                          type="button"
+                          onClick={() => removeImage(index)}
+                          className="opacity-0 group-hover:opacity-100 transform scale-90 group-hover:scale-100 transition-all duration-200 bg-red-500 text-white p-2 rounded-full hover:bg-red-600"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                      <div className="absolute top-2 right-2">
+                        <CheckCircle className="w-5 h-5 text-green-500 bg-white rounded-full" />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Rest of the form sections remain the same */}
+          {/* Variants Section */}
+          <div className="space-y-6">
+            <h2 className="text-xl font-semibold text-gray-800 border-b pb-2">
+              Product Variants
+            </h2>
+
+            <div className="space-y-4 p-4 border border-gray-200 rounded-lg">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Variant Name
+                  </label>
+                  <input
+                    type="text"
+                    value={currentVariant.name}
+                    onChange={(e) => setCurrentVariant(prev => ({ ...prev, name: e.target.value }))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
+                    placeholder="e.g., Color, Size"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Add Option
+                  </label>
+                  <div className="flex gap-2">
                     <input
                       type="text"
-                      value={newVariantValue}
-                      onChange={(e) => setNewVariantValue(e.target.value)}
-                      className="flex-1 p-2 border border-gray-300 rounded-md text-sm"
-                      placeholder={`Add ${type.name} value`}
+                      value={currentOption}
+                      onChange={(e) => setCurrentOption(e.target.value)}
+                      onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addOption())}
+                      className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
+                      placeholder="e.g., Red, Large"
                     />
                     <button
                       type="button"
-                      onClick={() => addVariantValue(typeIndex)}
-                      className="ml-2 px-3 py-2 bg-blue-500 text-white text-sm rounded-md hover:bg-blue-600"
+                      onClick={addOption}
+                      className="px-4 py-2 bg-yellow-500 text-white rounded-md hover:bg-yellow-600 focus:outline-none focus:ring-2 focus:ring-yellow-500"
                     >
-                      Add Value
+                      <Plus className="w-4 h-4" />
                     </button>
                   </div>
-                  
+                </div>
+              </div>
+
+              {/* Current Variant Options */}
+              {currentVariant.options.length > 0 && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Current Options
+                  </label>
                   <div className="flex flex-wrap gap-2">
-                    {type.values.map((value, valueIndex) => (
-                      <span key={valueIndex} className="inline-flex items-center bg-gray-200 px-3 py-1 rounded-full text-sm">
-                        {value}
+                    {currentVariant.options.map((option, index) => (
+                      <span
+                        key={index}
+                        className="inline-flex items-center gap-1 px-3 py-1 bg-yellow-100 text-yellow-800 rounded-full text-sm"
+                      >
+                        {option}
                         <button
                           type="button"
-                          onClick={() => removeVariantValue(typeIndex, valueIndex)}
-                          className="ml-2 text-gray-600 hover:text-red-500"
+                          onClick={() => removeOption(index)}
+                          className="text-yellow-600 hover:text-yellow-800"
                         >
-                          <FaTimes className="w-3 h-3" />
+                          <X className="w-3 h-3" />
                         </button>
                       </span>
                     ))}
                   </div>
                 </div>
-              ))}
-            </div>
-            
-            <div className="flex items-center mt-4">
-              <input
-                type="text"
-                value={newVariantType}
-                onChange={(e) => setNewVariantType(e.target.value)}
-                className="flex-1 p-2 border border-gray-300 rounded-md"
-                placeholder="Add variant type (e.g., Color, Size, Storage)"
-              />
+              )}
+
               <button
                 type="button"
-                onClick={addVariantType}
-                className="ml-2 px-4 py-2 bg-green-500 text-white rounded-md hover:bg-green-600"
+                onClick={addVariant}
+                disabled={!currentVariant.name || currentVariant.options.length === 0}
+                className="px-4 py-2 bg-yellow-500 text-white rounded-md hover:bg-yellow-600 disabled:bg-gray-300 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-yellow-500"
               >
-                Add Type
+                Add Variant
               </button>
-            </div>
-          </div>
 
-          {/* Generated Variants */}
-          {variants.length > 0 && (
-            <div>
-              <h4 className="text-md font-medium mb-3 text-gray-700">Generated Variants ({variants.length})</h4>
-              <div className="space-y-4 max-h-96 overflow-y-auto">
-                {variants.map((variant, index) => (
-                  <div key={index} className="border border-gray-200 rounded-lg p-4 bg-white relative">
-                    {/* Delete Variant Button */}
-                    <button
-                      type="button"
-                      onClick={() => deleteVariant(index)}
-                      className="absolute top-3 right-3 text-red-500 hover:text-red-700"
-                      title="Delete this variant"
-                    >
-                      <FaTrash className="w-4 h-4" />
-                    </button>
-
-                    <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-start">
-                      {/* Variant Info */}
-                      <div className="md:col-span-4">
-                        <div className="mb-2">
-                          <strong className="text-sm text-gray-700">Combination:</strong>
-                          <div className="flex flex-wrap gap-1 mt-1">
-                            {Object.entries(variant.combination).map(([key, value]) => (
-                              <span key={key} className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs">
-                                {key}: {value}
-                              </span>
-                            ))}
-                          </div>
-                        </div>
-                        <div className="text-sm text-gray-600">
-                          <div>SKU: {variant.sku}</div>
-                        </div>
+              {/* Added Variants */}
+              {formData.variants.length > 0 && (
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium text-gray-700">
+                    Added Variants
+                  </label>
+                  {formData.variants.map((variant, index) => (
+                    <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                      <div>
+                        <span className="font-medium">{variant.name}:</span>
+                        <span className="text-gray-600 ml-2">
+                          {variant.options.join(', ')}
+                        </span>
                       </div>
-
-                      {/* Price and Stock */}
-                      <div className="md:col-span-3">
-                        <div className="space-y-2">
-                          <div>
-                            <label className="block text-xs font-medium text-gray-500 mb-1">Price*</label>
-                            <input
-                              type="number"
-                              min="0"
-                              step="0.01"
-                              value={variant.price}
-                              onChange={(e) => updateVariant(index, 'price', e.target.value)}
-                              className="w-full p-2 border border-gray-300 rounded-md text-sm"
-                              required
-                            />
-                          </div>
-                          <div>
-                            <label className="block text-xs font-medium text-gray-500 mb-1">Stock*</label>
-                            <input
-                              type="number"
-                              min="0"
-                              value={variant.stock}
-                              onChange={(e) => updateVariant(index, 'stock', e.target.value)}
-                              className="w-full p-2 border border-gray-300 rounded-md text-sm"
-                              required
-                            />
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Variant Image */}
-                      <VariantImageUpload variant={variant} variantIndex={index} />
+                      <button
+                        type="button"
+                        onClick={() => removeVariant(index)}
+                        className="text-red-500 hover:text-red-700"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
                     </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Category Section - Simplified to text input */}
-        <div className="bg-gray-50 p-4 rounded-lg">
-          <h3 className="text-lg font-semibold mb-4 text-gray-700">Category Information</h3>
-          
-          <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700 mb-1">Category Name*</label>
-            <input
-              type="text"
-              value={category.name}
-              onChange={(e) => setCategory({
-                ...category,
-                name: e.target.value,
-                isNew: true // Always treat as new category with text input
-              })}
-              className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              placeholder="Enter category name"
-              required
-            />
-            <p className="text-xs text-gray-500 mt-1">
-              Enter the category name. If it doesn't exist, a new category will be created.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Category Description (max 50 chars)*
-                <span className="text-xs text-gray-500 ml-1">
-                  {category.description.length}/50
-                </span>
-              </label>
-              <input
-                type="text"
-                value={category.description}
-                onChange={(e) => {
-                  if (e.target.value.length <= 50) {
-                    setCategory({...category, description: e.target.value})
-                  }
-                }}
-                className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                maxLength={50}
-                required
-                placeholder="Brief description of the category"
-              />
+                  ))}
+                </div>
+              )}
             </div>
           </div>
-          
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Category Image*</label>
-            {category.imagePreview ? (
-              <div className="relative w-32 h-32">
-                <img 
-                  src={category.imagePreview} 
-                  alt="Category preview" 
-                  className="w-full h-32 object-cover rounded-md border border-gray-200"
+
+          {/* Tags Section */}
+          <div className="space-y-6">
+            <h2 className="text-xl font-semibold text-gray-800 border-b pb-2 flex items-center gap-2">
+              <Tag className="w-5 h-5" />
+              Product Tags
+            </h2>
+
+            <div className="space-y-4">
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={currentTag}
+                  onChange={(e) => setCurrentTag(e.target.value)}
+                  onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addTag())}
+                  className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
+                  placeholder="Enter a tag"
                 />
                 <button
                   type="button"
-                  onClick={removeCategoryImage}
-                  className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 transition-colors"
+                  onClick={addTag}
+                  className="px-4 py-2 bg-yellow-500 text-white rounded-md hover:bg-yellow-600 focus:outline-none focus:ring-2 focus:ring-yellow-500"
                 >
-                  <FaTrash className="w-3 h-3" />
+                  <Plus className="w-4 h-4" />
                 </button>
               </div>
-            ) : (
-              <div 
-                {...getCategoryImageRootProps()} 
-                className="border-2 border-dashed border-gray-300 rounded-md p-4 text-center cursor-pointer hover:border-blue-500 transition-colors bg-white"
-              >
-                <input {...getCategoryImageInputProps()} />
-                <p className="text-gray-600">Click to upload category image</p>
-                <p className="text-sm text-gray-500 mt-1">Single image required</p>
-              </div>
-            )}
-          </div>
-        </div>
 
-        {/* Product Images Section */}
-        <div className="bg-gray-50 p-4 rounded-lg">
-          <h3 className="text-lg font-semibold mb-4 text-gray-700">Product Images*</h3>
-          <div 
-            {...getRootProps()} 
-            className="border-2 border-dashed border-gray-300 rounded-md p-6 text-center cursor-pointer hover:border-blue-500 transition-colors bg-white"
-          >
-            <input {...getInputProps()} />
-            <p className="text-gray-600">Drag 'n' drop images here, or click to select files</p>
-            <p className="text-sm text-gray-500 mt-1">Minimum 1 image required (Max 10 images)</p>
-          </div>
-          
-          {imagePreviews.length > 0 && (
-            <div className="mt-4 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-              {imagePreviews.map((src, index) => (
-                <div key={index} className="relative group">
-                  <img 
-                    src={src} 
-                    alt={`Preview ${index + 1}`} 
-                    className="w-full h-32 object-cover rounded-md border border-gray-200"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => removeImage(index)}
-                    className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
-                  >
-                    <FaTrash className="w-3 h-3" />
-                  </button>
-                  <span className="absolute bottom-2 left-2 bg-black bg-opacity-50 text-white text-xs px-2 py-1 rounded">
-                    {index + 1}
-                  </span>
+              {/* Tags List */}
+              {formData.tags.length > 0 && (
+                <div className="flex flex-wrap gap-2">
+                  {formData.tags.map((tag, index) => (
+                    <span
+                      key={index}
+                      className="inline-flex items-center gap-2 px-3 py-1 bg-yellow-100 text-yellow-800 rounded-full text-sm"
+                    >
+                      {tag}
+                      <button
+                        type="button"
+                        onClick={() => removeTag(index)}
+                        className="text-yellow-600 hover:text-yellow-800"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </span>
+                  ))}
                 </div>
-              ))}
+              )}
             </div>
-          )}
-        </div>
-
-        {/* Description Section */}
-        <div className="bg-gray-50 p-4 rounded-lg">
-          <h3 className="text-lg font-semibold mb-4 text-gray-700">Product Description*</h3>
-          <div 
-            ref={editorRef} 
-            className="h-64 border border-gray-300 rounded-md bg-white focus-within:ring-2 focus-within:ring-blue-500"
-          />
-        </div>
-
-        {/* Tags Section */}
-        <div className="bg-gray-50 p-4 rounded-lg">
-          <h3 className="text-lg font-semibold mb-4 text-gray-700">Product Tags</h3>
-          <div className="flex items-center mb-2">
-            <input
-              type="text"
-              value={newTag}
-              onChange={(e) => setNewTag(e.target.value)}
-              className="flex-1 p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              placeholder="Add a tag"
-            />
-            <button
-              type="button"
-              onClick={addTag}
-              className="ml-2 px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600"
-            >
-              Add
-            </button>
           </div>
-          {tags.length > 0 ? (
-            <div className="flex flex-wrap gap-2">
-              {tags.map((tag, index) => (
-                <span key={index} className="inline-flex items-center bg-gray-200 px-3 py-1 rounded-full text-sm">
-                  {tag}
-                  <button
-                    type="button"
-                    onClick={() => removeTag(index)}
-                    className="ml-2 text-gray-600 hover:text-red-500"
-                  >
-                    <FaTimes className="w-3 h-3" />
-                  </button>
-                </span>
-              ))}
-            </div>
-          ) : (
-            <p className="text-sm text-gray-500">No tags added yet</p>
-          )}
-        </div>
 
-        {/* Promotional Options Section */}
-        <div className="bg-gray-50 p-4 rounded-lg">
-          <h3 className="text-lg font-semibold mb-4 text-gray-700">Promotional Options</h3>
-          
-          <div className="space-y-4">
-            <div className="flex items-center">
-              <input
-                type="checkbox"
-                id="isTopDeal"
-                checked={isTopDeal}
-                onChange={(e) => setIsTopDeal(e.target.checked)}
-                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-              />
-              <label htmlFor="isTopDeal" className="ml-2 block text-sm text-gray-700">
-                Mark as Top Deal
-              </label>
-            </div>
-            
-            <div className="flex items-center">
-              <input
-                type="checkbox"
-                id="isFeatured"
-                checked={isFeatured}
-                onChange={(e) => setIsFeatured(e.target.checked)}
-                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-              />
-              <label htmlFor="isFeatured" className="ml-2 block text-sm text-gray-700">
-                Mark as Featured Product
-              </label>
-            </div>
-            
-            <div className="space-y-2">
-              <div className="flex items-center">
+          {/* Flash Sale Section */}
+          <div className="space-y-6">
+            <h2 className="text-xl font-semibold text-gray-800 border-b pb-2 flex items-center gap-2">
+              <Clock className="w-5 h-5" />
+              Flash Sale Settings
+            </h2>
+
+            <div className="space-y-4 p-4 border border-gray-200 rounded-lg">
+              <div className="flex items-center gap-2">
                 <input
                   type="checkbox"
                   id="flashSale"
-                  checked={flashSale.active}
-                  onChange={(e) => setFlashSale({...flashSale, active: e.target.checked})}
-                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                  checked={formData.flashSale.active}
+                  onChange={(e) => setFormData(prev => ({
+                    ...prev,
+                    flashSale: { ...prev.flashSale, active: e.target.checked }
+                  }))}
+                  className="w-4 h-4 text-yellow-500 focus:ring-yellow-500 border-gray-300 rounded"
                 />
-                <label htmlFor="flashSale" className="ml-2 block text-sm text-gray-700">
+                <label htmlFor="flashSale" className="text-sm font-medium text-gray-700">
                   Enable Flash Sale
                 </label>
               </div>
-              
-              {flashSale.active && (
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 ml-6">
+
+              {formData.flashSale.active && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Start Date*</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Discount Percentage
+                    </label>
+                    <div className="relative">
+                      <Hash className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                      <input
+                        type="number"
+                        min="0"
+                        max="100"
+                        value={formData.flashSale.discountPercentage}
+                        onChange={(e) => setFormData(prev => ({
+                          ...prev,
+                          flashSale: { ...prev.flashSale, discountPercentage: e.target.value }
+                        }))}
+                        className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
+                        placeholder="0-100"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Start Date
+                    </label>
                     <input
                       type="datetime-local"
-                      value={flashSale.start}
-                      onChange={(e) => setFlashSale({...flashSale, start: e.target.value})}
-                      className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      required={flashSale.active}
+                      value={formData.flashSale.startDate}
+                      onChange={(e) => setFormData(prev => ({
+                        ...prev,
+                        flashSale: { ...prev.flashSale, startDate: e.target.value }
+                      }))}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
                     />
                   </div>
+
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">End Date*</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      End Date
+                    </label>
                     <input
                       type="datetime-local"
-                      value={flashSale.end}
-                      onChange={(e) => setFlashSale({...flashSale, end: e.target.value})}
-                      className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      required={flashSale.active}
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Discount %*</label>
-                    <input
-                      type="number"
-                      min="0"
-                      max="100"
-                      value={flashSale.discountPercent}
-                      onChange={(e) => setFlashSale({...flashSale, discountPercent: e.target.value})}
-                      className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      required={flashSale.active}
+                      value={formData.flashSale.endDate}
+                      onChange={(e) => setFormData(prev => ({
+                        ...prev,
+                        flashSale: { ...prev.flashSale, endDate: e.target.value }
+                      }))}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
                     />
                   </div>
                 </div>
               )}
             </div>
           </div>
-        </div>
 
-        {/* Specifications Section */}
-        <div className="bg-gray-50 p-4 rounded-lg">
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="text-lg font-semibold text-gray-700">Specifications</h3>
-            <button
-              type="button"
-              onClick={addSpecification}
-              className="flex items-center text-sm bg-yellow-500 text-white px-3 py-1 rounded hover:bg-yellow-600"
-            >
-              <FaPlus className="mr-1" /> Add Specification
-            </button>
+          {/* Featured Product */}
+          <div className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              id="featured"
+              checked={formData.featured}
+              onChange={(e) => setFormData(prev => ({ ...prev, featured: e.target.checked }))}
+              className="w-4 h-4 text-yellow-500 focus:ring-yellow-500 border-gray-300 rounded"
+            />
+            <label htmlFor="featured" className="text-sm font-medium text-gray-700 flex items-center gap-2">
+              <Star className="w-4 h-4 text-yellow-500" />
+              Mark as Featured Product
+            </label>
           </div>
 
-          {specifications.length > 0 ? (
-            <div className="space-y-3">
-              {specifications.map((spec, index) => (
-                <div key={index} className="grid grid-cols-1 md:grid-cols-12 gap-3 items-end">
-                  <div className="md:col-span-5">
-                    <label className="block text-xs font-medium text-gray-500 mb-1">Key</label>
-                    <input
-                      type="text"
-                      value={spec.key}
-                      onChange={(e) => updateSpecification(index, 'key', e.target.value)}
-                      className="w-full p-2 border border-gray-300 rounded-md text-sm"
-                      placeholder="e.g. Material"
-                    />
-                  </div>
-                  <div className="md:col-span-5">
-                    <label className="block text-xs font-medium text-gray-500 mb-1">Value</label>
-                    <input
-                      type="text"
-                      value={spec.value}
-                      onChange={(e) => updateSpecification(index, 'value', e.target.value)}
-                      className="w-full p-2 border border-gray-300 rounded-md text-sm"
-                      placeholder="e.g. Cotton"
-                    />
-                  </div>
-                  <div className="md:col-span-2">
-                    <button
-                      type="button"
-                      onClick={() => removeSpecification(index)}
-                      className="w-full py-2 bg-red-500 text-white text-sm rounded-md hover:bg-red-600"
-                    >
-                      Remove
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <p className="text-sm text-gray-500">No specifications added yet</p>
-          )}
-        </div>
-
-        {/* Submit Button */}
-        <div className="flex justify-end">
-          <button
-            type="submit"
-            disabled={loading}
-            className="px-6 py-2 bg-yellow-600 text-white font-medium rounded-md hover:bg-yellow-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {loading ? 'Uploading...' : 'Upload Product'}
-          </button>
-        </div>
-      </form>
-      <Toaster position="top-center" />
+          {/* Submit Button */}
+          <div className="flex justify-end pt-6 border-t">
+            <button
+              type="submit"
+              className="px-8 py-3 bg-yellow-500 text-white font-medium rounded-md hover:bg-yellow-600 focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:ring-offset-2 transition-colors"
+            >
+              Upload Product
+            </button>
+          </div>
+        </form>
+      </div>
     </div>
   );
-};
-
-export default ProductUploadDashboard;
+}

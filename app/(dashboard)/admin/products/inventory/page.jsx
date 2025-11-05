@@ -1,644 +1,884 @@
 "use client";
+
 import { useState, useEffect } from 'react';
 import { 
-  FiSearch, 
-  FiPlus, 
-  FiFilter, 
-  FiChevronLeft, 
-  FiChevronRight, 
-  FiDollarSign, 
-  FiPackage, 
-  FiTrendingUp, 
-  FiAlertCircle,
-  FiEdit2,
-  FiTrash2
-} from 'react-icons/fi';
-import { toast } from 'react-hot-toast';
-import { useRouter } from 'next/navigation';
-import Link from 'next/link';
+  Search, 
+  Plus, 
+  Edit, 
+  Trash2, 
+  Eye, 
+  ChevronLeft, 
+  ChevronRight,
+  Package,
+  TrendingUp,
+  DollarSign,
+  Star,
+  Tag,
+  X,
+  Save,
+  Loader2,
+  ShoppingCart
+} from 'lucide-react';
 
-const ITEMS_PER_PAGE = 10;
+// View Product Modal Component
+function ViewProductModal({ product, isOpen, onClose }) {
+  if (!isOpen || !product) return null;
 
-// Format numbers as Nigerian Naira with commas
-const formatNaira = (amount) => {
-  return `₦${amount?.toLocaleString('en-NG') || '₦0'}`;
-};
-
-export default function InventoryDashboard() {
-  const [products, setProducts] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-  const [totalCount, setTotalCount] = useState(0);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [sortOption, setSortOption] = useState('createdAt');
-  const [filterOption, setFilterOption] = useState('all');
-  const [isMobile, setIsMobile] = useState(false);
-  const [editingProduct, setEditingProduct] = useState(null);
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [productToDelete, setProductToDelete] = useState(null);
-  const [categories, setCategories] = useState([]);
-
-  const router = useRouter();
-
-  // Calculate product metrics based on variants
-  const calculateProductMetrics = (product) => {
-    const hasVariants = product.variants && product.variants.length > 0;
-    
-    // Price range
-    const minPrice = hasVariants ? product.minPrice : product.basePrice;
-    const maxPrice = hasVariants ? product.maxPrice : product.basePrice;
-    
-    // Total stock
-    const totalStock = hasVariants ? product.totalStock : product.stock || 0;
-    
-    // Total units sold (sum of all variants if available)
-    const totalUnitsSold = hasVariants 
-      ? product.variants.reduce((sum, variant) => sum + (variant.unitsSold || 0), 0)
-      : product.unitsSold || 0;
-    
-    // Total revenue
-    const totalRevenue = hasVariants
-      ? product.variants.reduce((sum, variant) => sum + (variant.price * (variant.unitsSold || 0)), 0)
-      : (product.basePrice || product.price || 0) * totalUnitsSold;
-
-    return {
-      minPrice,
-      maxPrice,
-      totalStock,
-      totalUnitsSold,
-      totalRevenue,
-      hasVariants,
-      variantCount: hasVariants ? product.variants.length : 0
-    };
+  const formatCurrency = (amount) => {
+    return new Intl.NumberFormat('en-NG', {
+      style: 'currency',
+      currency: 'NGN',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0
+    }).format(amount);
   };
 
-  // Fetch products from API
-  const fetchProducts = async () => {
+  const formatNumber = (number) => {
+    return new Intl.NumberFormat('en-NG').format(number);
+  };
+
+  const isFlashSaleActive = (flashSale) => {
+    if (!flashSale?.active) return false;
+    const now = new Date();
+    const start = new Date(flashSale.startDate);
+    const end = new Date(flashSale.endDate);
+    return now >= start && now <= end;
+  };
+
+  const flashSaleActive = isFlashSaleActive(product.flashSale);
+
+  return (
+    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+      <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+        <div className="p-6 border-b border-gray-200">
+          <div className="flex items-center justify-between">
+            <h2 className="text-2xl font-bold text-gray-900">Product Details</h2>
+            <button
+              onClick={onClose}
+              className="text-gray-400 hover:text-gray-600"
+            >
+              <X className="w-6 h-6" />
+            </button>
+          </div>
+        </div>
+
+        <div className="p-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            {/* Product Images */}
+            <div>
+              <h3 className="text-lg font-medium text-gray-900 mb-4">Images</h3>
+              <div className="grid grid-cols-2 gap-4">
+                {product.images.map((image, index) => (
+                  <img
+                    key={index}
+                    src={image}
+                    alt={`${product.name} ${index + 1}`}
+                    className="w-full h-48 object-cover rounded-lg"
+                  />
+                ))}
+              </div>
+            </div>
+
+            {/* Product Details */}
+            <div className="space-y-6">
+              <div>
+                <h3 className="text-lg font-medium text-gray-900 mb-2">Basic Information</h3>
+                <div className="space-y-2 text-sm">
+                  <p><strong>Name:</strong> {product.name}</p>
+                  <p><strong>Description:</strong> {product.description || 'No description'}</p>
+                  <p><strong>Section:</strong> <span className="capitalize">{product.section}</span></p>
+                  <p><strong>Category:</strong> {product.category?.name}</p>
+                  <p><strong>Price:</strong> {formatCurrency(product.price)}</p>
+                  <p><strong>Stock:</strong> {formatNumber(product.stock)}</p>
+                  <p><strong>Sold:</strong> {formatNumber(product.numberSold)}</p>
+                  <p><strong>Featured:</strong> {product.featured ? 'Yes' : 'No'}</p>
+                  <p><strong>Created:</strong> {new Date(product.createdAt).toLocaleDateString()}</p>
+                </div>
+              </div>
+
+              {/* Flash Sale Info */}
+              {product.flashSale && (
+                <div>
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">Flash Sale</h3>
+                  <div className={`p-3 rounded-lg ${flashSaleActive ? 'bg-green-50 border border-green-200' : 'bg-gray-50'}`}>
+                    <p><strong>Status:</strong> {flashSaleActive ? 'Active' : 'Inactive'}</p>
+                    <p><strong>Discount:</strong> {product.flashSale.discountPercentage}%</p>
+                    <p><strong>Start:</strong> {new Date(product.flashSale.startDate).toLocaleString()}</p>
+                    <p><strong>End:</strong> {new Date(product.flashSale.endDate).toLocaleString()}</p>
+                  </div>
+                </div>
+              )}
+
+              {/* Tags */}
+              {product.tags && product.tags.length > 0 && (
+                <div>
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">Tags</h3>
+                  <div className="flex flex-wrap gap-2">
+                    {product.tags.map((tag, index) => (
+                      <span
+                        key={index}
+                        className="px-2 py-1 bg-gray-100 text-gray-700 rounded-full text-sm"
+                      >
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Variants */}
+          {product.variants && product.variants.length > 0 && (
+            <div className="mt-8">
+              <h3 className="text-lg font-medium text-gray-900 mb-4">Variants</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {product.variants.map((variant, index) => (
+                  <div key={index} className="border border-gray-200 rounded-lg p-4">
+                    <h4 className="font-medium text-gray-900 capitalize">{variant.name}</h4>
+                    <div className="flex flex-wrap gap-2 mt-2">
+                      {variant.options.map((option, optIndex) => (
+                        <span
+                          key={optIndex}
+                          className="px-2 py-1 bg-blue-100 text-blue-700 rounded-full text-sm"
+                        >
+                          {option}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+
+        <div className="p-6 border-t border-gray-200 flex justify-end">
+          <button
+            onClick={onClose}
+            className="px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400"
+          >
+            Close
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Edit Product Modal Component
+function EditProductModal({ product, isOpen, onClose, onUpdate }) {
+  const [formData, setFormData] = useState({});
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (product) {
+      setFormData({
+        name: product.name || '',
+        description: product.description || '',
+        price: product.price || '',
+        stock: product.stock || '',
+        featured: product.featured || false,
+        tags: product.tags || [],
+        flashSale: product.flashSale || {
+          active: false,
+          discountPercentage: '',
+          startDate: '',
+          endDate: ''
+        }
+      });
+    }
+  }, [product]);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
     setLoading(true);
+
     try {
-      let url = `/api/product/inventory?page=${currentPage}&limit=${ITEMS_PER_PAGE}`;
-      
-      if (searchQuery) {
-        url += `&search=${searchQuery}`;
-      }
-      
-      if (filterOption !== 'all') {
-        url += `&category=${filterOption}`;
-      }
-      
-      url += `&sortBy=${sortOption}`;
-      
-      const response = await fetch(url);
+      const response = await fetch(`/api/products/${product._id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData),
+      });
+
       const data = await response.json();
-      
-      if (data.success) {
-        setProducts(data.data);
-        setTotalPages(data.pagination.totalPages);
-        setTotalCount(data.pagination.totalItems);
+
+      if (response.ok) {
+        onUpdate(data.product);
+        onClose();
       } else {
-        toast.error('Failed to fetch products');
+        alert(data.error || 'Failed to update product');
       }
     } catch (error) {
-      console.error('Error fetching products:', error);
-      toast.error('Error fetching products');
+      console.error('Error updating product:', error);
+      alert('An error occurred while updating the product');
     } finally {
       setLoading(false);
     }
   };
 
-  // Fetch categories for filter dropdown
-  const fetchCategories = async () => {
+  if (!isOpen || !product) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm bg-opacity-50 flex items-center justify-center p-4 z-50">
+      <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+        <div className="p-6 border-b border-gray-200">
+          <div className="flex items-center justify-between">
+            <h2 className="text-2xl font-bold text-gray-900">Edit Product</h2>
+            <button
+              onClick={onClose}
+              className="text-gray-400 hover:text-gray-600"
+            >
+              <X className="w-6 h-6" />
+            </button>
+          </div>
+        </div>
+
+        <form onSubmit={handleSubmit} className="p-6 space-y-6">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Product Name *
+            </label>
+            <input
+              type="text"
+              required
+              value={formData.name}
+              onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Description
+            </label>
+            <textarea
+              value={formData.description}
+              onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+              rows={3}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500"
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Price (₦) *
+              </label>
+              <input
+                type="number"
+                required
+                min="0"
+                step="0.01"
+                value={formData.price}
+                onChange={(e) => setFormData(prev => ({ ...prev, price: e.target.value }))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Stock
+              </label>
+              <input
+                type="number"
+                min="0"
+                value={formData.stock}
+                onChange={(e) => setFormData(prev => ({ ...prev, stock: e.target.value }))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500"
+              />
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              id="featured"
+              checked={formData.featured}
+              onChange={(e) => setFormData(prev => ({ ...prev, featured: e.target.checked }))}
+              className="w-4 h-4 text-yellow-500 focus:ring-yellow-500 border-gray-300 rounded"
+            />
+            <label htmlFor="featured" className="text-sm font-medium text-gray-700">
+              Featured Product
+            </label>
+          </div>
+
+          <div className="flex gap-2 justify-end">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={loading}
+              className="px-4 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 disabled:opacity-50 flex items-center gap-2"
+            >
+              {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+              Update Product
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+export default function InventoryDashboard() {
+  const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState({
+    totalProducts: 0,
+    activeProducts: 0,
+    totalSold: 0,
+    totalRevenue: 0
+  });
+  const [pagination, setPagination] = useState({
+    page: 1,
+    limit: 20,
+    total: 0,
+    pages: 0
+  });
+  const [filters, setFilters] = useState({
+    search: '',
+    section: '',
+    category: '',
+    featured: '',
+    hasFlashSale: ''
+  });
+  const [selectedProduct, setSelectedProduct] = useState(null);
+  const [viewModalOpen, setViewModalOpen] = useState(false);
+  const [editModalOpen, setEditModalOpen] = useState(false);
+
+  // Format currency in Naira
+  const formatCurrency = (amount) => {
+    return new Intl.NumberFormat('en-NG', {
+      style: 'currency',
+      currency: 'NGN',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0
+    }).format(amount);
+  };
+
+  // Format number with commas
+  const formatNumber = (number) => {
+    return new Intl.NumberFormat('en-NG').format(number);
+  };
+
+  // Fetch products and stats
+  const fetchProducts = async (page = 1) => {
     try {
-      const response = await fetch('/api/category');
+      setLoading(true);
+      const params = new URLSearchParams({
+        page: page.toString(),
+        limit: pagination.limit.toString(),
+        ...filters
+      });
+
+      const response = await fetch(`/api/products?${params}`);
       const data = await response.json();
-      if (data.message) {
-        setCategories(data.message);
+
+      if (data.success) {
+        setProducts(data.products);
+        setPagination(data.pagination);
       }
     } catch (error) {
-      console.error('Error fetching categories:', error);
+      console.error('Error fetching products:', error);
+    } finally {
+      setLoading(false);
     }
   };
 
-  // Initial load and check mobile status
-  useEffect(() => {
-    fetchProducts();
-    fetchCategories();
-    
-    const handleResize = () => {
-      setIsMobile(window.innerWidth < 768);
-    };
-    
-    handleResize();
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
-
-  // Refetch when filters or pagination changes
-  useEffect(() => {
-    fetchProducts();
-  }, [currentPage, searchQuery, sortOption, filterOption]);
-
-  // Calculate summary metrics
-  const summaryMetrics = {
-    totalProducts: totalCount,
-    totalRevenue: products.reduce((sum, product) => {
-      const metrics = calculateProductMetrics(product);
-      return sum + metrics.totalRevenue;
-    }, 0),
-    totalUnitsSold: products.reduce((sum, product) => {
-      const metrics = calculateProductMetrics(product);
-      return sum + metrics.totalUnitsSold;
-    }, 0),
-    totalOutOfStock: products.filter(product => {
-      const metrics = calculateProductMetrics(product);
-      return metrics.totalStock <= 0;
-    }).length,
-    productsWithVariants: products.filter(product => 
-      product.variants && product.variants.length > 0
-    ).length
-  };
-
-  // Generate pagination items with ellipsis
-  const getPaginationItems = () => {
-    const items = [];
-    const maxVisiblePages = isMobile ? 3 : 5;
-    
-    if (totalPages <= maxVisiblePages) {
-      return Array.from({ length: totalPages }, (_, i) => i + 1);
-    }
-    
-    const leftBound = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
-    const rightBound = Math.min(totalPages, leftBound + maxVisiblePages - 1);
-    
-    if (leftBound > 1) {
-      items.push(1);
-      if (leftBound > 2) items.push('...');
-    }
-    
-    for (let i = leftBound; i <= rightBound; i++) {
-      items.push(i);
-    }
-    
-    if (rightBound < totalPages) {
-      if (rightBound < totalPages - 1) items.push('...');
-      items.push(totalPages);
-    }
-    
-    return items;
-  };
-
-  // Edit product
-  const handleEdit = (product) => {
-    setEditingProduct({...product});
-    router.push(`/admin/products/edit/${product._id}`);
-  };
-
-  // Delete product confirmation
-  const confirmDelete = (product) => {
-    setProductToDelete(product);
-    setShowDeleteModal(true);
-  };
-
-  // Delete product
-  const handleDelete = async () => {
+  const fetchStats = async () => {
     try {
-      const response = await fetch(`/api/product/${productToDelete._id}`, {
-        method: 'DELETE'
-      });
-      
+      const response = await fetch('/api/products/stats');
       const data = await response.json();
       
       if (data.success) {
-        toast.success(`${productToDelete.name} deleted successfully`);
-        fetchProducts(); // Refresh the list
-        setShowDeleteModal(false);
+        setStats(data.stats);
+      }
+    } catch (error) {
+      console.error('Error fetching stats:', error);
+    }
+  };
+
+  useEffect(() => {
+    fetchProducts();
+    fetchStats();
+  }, [filters]);
+
+  const handleViewProduct = async (productId) => {
+    try {
+      const response = await fetch(`/api/products/${productId}`);
+      const data = await response.json();
+
+      if (data.success) {
+        setSelectedProduct(data.product);
+        setViewModalOpen(true);
       } else {
-        toast.error(data.message || 'Failed to delete product');
+        alert('Failed to fetch product details');
+      }
+    } catch (error) {
+      console.error('Error fetching product:', error);
+      alert('An error occurred while fetching product details');
+    }
+  };
+
+  const handleEditProduct = (product) => {
+    setSelectedProduct(product);
+    setEditModalOpen(true);
+  };
+
+  const handleUpdateProduct = (updatedProduct) => {
+    setProducts(prev => prev.map(p => 
+      p._id === updatedProduct._id ? updatedProduct : p
+    ));
+    fetchStats(); // Refresh stats
+  };
+
+  const handleDeleteProduct = async (productId, productName) => {
+    if (!confirm(`Are you sure you want to delete "${productName}"? This action cannot be undone.`)) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/products/${productId}`, {
+        method: 'DELETE'
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        alert('Product deleted successfully');
+        fetchProducts(); // Refresh the list
+        fetchStats(); // Refresh stats
+      } else {
+        alert(data.error || 'Failed to delete product');
       }
     } catch (error) {
       console.error('Error deleting product:', error);
-      toast.error('Error deleting product');
+      alert('An error occurred while deleting the product');
     }
   };
 
-  // Display price range for products with variants
-  const displayPrice = (product) => {
-    const metrics = calculateProductMetrics(product);
-    if (metrics.hasVariants && metrics.minPrice !== metrics.maxPrice) {
-      return `${formatNaira(metrics.minPrice)} - ${formatNaira(metrics.maxPrice)}`;
-    }
-    return formatNaira(metrics.minPrice);
+  const handleSearch = (e) => {
+    setFilters(prev => ({ ...prev, search: e.target.value }));
   };
 
-  // Display stock status
-  const getStockStatus = (product) => {
-    const metrics = calculateProductMetrics(product);
-    if (metrics.totalStock > 10) return { status: 'In Stock', class: 'bg-green-100 text-green-800' };
-    if (metrics.totalStock > 0) return { status: 'Low Stock', class: 'bg-yellow-100 text-yellow-800' };
-    return { status: 'Out of Stock', class: 'bg-red-100 text-red-800' };
+  const handleFilterChange = (key, value) => {
+    setFilters(prev => ({ ...prev, [key]: value }));
   };
+
+  const handlePageChange = (newPage) => {
+    if (newPage >= 1 && newPage <= pagination.pages) {
+      fetchProducts(newPage);
+    }
+  };
+
+  const getStockStatus = (stock) => {
+    if (stock === 0) return { text: 'Out of Stock', color: 'text-red-600 bg-red-50' };
+    if (stock <= 10) return { text: 'Low Stock', color: 'text-orange-600 bg-orange-50' };
+    return { text: 'In Stock', color: 'text-green-600 bg-green-50' };
+  };
+
+  const isFlashSaleActive = (flashSale) => {
+    if (!flashSale?.active) return false;
+    const now = new Date();
+    const start = new Date(flashSale.startDate);
+    const end = new Date(flashSale.endDate);
+    return now >= start && now <= end;
+  };
+
+  if (loading && products.length === 0) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-yellow-500"></div>
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen bg-gray-50 p-4 md:p-8 overflow-x-hidden">
-      <div className="max-w-7xl mx-auto w-full">
+    <div className="min-h-screen bg-gray-50">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8">
-          <h1 className="text-2xl md:text-3xl font-bold text-gray-800">Inventory Dashboard</h1>
-          <Link href="/admin/products/new" className="mt-4 md:mt-0 flex items-center bg-yellow-600 text-white px-4 py-2 rounded-lg hover:bg-yellow-700 transition-colors">
-            <FiPlus className="mr-2" />
-            Add New Product
-          </Link>
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-gray-900">Inventory Dashboard</h1>
+          <p className="text-gray-600 mt-2">Manage your products and track sales performance</p>
         </div>
-        
-        {/* Summary Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
-          {/* Total Products */}
-          <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-100">
+
+        {/* Stats Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          <div className="bg-white rounded-lg shadow p-6">
             <div className="flex items-center">
-              <div className="p-3 rounded-full bg-yellow-50 text-yellow-600">
-                <FiPackage size={20} />
+              <div className="p-2 bg-blue-50 rounded-lg">
+                <Package className="w-6 h-6 text-blue-600" />
               </div>
               <div className="ml-4">
-                <p className="text-sm text-gray-500">Total Products</p>
-                <p className="text-2xl font-semibold truncate max-w-full break-words">
-                  {summaryMetrics.totalProducts}
-                </p>
+                <p className="text-sm font-medium text-gray-600">Total Products</p>
+                <p className="text-2xl font-bold text-gray-900">{formatNumber(stats.totalProducts)}</p>
               </div>
             </div>
           </div>
 
-          {/* Products with Variants */}
-          <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-100">
+          <div className="bg-white rounded-lg shadow p-6">
             <div className="flex items-center">
-              <div className="p-3 rounded-full bg-blue-50 text-blue-600">
-                <FiPackage size={20} />
+              <div className="p-2 bg-green-50 rounded-lg">
+                <ShoppingCart className="w-6 h-6 text-green-600" />
               </div>
               <div className="ml-4">
-                <p className="text-sm text-gray-500">With Variants</p>
-                <p className="text-2xl font-semibold truncate max-w-full break-words">
-                  {summaryMetrics.productsWithVariants}
-                </p>
+                <p className="text-sm font-medium text-gray-600">Active Products</p>
+                <p className="text-2xl font-bold text-gray-900">{formatNumber(stats.activeProducts)}</p>
               </div>
             </div>
           </div>
 
-          {/* Total Revenue */}
-          <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-100">
+          <div className="bg-white rounded-lg shadow p-6">
             <div className="flex items-center">
-              <div className="p-3 rounded-full bg-yellow-50 text-yellow-600">
-                <FiDollarSign size={20} />
+              <div className="p-2 bg-purple-50 rounded-lg">
+                <TrendingUp className="w-6 h-6 text-purple-600" />
               </div>
               <div className="ml-4">
-                <p className="text-sm text-gray-500">Total Revenue</p>
-                <p className="text-2xl font-semibold truncate max-w-full break-words">
-                  {formatNaira(summaryMetrics.totalRevenue)}
-                </p>
+                <p className="text-sm font-medium text-gray-600">Total Sold</p>
+                <p className="text-2xl font-bold text-gray-900">{formatNumber(stats.totalSold)}</p>
               </div>
             </div>
           </div>
 
-          {/* Total Units Sold */}
-          <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-100">
+          <div className="bg-white rounded-lg shadow p-6">
             <div className="flex items-center">
-              <div className="p-3 rounded-full bg-yellow-50 text-yellow-600">
-                <FiTrendingUp size={20} />
+              <div className="p-2 bg-yellow-50 rounded-lg">
+                <DollarSign className="w-6 h-6 text-yellow-600" />
               </div>
               <div className="ml-4">
-                <p className="text-sm text-gray-500">Total Units Sold</p>
-                <p className="text-2xl font-semibold truncate max-w-full break-words">
-                  {summaryMetrics.totalUnitsSold.toLocaleString()}
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {/* Out of Stock */}
-          <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-100">
-            <div className="flex items-center">
-              <div className="p-3 rounded-full bg-red-50 text-red-600">
-                <FiAlertCircle size={20} />
-              </div>
-              <div className="ml-4">
-                <p className="text-sm text-gray-500">Out of Stock</p>
-                <p className="text-2xl font-semibold truncate max-w-full break-words">
-                  {summaryMetrics.totalOutOfStock}
-                </p>
+                <p className="text-sm font-medium text-gray-600">Total Revenue</p>
+                <p className="text-2xl font-bold text-gray-900">{formatCurrency(stats.totalRevenue)}</p>
               </div>
             </div>
           </div>
         </div>
-        
+
         {/* Filters and Search */}
-        <div className="bg-white p-4 md:p-6 rounded-lg shadow-sm border border-gray-100 mb-8">
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-            <div className="relative flex-grow max-w-md">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <FiSearch className="text-gray-400" />
+        <div className="bg-white rounded-lg shadow mb-6">
+          <div className="p-6 border-b border-gray-200">
+            <div className="flex flex-col lg:flex-row gap-4">
+              {/* Search */}
+              <div className="flex-1">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                  <input
+                    type="text"
+                    placeholder="Search products by name..."
+                    value={filters.search}
+                    onChange={handleSearch}
+                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
+                  />
+                </div>
               </div>
-              <input
-                type="text"
-                placeholder="Search products by name or description..."
-                className="pl-10 pr-4 py-2 w-full border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
-            </div>
-            
-            <div className="flex flex-col sm:flex-row gap-3">
-              <div className="flex items-center">
-                <FiFilter className="text-gray-500 mr-2" />
+
+              {/* Filters */}
+              <div className="flex flex-wrap gap-2">
                 <select
-                  className="border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500"
-                  value={filterOption}
-                  onChange={(e) => setFilterOption(e.target.value)}
+                  value={filters.section}
+                  onChange={(e) => handleFilterChange('section', e.target.value)}
+                  className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
                 >
-                  <option value="all">All Categories</option>
-                  {categories.map(category => (
-                    <option key={category._id} value={category._id}>
-                      {category.name}
-                    </option>
-                  ))}
+                  <option value="">All Sections</option>
+                  <option value="food">Food</option>
+                  <option value="gadget">Gadget</option>
                 </select>
+
+                <select
+                  value={filters.featured}
+                  onChange={(e) => handleFilterChange('featured', e.target.value)}
+                  className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
+                >
+                  <option value="">All Products</option>
+                  <option value="true">Featured Only</option>
+                  <option value="false">Not Featured</option>
+                </select>
+
+                <select
+                  value={filters.hasFlashSale}
+                  onChange={(e) => handleFilterChange('hasFlashSale', e.target.value)}
+                  className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
+                >
+                  <option value="">All Sales</option>
+                  <option value="active">Active Flash Sales</option>
+                  <option value="inactive">No Flash Sales</option>
+                </select>
+
+                <button
+                  onClick={() => setFilters({
+                    search: '',
+                    section: '',
+                    category: '',
+                    featured: '',
+                    hasFlashSale: ''
+                  })}
+                  className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-500"
+                >
+                  Clear Filters
+                </button>
               </div>
-              
-              <select
-                className="border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500"
-                value={sortOption}
-                onChange={(e) => setSortOption(e.target.value)}
-              >
-                <option value="createdAt">Date Uploaded</option>
-                <option value="unitsSold">Highest Selling</option>
-                <option value="totalStock">Lowest Stock</option>
-                <option value="basePrice">Base Price</option>
-                <option value="name">Name</option>
-              </select>
             </div>
           </div>
-        </div>
-        
-        {/* Products Table/Cards */}
-        {loading ? (
-          <div className="flex justify-center items-center h-64">
-            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-yellow-500"></div>
-          </div>
-        ) : (
-          <>
-            {isMobile ? (
-              // Mobile Cards View
-              <div className="grid grid-cols-1 gap-4 mb-8">
+
+          {/* Products Table */}
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Product
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Price
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Stock & Sold
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Status
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Variants
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Actions
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
                 {products.map((product) => {
-                  const metrics = calculateProductMetrics(product);
-                  const stockStatus = getStockStatus(product);
+                  const stockStatus = getStockStatus(product.stock);
+                  const flashSaleActive = isFlashSaleActive(product.flashSale);
                   
                   return (
-                    <div key={product._id} className="bg-white p-4 rounded-lg shadow-sm border border-gray-100 overflow-hidden">
-                      <div className="flex flex-col sm:flex-row gap-4">
-                        <div className="flex-shrink-0">
-                          <img 
-                            src={product.images?.find(img => img.isDefault)?.url || '/placeholder-product.jpg'} 
-                            alt={product.name} 
-                            className="h-20 w-20 rounded-md object-cover"
-                          />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex justify-between items-start">
-                            <div className="min-w-0">
-                              <h3 className="font-medium text-gray-900 truncate">{product.name}</h3>
-                              <p className="text-sm text-gray-500 truncate">{product.category?.name}</p>
-                              {metrics.hasVariants && (
-                                <p className="text-xs text-blue-600 mt-1">
-                                  {metrics.variantCount} variants
-                                </p>
+                    <tr key={product._id} className="hover:bg-gray-50">
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="flex items-center">
+                          <div className="flex-shrink-0 h-10 w-10">
+                            <img
+                              className="h-10 w-10 rounded-lg object-cover"
+                              src={product.images[0]}
+                              alt={product.name}
+                            />
+                          </div>
+                          <div className="ml-4">
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm font-medium text-gray-900">
+                                {product.name}
+                              </span>
+                              {product.featured && (
+                                <Star className="w-4 h-4 text-yellow-500 fill-current" />
+                              )}
+                              {flashSaleActive && (
+                                <Tag className="w-4 h-4 text-red-500" />
                               )}
                             </div>
-                            <span className={`px-2 py-1 text-xs rounded-full flex-shrink-0 ${stockStatus.class}`}>
-                              {stockStatus.status}
-                            </span>
-                          </div>
-                          <div className="mt-2 grid grid-cols-2 gap-2 text-sm">
-                            <div>
-                              <p className="text-xs text-gray-400">Price</p>
-                              <p className="font-semibold truncate">{displayPrice(product)}</p>
+                            <div className="text-sm text-gray-500 capitalize">
+                              {product.section} • {product.category?.name}
                             </div>
-                            <div>
-                              <p className="text-xs text-gray-400">Uploaded</p>
-                              <p className="truncate">
-                                {new Date(product.createdAt).toLocaleDateString()}
-                              </p>
-                            </div>
-                            <div>
-                              <p className="text-xs text-gray-400">Sold</p>
-                              <p>{metrics.totalUnitsSold.toLocaleString()}</p>
-                            </div>
-                            <div>
-                              <p className="text-xs text-gray-400">Stock</p>
-                              <p>{metrics.totalStock.toLocaleString()}</p>
-                            </div>
-                          </div>
-                          
-                          <div className="mt-3 flex justify-between items-center">
-                            <div>
-                              <p className="text-xs text-gray-400">Revenue</p>
-                              <p className="font-medium truncate">
-                                {formatNaira(metrics.totalRevenue)}
-                              </p>
-                            </div>
-                            <div className="flex space-x-2">
-                              <button 
-                                onClick={() => handleEdit(product)}
-                                className="p-2 text-yellow-600 hover:bg-yellow-50 rounded-full"
-                              >
-                                <FiEdit2 size={16} />
-                              </button>
-                              <button 
-                                onClick={() => confirmDelete(product)}
-                                className="p-2 text-red-600 hover:bg-red-50 rounded-full"
-                              >
-                                <FiTrash2 size={16} />
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            ) : (
-              // Desktop Table View
-              <div className="bg-white rounded-lg shadow-sm border border-gray-100 overflow-x-auto mb-8">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Product</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Price</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Variants</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Uploaded</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Sold</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Stock</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Revenue</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {products.map((product) => {
-                      const metrics = calculateProductMetrics(product);
-                      const stockStatus = getStockStatus(product);
-                      
-                      return (
-                        <tr key={product._id} className="hover:bg-gray-50">
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="flex items-center">
-                              <img 
-                                src={product.images?.find(img => img.isDefault)?.url || '/placeholder-product.jpg'} 
-                                alt={product.name} 
-                                className="h-10 w-10 rounded-md object-cover mr-3"
-                              />
-                              <div>
-                                <div className="font-medium text-gray-900">{product.name}</div>
-                                {product.section && (
-                                  <div className="text-xs text-gray-500 capitalize">{product.section}</div>
+                            {product.tags && product.tags.length > 0 && (
+                              <div className="flex flex-wrap gap-1 mt-1">
+                                {product.tags.slice(0, 2).map((tag, index) => (
+                                  <span
+                                    key={index}
+                                    className="inline-block px-2 py-1 text-xs bg-gray-100 text-gray-600 rounded-full"
+                                  >
+                                    {tag}
+                                  </span>
+                                ))}
+                                {product.tags.length > 2 && (
+                                  <span className="inline-block px-2 py-1 text-xs bg-gray-100 text-gray-600 rounded-full">
+                                    +{product.tags.length - 2}
+                                  </span>
                                 )}
                               </div>
-                            </div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            {product.category?.name}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold">
-                            {displayPrice(product)}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            {metrics.hasVariants ? (
-                              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-blue-100 text-blue-800">
-                                {metrics.variantCount} variants
-                              </span>
-                            ) : (
-                              <span className="text-gray-400">—</span>
                             )}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            {new Date(product.createdAt).toLocaleDateString()}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            {metrics.totalUnitsSold.toLocaleString()}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            {metrics.totalStock.toLocaleString()}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold">
-                            {formatNaira(metrics.totalRevenue)}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <span className={`px-2 py-1 text-xs rounded-full ${stockStatus.class}`}>
-                              {stockStatus.status}
-                            </span>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                            <div className="flex space-x-2">
-                              <button
-                                onClick={() => handleEdit(product)}
-                                className="text-yellow-600 hover:text-yellow-900"
-                              >
-                                <FiEdit2 className="h-5 w-5" />
-                              </button>
-                              <button
-                                onClick={() => confirmDelete(product)}
-                                className="text-red-600 hover:text-red-900"
-                              >
-                                <FiTrash2 className="h-5 w-5" />
-                              </button>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm font-medium text-gray-900">
+                          {formatCurrency(product.price)}
+                        </div>
+                        {flashSaleActive && (
+                          <div className="text-sm text-red-600">
+                            {product.flashSale.discountPercentage}% OFF
+                          </div>
+                        )}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm text-gray-900">
+                          Stock: {formatNumber(product.stock)}
+                        </div>
+                        <div className="text-sm text-gray-500">
+                          Sold: {formatNumber(product.numberSold)}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${stockStatus.color}`}>
+                          {stockStatus.text}
+                        </span>
+                        {flashSaleActive && (
+                          <div className="text-xs text-red-600 mt-1">
+                            Flash Sale Active
+                          </div>
+                        )}
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="text-sm text-gray-900">
+                          {product.variants && product.variants.length > 0 ? (
+                            <div className="space-y-1">
+                              {product.variants.map((variant, index) => (
+                                <div key={index} className="text-xs">
+                                  <span className="font-medium">{variant.name}:</span>
+                                  <span className="text-gray-600 ml-1">
+                                    {variant.options.slice(0, 2).join(', ')}
+                                    {variant.options.length > 2 && ` +${variant.options.length - 2}`}
+                                  </span>
+                                </div>
+                              ))}
                             </div>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            )}
-            
-            {/* Pagination */}
-            {totalCount > ITEMS_PER_PAGE && (
-              <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-                <div className="text-sm text-gray-500">
-                  Showing {((currentPage - 1) * ITEMS_PER_PAGE) + 1} to {Math.min(currentPage * ITEMS_PER_PAGE, totalCount)} of {totalCount} products
+                          ) : (
+                            <span className="text-gray-400">No variants</span>
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                        <div className="flex items-center gap-2">
+                          <button 
+                            onClick={() => handleViewProduct(product._id)}
+                            className="text-blue-600 hover:text-blue-900 p-1 rounded hover:bg-blue-50"
+                            title="View Details"
+                          >
+                            <Eye className="w-4 h-4" />
+                          </button>
+                          <button 
+                            onClick={() => handleEditProduct(product)}
+                            className="text-yellow-600 hover:text-yellow-900 p-1 rounded hover:bg-yellow-50"
+                            title="Edit Product"
+                          >
+                            <Edit className="w-4 h-4" />
+                          </button>
+                          <button 
+                            onClick={() => handleDeleteProduct(product._id, product.name)}
+                            className="text-red-600 hover:text-red-900 p-1 rounded hover:bg-red-50"
+                            title="Delete Product"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Pagination */}
+          {pagination.pages > 1 && (
+            <div className="px-6 py-4 border-t border-gray-200">
+              <div className="flex items-center justify-between">
+                <div className="text-sm text-gray-700">
+                  Showing {((pagination.page - 1) * pagination.limit) + 1} to{' '}
+                  {Math.min(pagination.page * pagination.limit, pagination.total)} of{' '}
+                  {formatNumber(pagination.total)} products
                 </div>
-                <div className="flex items-center space-x-1">
+                <div className="flex items-center gap-2">
                   <button
-                    onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                    disabled={currentPage === 1}
-                    className={`p-2 rounded-md ${currentPage === 1 ? 'text-gray-400 cursor-not-allowed' : 'text-gray-700 hover:bg-gray-100'}`}
+                    onClick={() => handlePageChange(pagination.page - 1)}
+                    disabled={pagination.page === 1}
+                    className="p-2 border border-gray-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
                   >
-                    <FiChevronLeft />
+                    <ChevronLeft className="w-4 h-4" />
                   </button>
                   
-                  {getPaginationItems().map((item, index) => (
-                    item === '...' ? (
-                      <span key={`ellipsis-${index}`} className="px-3 py-1">...</span>
-                    ) : (
+                  {Array.from({ length: Math.min(5, pagination.pages) }, (_, i) => {
+                    let pageNum;
+                    if (pagination.pages <= 5) {
+                      pageNum = i + 1;
+                    } else if (pagination.page <= 3) {
+                      pageNum = i + 1;
+                    } else if (pagination.page >= pagination.pages - 2) {
+                      pageNum = pagination.pages - 4 + i;
+                    } else {
+                      pageNum = pagination.page - 2 + i;
+                    }
+
+                    return (
                       <button
-                        key={item}
-                        onClick={() => setCurrentPage(item)}
-                        className={`w-10 h-10 flex items-center justify-center rounded-md ${currentPage === item ? 'bg-yellow-500 text-white' : 'text-gray-700 hover:bg-gray-100'}`}
+                        key={pageNum}
+                        onClick={() => handlePageChange(pageNum)}
+                        className={`px-3 py-1 rounded-lg ${
+                          pagination.page === pageNum
+                            ? 'bg-yellow-500 text-white'
+                            : 'border border-gray-300 hover:bg-gray-50'
+                        }`}
                       >
-                        {item}
+                        {pageNum}
                       </button>
-                    )
-                  ))}
-                  
+                    );
+                  })}
+
                   <button
-                    onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-                    disabled={currentPage === totalPages}
-                    className={`p-2 rounded-md ${currentPage === totalPages ? 'text-gray-400 cursor-not-allowed' : 'text-gray-700 hover:bg-gray-100'}`}
+                    onClick={() => handlePageChange(pagination.page + 1)}
+                    disabled={pagination.page === pagination.pages}
+                    className="p-2 border border-gray-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
                   >
-                    <FiChevronRight />
+                    <ChevronRight className="w-4 h-4" />
                   </button>
                 </div>
               </div>
-            )}
-          </>
+            </div>
+          )}
+        </div>
+
+        {/* Empty State */}
+        {products.length === 0 && !loading && (
+          <div className="text-center py-12">
+            <Package className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+            <h3 className="text-lg font-medium text-gray-900 mb-2">No products found</h3>
+            <p className="text-gray-500 mb-4">
+              {Object.values(filters).some(val => val) 
+                ? 'Try adjusting your filters to see more results.' 
+                : 'Get started by adding your first product.'
+              }
+            </p>
+            <button className="px-4 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 focus:outline-none focus:ring-2 focus:ring-yellow-500">
+              <Plus className="w-4 h-4 inline mr-2" />
+              Add Product
+            </button>
+          </div>
         )}
       </div>
 
-      {/* Delete Confirmation Modal */}
-      {showDeleteModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
-            <h3 className="text-lg font-medium text-gray-900 mb-4">Confirm Deletion</h3>
-            <div className="flex items-center mb-4">
-              <img 
-                src={productToDelete?.images?.find(img => img.isDefault)?.url || '/placeholder-product.jpg'} 
-                alt={productToDelete?.name} 
-                className="h-16 w-16 rounded-full object-cover mr-4"
-              />
-              <div>
-                <p className="font-medium">{productToDelete?.name}</p>
-                <p className="text-sm text-gray-500">{productToDelete?.category?.name}</p>
-              </div>
-            </div>
-            <p className="text-gray-600 mb-6">
-              Are you sure you want to delete this product? This action cannot be undone.
-            </p>
-            <div className="flex justify-end space-x-3">
-              <button
-                onClick={() => setShowDeleteModal(false)}
-                className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleDelete}
-                className="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600"
-              >
-                Delete
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* View Product Modal */}
+      <ViewProductModal
+        product={selectedProduct}
+        isOpen={viewModalOpen}
+        onClose={() => {
+          setViewModalOpen(false);
+          setSelectedProduct(null);
+        }}
+      />
+
+      {/* Edit Product Modal */}
+      <EditProductModal
+        product={selectedProduct}
+        isOpen={editModalOpen}
+        onClose={() => {
+          setEditModalOpen(false);
+          setSelectedProduct(null);
+        }}
+        onUpdate={handleUpdateProduct}
+      />
     </div>
   );
 }

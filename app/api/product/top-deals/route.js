@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
 import connectToDatabase from "@/lib/dbConnect";
-import category from "@/models/category";
 import Product from "@/models/product";
 
 export async function GET() {
@@ -10,17 +9,26 @@ export async function GET() {
     const products = await Product.find({ isTopDeal: true })
       .sort({ createdAt: -1 })
       .limit(12)
-      .populate('category', 'name slug')
-      // .select('name slug price percentOff images rating numReviews flashSale');
+      .populate('category', 'name slug');
 
-    const productsWithDiscount = products.map(product => {
-      const discountPrice = product.percentOff > 0 
-        ? product.price * (1 - product.percentOff / 100)
+    const productsWithFormattedData = products.map(product => {
+      // Calculate original price if there's a percentage off
+      const originalPrice = product.percentOff > 0 
+        ? product.basePrice / (1 - product.percentOff / 100)
         : null;
+
+      console.log({ originalPrice })
       
       return {
-        ...product.toObject(),
-        discountPrice,
+        _id: product._id,
+        name: product.name,
+        price: product.basePrice,
+        originalPrice: originalPrice ? Math.round(originalPrice) : null,
+        images: product.images || [],
+        rating: product.rating || 0,
+        reviewCount: product.numReviews || 0,
+        category: product.category,
+        slug: product.slug,
         hasFlashSale: !!product.flashSale && 
                      new Date(product.flashSale.start) <= new Date() && 
                      new Date(product.flashSale.end) >= new Date()
@@ -29,7 +37,7 @@ export async function GET() {
 
     return NextResponse.json({
       success: true,
-      products: productsWithDiscount
+      products: productsWithFormattedData
     });
 
   } catch (error) {

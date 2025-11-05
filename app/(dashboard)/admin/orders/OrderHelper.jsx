@@ -15,14 +15,15 @@ import {
   Ellipsis,
   User,
   Users,
-  Repeat2
+  Repeat2,
+  Tag
 } from 'lucide-react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import useSWR from 'swr';
 
 const statusMap = {
   'pending': { icon: Clock, color: 'bg-yellow-100 text-yellow-800' },
-  'processing': { icon: Clock, color: 'bg-blue-100 text-blue-800' },
+  'processing': { icon: Clock, color: 'bg-yellow-100 text-yellow-800' },
   'delivered': { icon: CheckCircle2, color: 'bg-green-100 text-green-800' },
   'cancelled': { icon: XCircle, color: 'bg-red-100 text-red-800' },
   'return': { icon: Repeat2, color: 'bg-orange-100 text-orange-800' }
@@ -77,6 +78,28 @@ const LevelIndicator = ({ level }) => {
   );
 };
 
+const VariantDisplay = ({ variants }) => {
+  if (!variants || Object.keys(variants).length === 0) {
+    return null;
+  }
+
+  return (
+    <div className="mt-2">
+      <div className="flex flex-wrap gap-1">
+        {Object.entries(variants).map(([key, value]) => (
+          <span 
+            key={key} 
+            className="inline-flex items-center px-2 py-1 rounded-md bg-yellow-50 text-yellow-700 text-xs font-medium"
+          >
+            <Tag className="h-3 w-3 mr-1" />
+            {key}: {value}
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+};
+
 const OrderDetailsModal = ({ order, onClose, onUpdate }) => {
   const [editing, setEditing] = useState(false);
   const [formData, setFormData] = useState({
@@ -125,7 +148,7 @@ const OrderDetailsModal = ({ order, onClose, onUpdate }) => {
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+    <div className="fixed inset-0 backdrop-blur-sm bg-black/30 bg-opacity-50 flex items-center justify-center p-4 z-50">
       <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
         <div className="p-6">
           <div className="flex justify-between items-start">
@@ -176,19 +199,31 @@ const OrderDetailsModal = ({ order, onClose, onUpdate }) => {
             <h3 className="font-medium text-gray-900">Order Items</h3>
             <div className="mt-4 border rounded-lg divide-y">
               {order.items.map((item, index) => (
-                <div key={index} className="p-4 flex justify-between">
-                  <div>
-                    <p className="font-medium">{item.name}</p>
-                    <p className="text-sm text-gray-500">
-                      {item.product?.category || 'Product'} • Qty: {item.quantity}
+                <div key={index} className="p-4">
+                  <div className="flex justify-between items-start">
+                    <div className="flex-1">
+                      <p className="font-medium">{item.name}</p>
+                      <p className="text-sm text-gray-500">
+                        {item.product?.category || 'Product'} • Qty: {item.quantity}
+                      </p>
+                      
+                      {/* Display variants if available */}
+                      <VariantDisplay variants={item.selectedVariants} />
+                      
+                      {/* Display variant SKU if available */}
+                      {item.variantSku && (
+                        <p className="text-xs text-gray-400 mt-1">
+                          SKU: {item.variantSku}
+                        </p>
+                      )}
+                    </div>
+                    <p className="font-medium ml-4">
+                      {new Intl.NumberFormat('en-NG', {
+                        style: 'currency',
+                        currency: 'NGN'
+                      }).format(item.price)}
                     </p>
                   </div>
-                  <p className="font-medium">
-                    {new Intl.NumberFormat('en-NG', {
-                      style: 'currency',
-                      currency: 'NGN'
-                    }).format(item.price)}
-                  </p>
                 </div>
               ))}
             </div>
@@ -216,7 +251,7 @@ const OrderDetailsModal = ({ order, onClose, onUpdate }) => {
             </div>
           </div>
 
-          {order.user.referralCode && (
+          {/* {order.user.referralCode && (
             <div className="mt-6">
               <h3 className="font-medium text-gray-900">MLM Commission</h3>
               <div className="mt-2 p-3 bg-purple-50 rounded-lg">
@@ -234,7 +269,7 @@ const OrderDetailsModal = ({ order, onClose, onUpdate }) => {
                 </div>
               </div>
             </div>
-          )}
+          )} */}
 
           <div className="mt-6">
             <h3 className="font-medium text-gray-900">Order Summary</h3>
@@ -257,7 +292,7 @@ const OrderDetailsModal = ({ order, onClose, onUpdate }) => {
                   }).format(order.deliveryPrice)}
                 </span>
               </div>
-              {order.user.referralCode && (
+              {/* {order.user.referralCode && (
                 <div className="flex justify-between">
                   <span className="text-gray-500">MLM Commission</span>
                   <span className="text-purple-600">
@@ -267,7 +302,7 @@ const OrderDetailsModal = ({ order, onClose, onUpdate }) => {
                     }).format(order.subtotal * 0.1)}
                   </span>
                 </div>
-              )}
+              )} */}
               {order.walletBalanceUsed > 0 && (
                 <div className="flex justify-between">
                   <span className="text-gray-500">Wallet Used</span>
@@ -302,7 +337,7 @@ const OrderDetailsModal = ({ order, onClose, onUpdate }) => {
                 </button>
                 <button
                   onClick={handleSubmit}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-md text-sm font-medium hover:bg-blue-700"
+                  className="px-4 py-2 bg-yellow-600 text-white rounded-md text-sm font-medium hover:bg-yellow-700"
                 >
                   Save Changes
                 </button>
@@ -318,7 +353,7 @@ const OrderDetailsModal = ({ order, onClose, onUpdate }) => {
                 </button>
                 <button
                   onClick={onClose}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-md text-sm font-medium hover:bg-blue-700"
+                  className="px-4 py-2 bg-yellow-600 text-white rounded-md text-sm font-medium hover:bg-yellow-700"
                 >
                   Close
                 </button>
@@ -410,7 +445,7 @@ const Pagination = ({ currentPage, totalPages, onPageChange }) => {
                   onClick={() => onPageChange(page)}
                   className={`relative inline-flex items-center px-4 py-2 text-sm font-semibold ${
                     currentPage === page
-                      ? 'bg-blue-600 text-white focus-visible:outline focus-visible:outline-offset-2 focus-visible:outline-blue-600'
+                      ? 'bg-yellow-600 text-white focus-visible:outline focus-visible:outline-offset-2 focus-visible:outline-yellow-600'
                       : 'text-gray-900 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:outline-offset-0'
                   }`}
                 >
@@ -430,6 +465,35 @@ const Pagination = ({ currentPage, totalPages, onPageChange }) => {
           </nav>
         </div>
       </div>
+    </div>
+  );
+};
+
+const ProductWithVariants = ({ item }) => {
+  return (
+    <div>
+      <div className="text-sm text-gray-900">
+        {item.name}
+      </div>
+      <div className="text-xs text-gray-500">
+        {item.product?.category || 'Product'} • Qty: {item.quantity}
+      </div>
+      
+      {/* Display variants in table view */}
+      {item.selectedVariants && Object.keys(item.selectedVariants).length > 0 && (
+        <div className="mt-1">
+          <div className="flex flex-wrap gap-1">
+            {Object.entries(item.selectedVariants).map(([key, value]) => (
+              <span 
+                key={key} 
+                className="inline-flex items-center px-1.5 py-0.5 rounded bg-yellow-50 text-yellow-600 text-xs"
+              >
+                {key}: {value}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 };
@@ -535,7 +599,7 @@ export default function Orders() {
           <input
             type="text"
             placeholder="Search orders..."
-            className="pl-10 pr-4 py-2 w-full border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="pl-10 pr-4 py-2 w-full border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-yellow-500"
             defaultValue={searchTerm}
             onChange={(e) => handleSearch(e.target.value)}
           />
@@ -549,7 +613,7 @@ export default function Orders() {
             href="/admin/orders"
             className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm ${
               !statusFilter
-                ? 'border-blue-500 text-blue-600'
+                ? 'border-yellow-500 text-yellow-600'
                 : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
             }`}
           >
@@ -573,12 +637,12 @@ export default function Orders() {
             href="/admin/orders?status=processing"
             className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm ${
               statusFilter === 'processing'
-                ? 'border-blue-500 text-blue-600'
+                ? 'border-yellow-500 text-yellow-600'
                 : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
             }`}
           >
             Processing {statusCounts?.processing > 0 && (
-              <span className="ml-1 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+              <span className="ml-1 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
                 {statusCounts.processing}
               </span>
             )}
@@ -630,7 +694,7 @@ export default function Orders() {
 
       {isLoading ? (
         <div className="flex justify-center items-center h-64">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-yellow-500"></div>
         </div>
       ) : error ? (
         <div className="text-center py-10 text-red-500">
@@ -685,7 +749,7 @@ export default function Orders() {
                     Type
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Product
+                    Product & Variants
                   </th>
                   <th 
                     className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
@@ -717,7 +781,7 @@ export default function Orders() {
                       onClick={() => handleOrderClick(order)}
                     >
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm font-medium text-blue-600">
+                        <div className="text-sm font-medium text-yellow-600">
                           {order._id.toString().slice(-6).toUpperCase()}
                         </div>
                       </td>
@@ -735,13 +799,8 @@ export default function Orders() {
                       <td className="px-6 py-4 whitespace-nowrap">
                         <CustomerTypeBadge isMlm={!!order.user.referralCode} />
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-900">
-                          {order.items[0]?.name || 'Product'}
-                        </div>
-                        <div className="text-xs text-gray-500">
-                          {order.items[0]?.product?.category || 'Product'} • Qty: {order.items[0]?.quantity || 1}
-                        </div>
+                      <td className="px-6 py-4">
+                        <ProductWithVariants item={order.items[0]} />
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm font-medium">
