@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import dynamic from 'next/dynamic';
 import 'quill/dist/quill.snow.css';
 import { useDropzone } from 'react-dropzone';
@@ -7,13 +7,6 @@ import { FaTrash, FaPlus, FaMinus, FaEdit, FaTimes } from 'react-icons/fa';
 import { Toaster, toast } from 'react-hot-toast';
 
 const Quill = typeof window === 'object' ? require('quill') : () => false;
-const CreatableSelect = dynamic(
-  () => import('react-select/creatable').then(mod => mod.default),
-  { 
-    ssr: false,
-    loading: () => <div className="h-10 bg-gray-100 rounded-md"></div>
-  }
-);
 
 async function uploadImages(images) {
   const formData = new FormData();
@@ -37,9 +30,7 @@ async function uploadImages(images) {
 const ProductUploadDashboard = () => {
   // State management
   const [productName, setProductName] = useState('');
-  const [price, setPrice] = useState(0);
-  const [stock, setStock] = useState(0);
-  const [percentOff, setPercentOff] = useState(0);
+  const [basePrice, setBasePrice] = useState(0);
   const [section, setSection] = useState('food');
   const [tags, setTags] = useState([]);
   const [newTag, setNewTag] = useState('');
@@ -64,6 +55,12 @@ const ProductUploadDashboard = () => {
   const [imagePreviews, setImagePreviews] = useState([]);
   const [loading, setLoading] = useState(false);
   const [specifications, setSpecifications] = useState([]);
+  
+  // Variants state
+  const [variants, setVariants] = useState([]);
+  const [variantTypes, setVariantTypes] = useState([]);
+  const [newVariantType, setNewVariantType] = useState('');
+  const [newVariantValue, setNewVariantValue] = useState('');
 
   const editorRef = useRef(null);
   const quillInstance = useRef(null);
@@ -127,6 +124,86 @@ const ProductUploadDashboard = () => {
     }
   }, []);
 
+  // Generate variants when variant types change
+  useEffect(() => {
+    if (variantTypes.length > 0) {
+      generateVariants();
+    } else {
+      setVariants([]);
+    }
+  }, [variantTypes]);
+
+  const generateVariants = () => {
+    if (variantTypes.length === 0) return;
+
+    const generateCombinations = (types, index = 0, current = {}) => {
+      if (index === types.length) {
+        return [current];
+      }
+
+      const type = types[index];
+      const combinations = [];
+
+      type.values.forEach(value => {
+        const newCurrent = { ...current, [type.name]: value };
+        combinations.push(...generateCombinations(types, index + 1, newCurrent));
+      });
+
+      return combinations;
+    };
+
+    const combinations = generateCombinations(variantTypes);
+    const newVariants = combinations.map(combination => {
+      // Check if variant already exists
+      const existingVariant = variants.find(variant => 
+        JSON.stringify(variant.combination) === JSON.stringify(combination)
+      );
+
+      if (existingVariant) {
+        return existingVariant;
+      }
+
+      return {
+        combination,
+        price: basePrice,
+        stock: 0,
+        sku: generateSKU(combination),
+        image: null,
+        imagePreview: ''
+      };
+    });
+
+    setVariants(newVariants);
+  };
+
+  const generateSKU = (combination) => {
+    const combinationString = Object.values(combination).join('-').toUpperCase();
+    return `${productName.substring(0, 3).toUpperCase()}-${combinationString}-${Math.random().toString(36).substring(2, 5).toUpperCase()}`;
+  };
+
+  // Handle variant image upload
+  const handleVariantImageDrop = useCallback((acceptedFiles, variantIndex) => {
+    if (acceptedFiles.length > 0) {
+      const file = acceptedFiles[0];
+      const updatedVariants = [...variants];
+      updatedVariants[variantIndex] = {
+        ...updatedVariants[variantIndex],
+        image: file,
+        imagePreview: URL.createObjectURL(file)
+      };
+      setVariants(updatedVariants);
+    }
+  }, [variants]);
+
+  // Create dropzone for variant images
+  const useVariantImageDropzone = (variantIndex) => {
+    return useDropzone({
+      onDrop: (acceptedFiles) => handleVariantImageDrop(acceptedFiles, variantIndex),
+      accept: 'image/*',
+      multiple: false
+    });
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -156,16 +233,20 @@ const ProductUploadDashboard = () => {
       toast.error("Product images are required");
       setLoading(false);
       return;
-    } else if (price < 0) {
-      toast.error("Price must be a positive number");
-      setLoading(false);
-      return;
-    } else if (stock < 0) {
-      toast.error("Stock must be a positive number");
+    } else if (basePrice < 0) {
+      toast.error("Base price must be a positive number");
       setLoading(false);
       return;
     } else if (flashSale.active && (!flashSale.start || !flashSale.end)) {
       toast.error("Flash sale requires both start and end dates");
+      setLoading(false);
+      return;
+    } else if (variants.length > 0 && variants.some(v => v.stock < 0)) {
+      toast.error("All variant stocks must be positive numbers");
+      setLoading(false);
+      return;
+    } else if (variants.length > 0 && variants.some(v => v.price < 0)) {
+      toast.error("All variant prices must be positive numbers");
       setLoading(false);
       return;
     }
@@ -173,16 +254,26 @@ const ProductUploadDashboard = () => {
     try {
       // Upload product images
       const productImageUrls = await uploadImages(productImages);
-
-      console.log({ productImageUrls })
+      
+      // Upload variant images
+      const variantsWithImages = await Promise.all(
+        variants.map(async (variant) => {
+          if (variant.image) {
+            const variantImageUrls = await uploadImages([variant.image]);
+            return {
+              ...variant,
+              image: variantImageUrls[0]
+            };
+          }
+          return variant;
+        })
+      );
       
       // For new categories, upload category image
       let categoryImageUrl = '';
       if (category.isNew) {
         const categoryImageUrls = await uploadImages([category.image]);
         categoryImageUrl = categoryImageUrls[0];
-
-        console.log({categoryImageUrl})
       } else {
         // Find the selected category to get its existing image
         const selectedCategory = databaseCategories.find(cat => cat.label === category.name);
@@ -197,9 +288,7 @@ const ProductUploadDashboard = () => {
           description: description,
           images: productImageUrls,
           specifications: specifications.filter(spec => spec.key && spec.value),
-          price: parseFloat(price),
-          stock: parseInt(stock),
-          percentOff: parseFloat(percentOff),
+          basePrice: parseFloat(basePrice),
           section: section,
           tags: tags,
           isTopDeal: isTopDeal,
@@ -208,7 +297,15 @@ const ProductUploadDashboard = () => {
             start: new Date(flashSale.start),
             end: new Date(flashSale.end),
             discountPercent: parseFloat(flashSale.discountPercent)
-          } : null
+          } : null,
+          variantTypes: variantTypes,
+          variants: variantsWithImages.map(variant => ({
+            combination: variant.combination,
+            price: parseFloat(variant.price),
+            stock: parseInt(variant.stock),
+            sku: variant.sku,
+            image: variant.image
+          }))
         },
         category: {
           name: category.name,
@@ -235,39 +332,43 @@ const ProductUploadDashboard = () => {
       toast.success("Product uploaded successfully!");
       
       // Reset form after successful submission
-      setProductName('');
-      setPrice(0);
-      setStock(0);
-      setPercentOff(0);
-      setSection('food');
-      setTags([]);
-      setIsTopDeal(false);
-      setIsFeatured(false);
-      setFlashSale({
-        active: false,
-        start: '',
-        end: '',
-        discountPercent: 0
-      });
-      setCategory({
-        name: '',
-        image: null,
-        imagePreview: '',
-        description: '',
-        isNew: true
-      });
-      setDescription('');
-      setProductImages([]);
-      setImagePreviews([]);
-      setSpecifications([]);
-      if (quillInstance.current) {
-        quillInstance.current.root.innerHTML = '';
-      }
+      resetForm();
     } catch (error) {
       toast.error(error.message || "Error uploading product");
       console.error("Error details:", error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const resetForm = () => {
+    setProductName('');
+    setBasePrice(0);
+    setSection('food');
+    setTags([]);
+    setIsTopDeal(false);
+    setIsFeatured(false);
+    setFlashSale({
+      active: false,
+      start: '',
+      end: '',
+      discountPercent: 0
+    });
+    setCategory({
+      name: '',
+      image: null,
+      imagePreview: '',
+      description: '',
+      isNew: true
+    });
+    setDescription('');
+    setProductImages([]);
+    setImagePreviews([]);
+    setSpecifications([]);
+    setVariants([]);
+    setVariantTypes([]);
+    if (quillInstance.current) {
+      quillInstance.current.root.innerHTML = '';
     }
   };
 
@@ -324,38 +425,75 @@ const ProductUploadDashboard = () => {
     });
   };
 
-  // Handle category selection change
-  const handleCategoryChange = (selectedOption, actionMeta) => {
-    if (actionMeta.action === 'create-option') {
-      // Creating a new category
-      setCategory({
-        name: selectedOption.label,
-        image: null,
-        imagePreview: '',
-        description: '',
-        isNew: true
-      });
-    } else if (actionMeta.action === 'select-option') {
-      // Selecting an existing category
-      const selectedCategory = databaseCategories.find(cat => cat.value === selectedOption.value);
-      setCategory({
-        name: selectedOption.label,
-        image: null,
-        imagePreview: selectedCategory.image,
-        description: selectedCategory.description || '',
-        isNew: false
-      });
-    } else if (actionMeta.action === 'clear') {
-      // Clearing the selection
-      setCategory({
-        name: '',
-        image: null,
-        imagePreview: '',
-        description: '',
-        isNew: true
-      });
+  const removeVariantImage = (variantIndex) => {
+    const updatedVariants = [...variants];
+    updatedVariants[variantIndex] = {
+      ...updatedVariants[variantIndex],
+      image: null,
+      imagePreview: ''
+    };
+    setVariants(updatedVariants);
+  };
+
+  // Delete variant
+  const deleteVariant = (variantIndex) => {
+    const updatedVariants = [...variants];
+    updatedVariants.splice(variantIndex, 1);
+    setVariants(updatedVariants);
+  };
+
+  // Variant type management
+  const addVariantType = () => {
+    if (newVariantType.trim() && !variantTypes.find(vt => vt.name === newVariantType.trim())) {
+      setVariantTypes([...variantTypes, { name: newVariantType.trim(), values: [] }]);
+      setNewVariantType('');
     }
   };
+
+  const removeVariantType = (typeIndex) => {
+    const updatedTypes = [...variantTypes];
+    updatedTypes.splice(typeIndex, 1);
+    setVariantTypes(updatedTypes);
+  };
+
+  const addVariantValue = (typeIndex) => {
+    if (newVariantValue.trim() && !variantTypes[typeIndex].values.includes(newVariantValue.trim())) {
+      const updatedTypes = [...variantTypes];
+      updatedTypes[typeIndex].values.push(newVariantValue.trim());
+      setVariantTypes(updatedTypes);
+      setNewVariantValue('');
+    }
+  };
+
+  const removeVariantValue = (typeIndex, valueIndex) => {
+    const updatedTypes = [...variantTypes];
+    updatedTypes[typeIndex].values.splice(valueIndex, 1);
+    setVariantTypes(updatedTypes);
+  };
+
+  // Variant management
+  const updateVariant = (index, field, value) => {
+    const updatedVariants = [...variants];
+    updatedVariants[index][field] = value;
+    
+    // Regenerate SKU if product name or combination changes
+    if (field === 'combination' || (field === 'price' && index === 0)) {
+      updatedVariants[index].sku = generateSKU(updatedVariants[index].combination);
+    }
+    
+    setVariants(updatedVariants);
+  };
+
+  // Update base price and all variants when base price changes
+  useEffect(() => {
+    if (variants.length > 0) {
+      const updatedVariants = variants.map(variant => ({
+        ...variant,
+        price: basePrice
+      }));
+      setVariants(updatedVariants);
+    }
+  }, [basePrice]);
 
   // Specifications management
   const addSpecification = () => {
@@ -388,8 +526,43 @@ const ProductUploadDashboard = () => {
     setTags(updatedTags);
   };
 
+  // Create a component for variant image upload to fix hooks order issue
+  const VariantImageUpload = ({ variant, variantIndex }) => {
+    const { getRootProps: getVariantImageRootProps, getInputProps: getVariantImageInputProps } = useVariantImageDropzone(variantIndex);
+    
+    return (
+      <div className="md:col-span-3">
+        <label className="block text-xs font-medium text-gray-500 mb-1">Variant Image</label>
+        {variant.imagePreview ? (
+          <div className="relative w-20 h-20">
+            <img 
+              src={variant.imagePreview} 
+              alt="Variant preview" 
+              className="w-full h-full object-cover rounded-md border border-gray-200"
+            />
+            <button
+              type="button"
+              onClick={() => removeVariantImage(variantIndex)}
+              className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 transition-colors"
+            >
+              <FaTrash className="w-3 h-3" />
+            </button>
+          </div>
+        ) : (
+          <div 
+            {...getVariantImageRootProps()} 
+            className="border border-dashed border-gray-300 rounded-md p-2 text-center cursor-pointer hover:border-blue-500 transition-colors bg-white"
+          >
+            <input {...getVariantImageInputProps()} />
+            <p className="text-xs text-gray-500">Click to upload</p>
+          </div>
+        )}
+      </div>
+    );
+  };
+
   return (
-    <div className="max-w-6xl mx-auto p-6 bg-white rounded-lg shadow-md">
+    <div className="max-w-7xl mx-auto p-6 bg-white rounded-lg shadow-md">
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Basic Information Section */}
         <div className="bg-gray-50 p-4 rounded-lg">
@@ -406,37 +579,15 @@ const ProductUploadDashboard = () => {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Price*</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Base Price*</label>
               <input
                 type="number"
                 min="0"
                 step="0.01"
-                value={price}
-                onChange={(e) => setPrice(e.target.value)}
+                value={basePrice}
+                onChange={(e) => setBasePrice(e.target.value)}
                 className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 required
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Stock*</label>
-              <input
-                type="number"
-                min="0"
-                value={stock}
-                onChange={(e) => setStock(e.target.value)}
-                className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                required
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Discount Percentage</label>
-              <input
-                type="number"
-                min="0"
-                max="100"
-                value={percentOff}
-                onChange={(e) => setPercentOff(e.target.value)}
-                className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               />
             </div>
             <div>
@@ -454,79 +605,229 @@ const ProductUploadDashboard = () => {
           </div>
         </div>
 
-        {/* Category Section */}
+        {/* Variants Section */}
+        <div className="bg-gray-50 p-4 rounded-lg">
+          <h3 className="text-lg font-semibold mb-4 text-gray-700">Product Variants</h3>
+          
+          {/* Variant Types */}
+          <div className="mb-6">
+            <h4 className="text-md font-medium mb-3 text-gray-700">Variant Types</h4>
+            <div className="space-y-3">
+              {variantTypes.map((type, typeIndex) => (
+                <div key={typeIndex} className="border border-gray-200 rounded-lg p-4 bg-white">
+                  <div className="flex justify-between items-center mb-3">
+                    <span className="font-medium text-gray-700">{type.name}</span>
+                    <button
+                      type="button"
+                      onClick={() => removeVariantType(typeIndex)}
+                      className="text-red-500 hover:text-red-700"
+                    >
+                      <FaTrash className="w-4 h-4" />
+                    </button>
+                  </div>
+                  
+                  <div className="flex items-center mb-2">
+                    <input
+                      type="text"
+                      value={newVariantValue}
+                      onChange={(e) => setNewVariantValue(e.target.value)}
+                      className="flex-1 p-2 border border-gray-300 rounded-md text-sm"
+                      placeholder={`Add ${type.name} value`}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => addVariantValue(typeIndex)}
+                      className="ml-2 px-3 py-2 bg-blue-500 text-white text-sm rounded-md hover:bg-blue-600"
+                    >
+                      Add Value
+                    </button>
+                  </div>
+                  
+                  <div className="flex flex-wrap gap-2">
+                    {type.values.map((value, valueIndex) => (
+                      <span key={valueIndex} className="inline-flex items-center bg-gray-200 px-3 py-1 rounded-full text-sm">
+                        {value}
+                        <button
+                          type="button"
+                          onClick={() => removeVariantValue(typeIndex, valueIndex)}
+                          className="ml-2 text-gray-600 hover:text-red-500"
+                        >
+                          <FaTimes className="w-3 h-3" />
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+            
+            <div className="flex items-center mt-4">
+              <input
+                type="text"
+                value={newVariantType}
+                onChange={(e) => setNewVariantType(e.target.value)}
+                className="flex-1 p-2 border border-gray-300 rounded-md"
+                placeholder="Add variant type (e.g., Color, Size, Storage)"
+              />
+              <button
+                type="button"
+                onClick={addVariantType}
+                className="ml-2 px-4 py-2 bg-green-500 text-white rounded-md hover:bg-green-600"
+              >
+                Add Type
+              </button>
+            </div>
+          </div>
+
+          {/* Generated Variants */}
+          {variants.length > 0 && (
+            <div>
+              <h4 className="text-md font-medium mb-3 text-gray-700">Generated Variants ({variants.length})</h4>
+              <div className="space-y-4 max-h-96 overflow-y-auto">
+                {variants.map((variant, index) => (
+                  <div key={index} className="border border-gray-200 rounded-lg p-4 bg-white relative">
+                    {/* Delete Variant Button */}
+                    <button
+                      type="button"
+                      onClick={() => deleteVariant(index)}
+                      className="absolute top-3 right-3 text-red-500 hover:text-red-700"
+                      title="Delete this variant"
+                    >
+                      <FaTrash className="w-4 h-4" />
+                    </button>
+
+                    <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-start">
+                      {/* Variant Info */}
+                      <div className="md:col-span-4">
+                        <div className="mb-2">
+                          <strong className="text-sm text-gray-700">Combination:</strong>
+                          <div className="flex flex-wrap gap-1 mt-1">
+                            {Object.entries(variant.combination).map(([key, value]) => (
+                              <span key={key} className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs">
+                                {key}: {value}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                        <div className="text-sm text-gray-600">
+                          <div>SKU: {variant.sku}</div>
+                        </div>
+                      </div>
+
+                      {/* Price and Stock */}
+                      <div className="md:col-span-3">
+                        <div className="space-y-2">
+                          <div>
+                            <label className="block text-xs font-medium text-gray-500 mb-1">Price*</label>
+                            <input
+                              type="number"
+                              min="0"
+                              step="0.01"
+                              value={variant.price}
+                              onChange={(e) => updateVariant(index, 'price', e.target.value)}
+                              className="w-full p-2 border border-gray-300 rounded-md text-sm"
+                              required
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-xs font-medium text-gray-500 mb-1">Stock*</label>
+                            <input
+                              type="number"
+                              min="0"
+                              value={variant.stock}
+                              onChange={(e) => updateVariant(index, 'stock', e.target.value)}
+                              className="w-full p-2 border border-gray-300 rounded-md text-sm"
+                              required
+                            />
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Variant Image */}
+                      <VariantImageUpload variant={variant} variantIndex={index} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Category Section - Simplified to text input */}
         <div className="bg-gray-50 p-4 rounded-lg">
           <h3 className="text-lg font-semibold mb-4 text-gray-700">Category Information</h3>
           
           <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700 mb-1">Category*</label>
-            <CreatableSelect
-              options={databaseCategories}
-              onChange={handleCategoryChange}
-              value={category.name ? { label: category.name, value: category.name } : null}
-              isClearable
-              placeholder="Select or create a category..."
-              className="react-select-container"
-              classNamePrefix="react-select"
-              formatCreateLabel={(inputValue) => `Create "${inputValue}"`}
+            <label className="block text-sm font-medium text-gray-700 mb-1">Category Name*</label>
+            <input
+              type="text"
+              value={category.name}
+              onChange={(e) => setCategory({
+                ...category,
+                name: e.target.value,
+                isNew: true // Always treat as new category with text input
+              })}
+              className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              placeholder="Enter category name"
+              required
             />
+            <p className="text-xs text-gray-500 mt-1">
+              Enter the category name. If it doesn't exist, a new category will be created.
+            </p>
           </div>
 
-          {category.isNew && (
-            <>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Category Description (max 50 chars)*
-                    <span className="text-xs text-gray-500 ml-1">
-                      {category.description.length}/50
-                    </span>
-                  </label>
-                  <input
-                    type="text"
-                    value={category.description}
-                    onChange={(e) => {
-                      if (e.target.value.length <= 50) {
-                        setCategory({...category, description: e.target.value})
-                      }
-                    }}
-                    className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    maxLength={50}
-                    required={category.isNew}
-                  />
-                </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Category Description (max 50 chars)*
+                <span className="text-xs text-gray-500 ml-1">
+                  {category.description.length}/50
+                </span>
+              </label>
+              <input
+                type="text"
+                value={category.description}
+                onChange={(e) => {
+                  if (e.target.value.length <= 50) {
+                    setCategory({...category, description: e.target.value})
+                  }
+                }}
+                className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                maxLength={50}
+                required
+                placeholder="Brief description of the category"
+              />
+            </div>
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Category Image*</label>
+            {category.imagePreview ? (
+              <div className="relative w-32 h-32">
+                <img 
+                  src={category.imagePreview} 
+                  alt="Category preview" 
+                  className="w-full h-32 object-cover rounded-md border border-gray-200"
+                />
+                <button
+                  type="button"
+                  onClick={removeCategoryImage}
+                  className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 transition-colors"
+                >
+                  <FaTrash className="w-3 h-3" />
+                </button>
               </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Category Image*</label>
-                {category.imagePreview ? (
-                  <div className="relative w-32 h-32">
-                    <img 
-                      src={category.imagePreview} 
-                      alt="Category preview" 
-                      className="w-full h-full object-cover rounded-md border border-gray-200"
-                    />
-                    <button
-                      type="button"
-                      onClick={removeCategoryImage}
-                      className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 transition-colors"
-                    >
-                      <FaTrash className="w-3 h-3" />
-                    </button>
-                  </div>
-                ) : (
-                  <div 
-                    {...getCategoryImageRootProps()} 
-                    className="border-2 border-dashed border-gray-300 rounded-md p-4 text-center cursor-pointer hover:border-blue-500 transition-colors bg-white"
-                  >
-                    <input {...getCategoryImageInputProps()} />
-                    <p className="text-gray-600">Click to upload category image</p>
-                    <p className="text-sm text-gray-500 mt-1">Single image required</p>
-                  </div>
-                )}
+            ) : (
+              <div 
+                {...getCategoryImageRootProps()} 
+                className="border-2 border-dashed border-gray-300 rounded-md p-4 text-center cursor-pointer hover:border-blue-500 transition-colors bg-white"
+              >
+                <input {...getCategoryImageInputProps()} />
+                <p className="text-gray-600">Click to upload category image</p>
+                <p className="text-sm text-gray-500 mt-1">Single image required</p>
               </div>
-            </>
-          )}
+            )}
+          </div>
         </div>
 
         {/* Product Images Section */}

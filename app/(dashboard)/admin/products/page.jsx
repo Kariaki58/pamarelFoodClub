@@ -110,7 +110,7 @@ const ProductDisplay = () => {
               <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider border-b border-gray-200">Name</th>
               <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider border-b border-gray-200">Description</th>
               <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider border-b border-gray-200">Price (₦)</th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider border-b border-gray-200">Stock</th>
+              {/* <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider border-b border-gray-200">Stock</th> */}
             </tr>
           </thead>
           <tbody>
@@ -129,9 +129,9 @@ const ProductDisplay = () => {
                   {product.description}
                 </td>
                 <td className="px-4 py-3 border-b border-gray-100 font-semibold text-gray-900">
-                  {formatNaira(product.price)}
+                  {formatNaira(product.basePrice)}
                 </td>
-                <td className="px-4 py-3 border-b border-gray-100">
+                {/* <td className="px-4 py-3 border-b border-gray-100">
                   <span className={`px-2 py-1 rounded-full text-xs font-medium ${
                     product.stock > 50 ? 'bg-green-100 text-green-800' : 
                     product.stock > 10 ? 'bg-blue-100 text-blue-800' : 
@@ -139,7 +139,7 @@ const ProductDisplay = () => {
                   }`}>
                     {product.stock} in stock
                   </span>
-                </td>
+                </td> */}
               </tr>
             ))}
           </tbody>

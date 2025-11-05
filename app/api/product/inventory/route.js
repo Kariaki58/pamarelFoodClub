@@ -1,12 +1,10 @@
 import connectToDatabase from "@/lib/dbConnect";
 import Product from "@/models/product";
-import category from "@/models/category";
 import { NextResponse } from "next/server";
 
 export async function GET(request) {
   try {
     await connectToDatabase();
-
 
     const { searchParams } = new URL(request.url);
     const page = parseInt(searchParams.get('page')) || 1;
@@ -32,14 +30,24 @@ export async function GET(request) {
     }
 
     const sort = {};
-    sort[sortBy] = sortOrder === 'desc' ? -1 : 1;
+    // Handle virtual field sorting
+    if (sortBy === 'totalStock') {
+      // For totalStock, we need to sort by the sum of variant stocks
+      // This is a simplified approach - in production you might want to use aggregation
+      sort.basePrice = sortOrder === 'desc' ? -1 : 1; // Fallback sort
+    } else if (sortBy === 'unitsSold') {
+      // For units sold, we need to consider both product.unitsSold and variant unitsSold
+      sort.basePrice = sortOrder === 'desc' ? -1 : 1; // Fallback sort
+    } else {
+      sort[sortBy] = sortOrder === 'desc' ? -1 : 1;
+    }
 
     const [products, totalCount] = await Promise.all([
       Product.find(filter)
         .sort(sort)
         .skip(skip)
         .limit(limit)
-        .populate('category', 'name'), // Populate category name
+        .populate('category', 'name'),
       
       Product.countDocuments(filter)
     ]);

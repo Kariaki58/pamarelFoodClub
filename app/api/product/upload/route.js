@@ -6,7 +6,6 @@ import { NextResponse } from "next/server";
 import Product from "@/models/product";
 import Category from "@/models/category";
 
-
 export async function POST(req) {
     try {
         // Connect to database
@@ -34,7 +33,8 @@ export async function POST(req) {
 
         // Check if category exists or create new one
         let categoryDoc = await Category.findOne({ name: categoryData.name });
-        if (!categoryDoc && categoryData.isNew) {
+        if (!categoryDoc) {
+            // Create new category
             categoryDoc = new Category({
                 name: categoryData.name,
                 slug: categoryData.name.toLowerCase().replace(/ /g, '-'),
@@ -45,9 +45,27 @@ export async function POST(req) {
                 },
             });
             await categoryDoc.save();
-        } else if (!categoryDoc && !categoryData.isNew) {
-            return NextResponse.json({ error: "Category not found" }, { status: 404 });
         }
+
+        // Process product images
+        const productImages = productData.images.map((img, index) => ({
+            url: img,
+            publicId: `product-${Date.now()}-${index}`,
+            isDefault: index === 0,
+            altText: productData.name
+        }));
+
+        // Process variants
+        const processedVariants = productData.variants.map((variant, index) => ({
+            combination: new Map(Object.entries(variant.combination)),
+            price: variant.price,
+            stock: variant.stock,
+            sku: variant.sku || `SKU-${Date.now()}-${index}`,
+            image: variant.image ? {
+                url: variant.image,
+                publicId: `variant-${Date.now()}-${index}`
+            } : undefined
+        }));
 
         // Create the product with all schema fields
         const productDoc = new Product({
@@ -55,22 +73,20 @@ export async function POST(req) {
             slug: productData.name.toLowerCase().replace(/ /g, '-'),
             description: productData.description,
             category: categoryDoc._id,
-            section: productData.section, // Added section field
+            section: productData.section,
             specifications: productData.specifications || [],
-            images: productData.images.map((img, index) => ({
-                url: img,
-                publicId: `product-${Date.now()}-${index}`,
-                isDefault: index === 0,
-                altText: productData.name
-            })),
-            price: productData.price || 0,
-            stock: productData.stock || 0,
-            unitsSold: 0,
-            percentOff: productData.percentOff || 0,
-            tags: productData.tags,
-            isTopDeal: productData.isTopDeal,
-            isFeatured: productData.isFeatured,
-            flashSale: productData.flashSale,
+            images: productImages,
+            basePrice: productData.basePrice || 0,
+            variantTypes: productData.variantTypes || [],
+            variants: processedVariants,
+            tags: productData.tags || [],
+            isTopDeal: productData.isTopDeal || false,
+            isFeatured: productData.isFeatured || false,
+            flashSale: productData.flashSale ? {
+                start: new Date(productData.flashSale.start),
+                end: new Date(productData.flashSale.end),
+                discountPercent: productData.flashSale.discountPercent
+            } : undefined,
             rating: 0,
             numReviews: 0,
             metadata: {
@@ -81,14 +97,75 @@ export async function POST(req) {
 
         await productDoc.save();
 
+        // Populate the category in the response
+        await productDoc.populate('category');
+
         return NextResponse.json({
             success: true,
+            message: "Product uploaded successfully",
             product: productDoc,
             category: categoryDoc
         }, { status: 201 });
 
     } catch (error) {
         console.error("Product upload error:", error);
+        
+        // Handle duplicate key errors (unique slug or SKU)
+        if (error.code === 11000) {
+            const field = Object.keys(error.keyPattern)[0];
+            return NextResponse.json(
+                { error: `A product with this ${field} already exists` },
+                { status: 400 }
+            );
+        }
+        
+        // Handle validation errors
+        if (error.name === 'ValidationError') {
+            const errors = Object.values(error.errors).map(err => err.message);
+            return NextResponse.json(
+                { error: "Validation failed", details: errors },
+                { status: 400 }
+            );
+        }
+
+        return NextResponse.json(
+            { error: error.message || "Something went wrong" },
+            { status: 500 }
+        );
+    }
+}
+
+// GET endpoint to fetch products (optional, for testing)
+export async function GET(req) {
+    try {
+        await connectToDatabase();
+
+        const { searchParams } = new URL(req.url);
+        const page = parseInt(searchParams.get('page')) || 1;
+        const limit = parseInt(searchParams.get('limit')) || 10;
+        const skip = (page - 1) * limit;
+
+        const products = await Product.find()
+            .populate('category')
+            .sort({ createdAt: -1 })
+            .skip(skip)
+            .limit(limit);
+
+        const total = await Product.countDocuments();
+
+        return NextResponse.json({
+            success: true,
+            products,
+            pagination: {
+                page,
+                limit,
+                total,
+                pages: Math.ceil(total / limit)
+            }
+        });
+
+    } catch (error) {
+        console.error("Get products error:", error);
         return NextResponse.json(
             { error: error.message || "Something went wrong" },
             { status: 500 }

@@ -39,8 +39,39 @@ export default function InventoryDashboard() {
   const [productToDelete, setProductToDelete] = useState(null);
   const [categories, setCategories] = useState([]);
 
+  const router = useRouter();
 
-  const router = useRouter()
+  // Calculate product metrics based on variants
+  const calculateProductMetrics = (product) => {
+    const hasVariants = product.variants && product.variants.length > 0;
+    
+    // Price range
+    const minPrice = hasVariants ? product.minPrice : product.basePrice;
+    const maxPrice = hasVariants ? product.maxPrice : product.basePrice;
+    
+    // Total stock
+    const totalStock = hasVariants ? product.totalStock : product.stock || 0;
+    
+    // Total units sold (sum of all variants if available)
+    const totalUnitsSold = hasVariants 
+      ? product.variants.reduce((sum, variant) => sum + (variant.unitsSold || 0), 0)
+      : product.unitsSold || 0;
+    
+    // Total revenue
+    const totalRevenue = hasVariants
+      ? product.variants.reduce((sum, variant) => sum + (variant.price * (variant.unitsSold || 0)), 0)
+      : (product.basePrice || product.price || 0) * totalUnitsSold;
+
+    return {
+      minPrice,
+      maxPrice,
+      totalStock,
+      totalUnitsSold,
+      totalRevenue,
+      hasVariants,
+      variantCount: hasVariants ? product.variants.length : 0
+    };
+  };
 
   // Fetch products from API
   const fetchProducts = async () => {
@@ -89,7 +120,6 @@ export default function InventoryDashboard() {
     }
   };
 
-
   // Initial load and check mobile status
   useEffect(() => {
     fetchProducts();
@@ -109,13 +139,24 @@ export default function InventoryDashboard() {
     fetchProducts();
   }, [currentPage, searchQuery, sortOption, filterOption]);
 
-
   // Calculate summary metrics
   const summaryMetrics = {
     totalProducts: totalCount,
-    totalRevenue: products.reduce((sum, product) => sum + (product.price * product.unitsSold), 0),
-    totalUnitsSold: products.reduce((sum, product) => sum + product.unitsSold, 0),
-    totalOutOfStock: products.filter(product => product.stock <= 0).length
+    totalRevenue: products.reduce((sum, product) => {
+      const metrics = calculateProductMetrics(product);
+      return sum + metrics.totalRevenue;
+    }, 0),
+    totalUnitsSold: products.reduce((sum, product) => {
+      const metrics = calculateProductMetrics(product);
+      return sum + metrics.totalUnitsSold;
+    }, 0),
+    totalOutOfStock: products.filter(product => {
+      const metrics = calculateProductMetrics(product);
+      return metrics.totalStock <= 0;
+    }).length,
+    productsWithVariants: products.filter(product => 
+      product.variants && product.variants.length > 0
+    ).length
   };
 
   // Generate pagination items with ellipsis
@@ -150,8 +191,7 @@ export default function InventoryDashboard() {
   // Edit product
   const handleEdit = (product) => {
     setEditingProduct({...product});
-    router.push(`/admin/products/edit/${product._id}`)
-    // toast.success(`Editing ${product.name}`);
+    router.push(`/admin/products/edit/${product._id}`);
   };
 
   // Delete product confirmation
@@ -182,6 +222,22 @@ export default function InventoryDashboard() {
     }
   };
 
+  // Display price range for products with variants
+  const displayPrice = (product) => {
+    const metrics = calculateProductMetrics(product);
+    if (metrics.hasVariants && metrics.minPrice !== metrics.maxPrice) {
+      return `${formatNaira(metrics.minPrice)} - ${formatNaira(metrics.maxPrice)}`;
+    }
+    return formatNaira(metrics.minPrice);
+  };
+
+  // Display stock status
+  const getStockStatus = (product) => {
+    const metrics = calculateProductMetrics(product);
+    if (metrics.totalStock > 10) return { status: 'In Stock', class: 'bg-green-100 text-green-800' };
+    if (metrics.totalStock > 0) return { status: 'Low Stock', class: 'bg-yellow-100 text-yellow-800' };
+    return { status: 'Out of Stock', class: 'bg-red-100 text-red-800' };
+  };
   return (
     <div className="min-h-screen bg-gray-50 p-4 md:p-8 overflow-x-hidden">
       <div className="max-w-7xl mx-auto w-full">
@@ -195,7 +251,7 @@ export default function InventoryDashboard() {
         </div>
         
         {/* Summary Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
           {/* Total Products */}
           <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-100">
             <div className="flex items-center">
@@ -206,6 +262,21 @@ export default function InventoryDashboard() {
                 <p className="text-sm text-gray-500">Total Products</p>
                 <p className="text-2xl font-semibold truncate max-w-full break-words">
                   {summaryMetrics.totalProducts}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Products with Variants */}
+          <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-100">
+            <div className="flex items-center">
+              <div className="p-3 rounded-full bg-blue-50 text-blue-600">
+                <FiPackage size={20} />
+              </div>
+              <div className="ml-4">
+                <p className="text-sm text-gray-500">With Variants</p>
+                <p className="text-2xl font-semibold truncate max-w-full break-words">
+                  {summaryMetrics.productsWithVariants}
                 </p>
               </div>
             </div>
@@ -297,8 +368,8 @@ export default function InventoryDashboard() {
               >
                 <option value="createdAt">Date Uploaded</option>
                 <option value="unitsSold">Highest Selling</option>
-                <option value="stock">Lowest Stock</option>
-                <option value="price">Price</option>
+                <option value="totalStock">Lowest Stock</option>
+                <option value="basePrice">Base Price</option>
                 <option value="name">Name</option>
               </select>
             </div>
@@ -315,77 +386,83 @@ export default function InventoryDashboard() {
             {isMobile ? (
               // Mobile Cards View
               <div className="grid grid-cols-1 gap-4 mb-8">
-                {products.map((product) => (
-                  <div key={product._id} className="bg-white p-4 rounded-lg shadow-sm border border-gray-100 overflow-hidden">
-                    <div className="flex flex-col sm:flex-row gap-4">
-                      <div className="flex-shrink-0">
-                        <img 
-                          src={product.images?.find(img => img.isDefault)?.url || '/placeholder-product.jpg'} 
-                          alt={product.name} 
-                          className="h-20 w-20 rounded-md object-cover"
-                        />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex justify-between items-start">
-                          <div className="min-w-0">
-                            <h3 className="font-medium text-gray-900 truncate">{product.name}</h3>
-                            <p className="text-sm text-gray-500 truncate">{product.category?.name}</p>
-                          </div>
-                          <span className={`px-2 py-1 text-xs rounded-full flex-shrink-0 ${
-                            product.stock > 10 ? 'bg-green-100 text-green-800' :
-                            product.stock > 0 ? 'bg-yellow-100 text-yellow-800' :
-                            'bg-red-100 text-red-800'
-                          }`}>
-                            {product.stock > 10 ? 'In Stock' : product.stock > 0 ? 'Low Stock' : 'Out of Stock'}
-                          </span>
+                {products.map((product) => {
+                  const metrics = calculateProductMetrics(product);
+                  const stockStatus = getStockStatus(product);
+                  
+                  return (
+                    <div key={product._id} className="bg-white p-4 rounded-lg shadow-sm border border-gray-100 overflow-hidden">
+                      <div className="flex flex-col sm:flex-row gap-4">
+                        <div className="flex-shrink-0">
+                          <img 
+                            src={product.images?.find(img => img.isDefault)?.url || '/placeholder-product.jpg'} 
+                            alt={product.name} 
+                            className="h-20 w-20 rounded-md object-cover"
+                          />
                         </div>
-                        <div className="mt-2 grid grid-cols-2 gap-2 text-sm">
-                          <div>
-                            <p className="text-xs text-gray-400">Price</p>
-                            <p className="font-semibold truncate">{formatNaira(product.price)}</p>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex justify-between items-start">
+                            <div className="min-w-0">
+                              <h3 className="font-medium text-gray-900 truncate">{product.name}</h3>
+                              <p className="text-sm text-gray-500 truncate">{product.category?.name}</p>
+                              {metrics.hasVariants && (
+                                <p className="text-xs text-blue-600 mt-1">
+                                  {metrics.variantCount} variants
+                                </p>
+                              )}
+                            </div>
+                            <span className={`px-2 py-1 text-xs rounded-full flex-shrink-0 ${stockStatus.class}`}>
+                              {stockStatus.status}
+                            </span>
                           </div>
-                          <div>
-                            <p className="text-xs text-gray-400">Uploaded</p>
-                            <p className="truncate">
-                              {new Date(product.createdAt).toLocaleDateString()}
-                            </p>
+                          <div className="mt-2 grid grid-cols-2 gap-2 text-sm">
+                            <div>
+                              <p className="text-xs text-gray-400">Price</p>
+                              <p className="font-semibold truncate">{displayPrice(product)}</p>
+                            </div>
+                            <div>
+                              <p className="text-xs text-gray-400">Uploaded</p>
+                              <p className="truncate">
+                                {new Date(product.createdAt).toLocaleDateString()}
+                              </p>
+                            </div>
+                            <div>
+                              <p className="text-xs text-gray-400">Sold</p>
+                              <p>{metrics.totalUnitsSold.toLocaleString()}</p>
+                            </div>
+                            <div>
+                              <p className="text-xs text-gray-400">Stock</p>
+                              <p>{metrics.totalStock.toLocaleString()}</p>
+                            </div>
                           </div>
-                          <div>
-                            <p className="text-xs text-gray-400">Sold</p>
-                            <p>{product.unitsSold?.toLocaleString() || '0'}</p>
-                          </div>
-                          <div>
-                            <p className="text-xs text-gray-400">Stock</p>
-                            <p>{product.stock?.toLocaleString() || '0'}</p>
-                          </div>
-                        </div>
-                        
-                        <div className="mt-3 flex justify-between items-center">
-                          <div>
-                            <p className="text-xs text-gray-400">Revenue</p>
-                            <p className="font-medium truncate">
-                              {formatNaira(product.price * (product.unitsSold || 0))}
-                            </p>
-                          </div>
-                          <div className="flex space-x-2">
-                            <button 
-                              onClick={() => handleEdit(product)}
-                              className="p-2 text-yellow-600 hover:bg-yellow-50 rounded-full"
-                            >
-                              <FiEdit2 size={16} />
-                            </button>
-                            <button 
-                              onClick={() => confirmDelete(product)}
-                              className="p-2 text-red-600 hover:bg-red-50 rounded-full"
-                            >
-                              <FiTrash2 size={16} />
-                            </button>
+                          
+                          <div className="mt-3 flex justify-between items-center">
+                            <div>
+                              <p className="text-xs text-gray-400">Revenue</p>
+                              <p className="font-medium truncate">
+                                {formatNaira(metrics.totalRevenue)}
+                              </p>
+                            </div>
+                            <div className="flex space-x-2">
+                              <button 
+                                onClick={() => handleEdit(product)}
+                                className="p-2 text-yellow-600 hover:bg-yellow-50 rounded-full"
+                              >
+                                <FiEdit2 size={16} />
+                              </button>
+                              <button 
+                                onClick={() => confirmDelete(product)}
+                                className="p-2 text-red-600 hover:bg-red-50 rounded-full"
+                              >
+                                <FiTrash2 size={16} />
+                              </button>
+                            </div>
                           </div>
                         </div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             ) : (
               // Desktop Table View
@@ -396,6 +473,7 @@ export default function InventoryDashboard() {
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Product</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Price</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Variants</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Uploaded</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Sold</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Stock</th>
@@ -405,63 +483,78 @@ export default function InventoryDashboard() {
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
-                    {products.map((product) => (
-                      <tr key={product._id} className="hover:bg-gray-50">
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="flex items-center">
-                            <img 
-                              src={product.images?.find(img => img.isDefault)?.url || '/placeholder-product.jpg'} 
-                              alt={product.name} 
-                              className="h-10 w-10 rounded-md object-cover mr-3"
-                            />
-                            <div className="font-medium text-gray-900">{product.name}</div>
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {product.category?.name}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold">
-                          {formatNaira(product.price)}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {new Date(product.createdAt).toLocaleDateString()}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {product.unitsSold?.toLocaleString() || '0'}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {product.stock?.toLocaleString() || '0'}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold">
-                          {formatNaira(product.price * (product.unitsSold || 0))}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span className={`px-2 py-1 text-xs rounded-full ${
-                            product.stock > 10 ? 'bg-green-100 text-green-800' :
-                            product.stock > 0 ? 'bg-yellow-100 text-yellow-800' :
-                            'bg-red-100 text-red-800'
-                          }`}>
-                            {product.stock > 10 ? 'In Stock' : product.stock > 0 ? 'Low Stock' : 'Out of Stock'}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                          <div className="flex space-x-2">
-                            <button
-                              onClick={() => handleEdit(product)}
-                              className="text-yellow-600 hover:text-yellow-900"
-                            >
-                              <FiEdit2 className="h-5 w-5" />
-                            </button>
-                            <button
-                              onClick={() => confirmDelete(product)}
-                              className="text-red-600 hover:text-red-900"
-                            >
-                              <FiTrash2 className="h-5 w-5" />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
+                    {products.map((product) => {
+                      const metrics = calculateProductMetrics(product);
+                      const stockStatus = getStockStatus(product);
+                      
+                      return (
+                        <tr key={product._id} className="hover:bg-gray-50">
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="flex items-center">
+                              <img 
+                                src={product.images?.find(img => img.isDefault)?.url || '/placeholder-product.jpg'} 
+                                alt={product.name} 
+                                className="h-10 w-10 rounded-md object-cover mr-3"
+                              />
+                              <div>
+                                <div className="font-medium text-gray-900">{product.name}</div>
+                                {product.section && (
+                                  <div className="text-xs text-gray-500 capitalize">{product.section}</div>
+                                )}
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            {product.category?.name}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold">
+                            {displayPrice(product)}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            {metrics.hasVariants ? (
+                              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-blue-100 text-blue-800">
+                                {metrics.variantCount} variants
+                              </span>
+                            ) : (
+                              <span className="text-gray-400">—</span>
+                            )}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            {new Date(product.createdAt).toLocaleDateString()}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            {metrics.totalUnitsSold.toLocaleString()}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            {metrics.totalStock.toLocaleString()}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold">
+                            {formatNaira(metrics.totalRevenue)}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <span className={`px-2 py-1 text-xs rounded-full ${stockStatus.class}`}>
+                              {stockStatus.status}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                            <div className="flex space-x-2">
+                              <button
+                                onClick={() => handleEdit(product)}
+                                className="text-yellow-600 hover:text-yellow-900"
+                              >
+                                <FiEdit2 className="h-5 w-5" />
+                              </button>
+                              <button
+                                onClick={() => confirmDelete(product)}
+                                className="text-red-600 hover:text-red-900"
+                              >
+                                <FiTrash2 className="h-5 w-5" />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
