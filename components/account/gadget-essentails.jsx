@@ -4,6 +4,12 @@ import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 
+
+const formatPrice = (price) => {
+  return price.toLocaleString('en-NG');
+};
+
+
 export function GadgetEssentails() {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -143,9 +149,9 @@ export function GadgetEssentails() {
                         {product.name}
                       </h3>
                       
-                      <p className="text-gray-600 text-sm mb-4 line-clamp-2">
+                      {/* <p className="text-gray-600 text-sm mb-4 line-clamp-2">
                         {product.description}
-                      </p>
+                      </p> */}
 
                       {/* Price and Rating */}
                       <div className="flex items-center justify-between mb-4">
@@ -153,15 +159,15 @@ export function GadgetEssentails() {
                           {flashSaleActive ? (
                             <>
                               <span className="text-xl font-bold text-yellow-600">
-                                ${discountedPrice.toFixed(2)}
+                                ₦{formatPrice(discountedPrice)}
                               </span>
                               <span className="text-sm text-gray-500 line-through">
-                                ${product.price.toFixed(2)}
+                                ₦{formatPrice(product.price)}
                               </span>
                             </>
                           ) : (
                             <span className="text-xl font-bold text-gray-900">
-                              ${product.price.toFixed(2)}
+                              ₦{formatPrice(product.price)}
                             </span>
                           )}
                         </div>
@@ -181,7 +187,7 @@ export function GadgetEssentails() {
                       </div>
 
                       {/* Stock and Sales Info */}
-                      <div className="flex justify-between text-xs text-gray-500 mb-4">
+                      <div className="flex justify-between text-xs text-gray-500">
                         <span>
                           {product.stock > 0 ? (
                             <span className="text-green-600">✓ In Stock</span>
@@ -189,32 +195,7 @@ export function GadgetEssentails() {
                             <span className="text-red-600">✗ Out of Stock</span>
                           )}
                         </span>
-                        <span>{product.numberSold || 0} sold</span>
-                      </div>
-
-                      {/* Quick Actions */}
-                      <div className="flex space-x-2">
-                        <button 
-                          onClick={(e) => {
-                            e.preventDefault();
-                            // Add to cart logic
-                            console.log('Add to cart:', product._id);
-                          }}
-                          disabled={product.stock === 0}
-                          className="flex-1 bg-yellow-500 hover:bg-yellow-600 disabled:bg-gray-300 text-white py-2 px-4 rounded-lg text-sm font-semibold transition-colors duration-200 text-center"
-                        >
-                          {product.stock > 0 ? 'Add to Cart' : 'Out of Stock'}
-                        </button>
-                        <button 
-                          onClick={(e) => {
-                            e.preventDefault();
-                            // Quick view logic
-                            console.log('Quick view:', product._id);
-                          }}
-                          className="bg-gray-100 hover:bg-gray-200 text-gray-600 p-2 rounded-lg transition-colors duration-200"
-                        >
-                          👁️
-                        </button>
+                        {/* <span>{product.numberSold || 0} sold</span> */}
                       </div>
                     </div>
                   </div>
@@ -227,7 +208,7 @@ export function GadgetEssentails() {
         {/* View More Button */}
         <div className="text-center mt-12">
           <Link 
-            href="/products?section=gadget"
+            href="/category"
             className="inline-flex items-center px-8 py-3 border-2 border-yellow-500 text-base font-bold rounded-lg text-yellow-600 hover:bg-yellow-500 hover:text-white transition-all duration-200 group"
           >
             Explore More Gadgets

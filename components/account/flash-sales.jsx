@@ -4,6 +4,12 @@ import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 
+
+const formatPrice = (price) => {
+  return price.toLocaleString('en-NG');
+};
+
+
 export function FlashSales() {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -213,14 +219,14 @@ export function FlashSales() {
                       <div className="flex items-center justify-between mb-3">
                         <div className="flex items-center space-x-2">
                           <span className="text-xl font-bold text-yellow-600">
-                            ${discountedPrice.toFixed(2)}
+                            ₦{formatPrice(discountedPrice)}
                           </span>
                           <span className="text-sm text-gray-500 line-through">
-                            ${product.price.toFixed(2)}
+                            ₦{formatPrice(product.price)}
                           </span>
                         </div>
                         <div className="text-xs text-green-600 font-semibold">
-                          Save ${savings.toFixed(2)}
+                          Save ₦{formatPrice(savings)}
                         </div>
                       </div>
 
@@ -229,19 +235,6 @@ export function FlashSales() {
                         <span>Sold: {product.numberSold}</span>
                         <span>Available: {product.stock}</span>
                       </div>
-
-                      {/* Add to Cart Button */}
-                      <button 
-                        onClick={(e) => {
-                          e.preventDefault();
-                          // Add to cart logic here
-                          console.log('Add to cart:', product._id);
-                        }}
-                        className="w-full bg-yellow-500 hover:bg-yellow-600 text-white py-3 rounded-lg font-semibold transition-colors duration-200 flex items-center justify-center space-x-2"
-                      >
-                        <span>🛒</span>
-                        <span>Add to Cart</span>
-                      </button>
                     </div>
                   </div>
                 </Link>
@@ -254,7 +247,7 @@ export function FlashSales() {
         {products.length > 0 && (
           <div className="text-center mt-12">
             <Link 
-              href="/products?filter=flash-sales"
+              href="/category"
               className="inline-flex items-center px-8 py-4 border-2 border-yellow-500 text-lg font-bold rounded-lg text-yellow-600 hover:bg-yellow-500 hover:text-white transition-all duration-200"
             >
               View All Flash Sales

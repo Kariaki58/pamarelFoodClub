@@ -4,6 +4,12 @@ import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 
+
+const formatPrice = (price) => {
+  return price.toLocaleString('en-NG');
+};
+
+
 export default function FoodEnssentails() {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -168,7 +174,7 @@ export default function FoodEnssentails() {
 
             return (
               <div key={product._id} className="group">
-                <Link href={`/products/${product.slug}`}>
+                <Link href={`/product/${product._id}`}>
                   <div className="bg-white rounded-xl shadow-lg overflow-hidden group-hover:shadow-xl transition-all duration-300 border-2 border-green-100">
                     {/* Product Image */}
                     <div className="relative h-64 bg-gray-100">
@@ -244,9 +250,9 @@ export default function FoodEnssentails() {
                         {product.name}
                       </h3>
                       
-                      <p className="text-gray-600 text-sm mb-4 line-clamp-2">
+                      {/* <p className="text-gray-600 text-sm mb-4 line-clamp-2">
                         {product.description}
-                      </p>
+                      </p> */}
 
                       {/* Price */}
                       <div className="flex items-center justify-between mb-3">
@@ -254,21 +260,21 @@ export default function FoodEnssentails() {
                           {flashSaleActive ? (
                             <>
                               <span className="text-xl font-bold text-green-600">
-                                ${discountedPrice.toFixed(2)}
+                                ₦{formatPrice(discountedPrice)}
                               </span>
                               <span className="text-sm text-gray-500 line-through">
-                                ${product.price.toFixed(2)}
+                                ₦{formatPrice(product.price)}
                               </span>
                             </>
                           ) : (
                             <span className="text-xl font-bold text-gray-900">
-                              ${product.price.toFixed(2)}
+                              ₦{formatPrice(product.price)}
                             </span>
                           )}
                         </div>
                         {flashSaleActive && (
                           <div className="text-xs text-red-600 font-semibold">
-                            Save ${savings.toFixed(2)}
+                            Save ₦{formatPrice(savings)}
                           </div>
                         )}
                       </div>
@@ -287,7 +293,7 @@ export default function FoodEnssentails() {
                       )}
 
                       {/* Stock and Sales Info */}
-                      <div className="flex justify-between text-xs text-gray-500 mb-4">
+                      <div className="flex justify-between text-xs text-gray-500">
                         <span>
                           {product.stock > 0 ? (
                             <span className="text-green-600">✓ In Stock</span>
@@ -295,22 +301,7 @@ export default function FoodEnssentails() {
                             <span className="text-red-600">✗ Out of Stock</span>
                           )}
                         </span>
-                        <span>{product.numberSold || 0} sold</span>
                       </div>
-
-                      {/* Add to Cart Button */}
-                      <button 
-                        onClick={(e) => {
-                          e.preventDefault();
-                          // Add to cart logic here
-                          console.log('Add to cart:', product._id);
-                        }}
-                        disabled={product.stock === 0}
-                        className="w-full bg-green-500 hover:bg-green-600 disabled:bg-gray-300 text-white py-3 rounded-lg font-semibold transition-colors duration-200 flex items-center justify-center space-x-2"
-                      >
-                        <span>🛒</span>
-                        <span>{product.stock > 0 ? 'Add to Cart' : 'Out of Stock'}</span>
-                      </button>
                     </div>
                   </div>
                 </Link>
@@ -323,8 +314,8 @@ export default function FoodEnssentails() {
         {products.length > 0 && (
           <div className="text-center mt-12">
             <Link 
-              href="/products?section=food"
-              className="inline-flex items-center px-8 py-4 border-2 border-green-500 text-lg font-bold rounded-lg text-green-600 hover:bg-green-500 hover:text-white transition-all duration-200 group"
+              href="/category"
+              className="inline-flex items-center px-8 py-4 border-2 border-green-500 text-base font-bold rounded-lg text-green-600 hover:bg-green-500 hover:text-white transition-all duration-200 group"
             >
               Explore More Food
               <svg 

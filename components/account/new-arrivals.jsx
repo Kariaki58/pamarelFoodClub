@@ -4,6 +4,11 @@ import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 
+const formatPrice = (price) => {
+  return price.toLocaleString('en-NG');
+};
+
+
 export function NewArrivals() {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -73,7 +78,7 @@ export function NewArrivals() {
           <h2 className="text-3xl font-bold text-gray-900 mb-2">New Arrivals</h2>
           <p className="text-gray-600 mb-8">Discover our latest products</p>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-8">
             {products.map((product) => {
               const flashSaleActive = isFlashSaleActive(product);
               const discountedPrice = calculateDiscountedPrice(product);
@@ -126,15 +131,15 @@ export function NewArrivals() {
                             {flashSaleActive ? (
                               <>
                                 <span className="text-lg font-bold text-yellow-600">
-                                  ${discountedPrice.toFixed(2)}
+                                  ₦{formatPrice(discountedPrice)}
                                 </span>
                                 <span className="text-sm text-gray-500 line-through">
-                                  ${product.price.toFixed(2)}
+                                  ₦{formatPrice(product.price)}
                                 </span>
                               </>
                             ) : (
                               <span className="text-lg font-bold text-gray-900">
-                                ${product.price.toFixed(2)}
+                                ₦{formatPrice(product.price)}
                               </span>
                             )}
                           </div>
