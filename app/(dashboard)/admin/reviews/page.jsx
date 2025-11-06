@@ -170,11 +170,11 @@ export default function ReviewAdminDashboard() {
                   <div key={review.id} className="bg-white p-4 rounded-lg shadow-sm border border-gray-100">
                     <div className="flex justify-between items-start mb-3">
                       <div className="flex items-center space-x-3">
-                        <img 
+                        {/* <img 
                           src={review.product.image} 
                           alt={review.product.name} 
                           className="h-12 w-12 rounded-md object-cover"
-                        />
+                        /> */}
                         <div>
                           <h3 className="font-medium text-gray-900">{review.product.name}</h3>
                           <p className="text-sm text-gray-500">{review.user.name}</p>
@@ -231,11 +231,11 @@ export default function ReviewAdminDashboard() {
                       <tr key={review.id} className="hover:bg-gray-50">
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="flex items-center">
-                            <img 
+                            {/* <img 
                               src={review.product.image} 
                               alt={review.product.name} 
                               className="h-10 w-10 rounded-md object-cover mr-3"
-                            />
+                            /> */}
                             <div className="font-medium text-gray-900">{review.product.name}</div>
                           </div>
                         </td>
