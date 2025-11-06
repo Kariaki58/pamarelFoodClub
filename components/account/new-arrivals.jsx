@@ -78,7 +78,7 @@ export function NewArrivals() {
           <h2 className="text-3xl font-bold text-gray-900 mb-2">New Arrivals</h2>
           <p className="text-gray-600 mb-8">Discover our latest products</p>
           
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
             {products.map((product) => {
               const flashSaleActive = isFlashSaleActive(product);
               const discountedPrice = calculateDiscountedPrice(product);

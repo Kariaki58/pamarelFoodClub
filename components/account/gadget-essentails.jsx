@@ -99,7 +99,7 @@ export function GadgetEssentails() {
             
             return (
               <div key={product._id || index} className="group">
-                <Link href={`/products/${product.slug}`}>
+                <Link href={`/product/${product._id}`}>
                   <div className="bg-white rounded-xl shadow-md overflow-hidden group-hover:shadow-xl transition-all duration-300 border border-gray-100">
                     {/* Product Image */}
                     <div className="relative h-64 bg-gray-100">

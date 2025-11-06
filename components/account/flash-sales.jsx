@@ -150,7 +150,7 @@ export function FlashSales() {
         </div>
 
         {/* Products Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
           {products.map((product) => {
             const discountedPrice = calculateDiscountedPrice(product);
             const timeLeft = calculateTimeLeft(product.flashSale.endDate);
@@ -158,7 +158,7 @@ export function FlashSales() {
 
             return (
               <div key={product._id} className="group">
-                <Link href={`/products/${product.slug}`}>
+                <Link href={`/products/${product._id}`}>
                   <div className="bg-white rounded-xl shadow-lg overflow-hidden group-hover:shadow-xl transition-all duration-300 border-2 border-yellow-200">
                     {/* Product Image */}
                     <div className="relative h-64 bg-gray-100">
