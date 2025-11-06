@@ -122,6 +122,11 @@ const data = {
       // badge: 24,
     },
     {
+      title: "Shipping",
+      url: "/admin/shipping",
+      icon: IconSettings,
+    },
+    {
       title: "Customers",
       url: "/admin/customers",
       icon: IconUsers,

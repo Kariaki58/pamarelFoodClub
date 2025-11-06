@@ -43,7 +43,7 @@ const PamarelLandingPage = () => {
                     Discover fresh groceries, organic produce, and gourmet foods at unbeatable prices.
                   </p>
                   <Link
-                    href="/market?hub=food"
+                    href="/market#food"
                     className="inline-block px-6 py-2 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg transition-all"
                   >
                     Shop Now
@@ -68,7 +68,7 @@ const PamarelLandingPage = () => {
                   <p className="text-gray-600 mb-6">
                     Latest tech gadgets, electronics, and accessories with exclusive member discounts.
                   </p>
-                  <Link href="/market?hub=gadget" className="inline-block px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-all">
+                  <Link href="/market#gadget" className="inline-block px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-all">
                     Explore Gadgets
                   </Link>
                 </div>
