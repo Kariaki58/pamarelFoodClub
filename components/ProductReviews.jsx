@@ -5,7 +5,6 @@ import { Star } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
-
 export function ProductReviews({ productId }) {
     const [reviews, setReviews] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -16,7 +15,9 @@ export function ProductReviews({ productId }) {
             try {
                 const response = await fetch(`/api/reviews/product/${productId}`);
                 const data = await response.json();
-                
+
+                console.log({ data });
+
                 if (data.success) {
                     setReviews(data.reviews);
                 } else {
@@ -33,11 +34,11 @@ export function ProductReviews({ productId }) {
     }, [productId]);
 
     const toggleExpandReview = (id) => {
-        if (expandedReviews.includes(id)) {
-            setExpandedReviews(expandedReviews.filter(reviewId => reviewId !== id));
-        } else {
-            setExpandedReviews([...expandedReviews, id]);
-        }
+        setExpandedReviews((prev) =>
+            prev.includes(id)
+                ? prev.filter((reviewId) => reviewId !== id)
+                : [...prev, id]
+        );
     };
 
     if (loading) {
@@ -47,41 +48,58 @@ export function ProductReviews({ productId }) {
     return (
         <div className="mt-8">
             <h3 className="text-xl font-semibold mb-4">Customer Reviews</h3>
-            
+
             {reviews.length === 0 ? (
                 <p className="text-muted-foreground">No reviews yet. Be the first to review!</p>
             ) : (
                 <div className="space-y-6">
                     {reviews.map((review) => (
                         <div key={review._id} className="border-b pb-4">
-                            <div className="flex items-center gap-2 mb-2">
+                            {/* Top row — stars, user name, and date */}
+                            <div className="flex flex-wrap items-center gap-2 mb-2">
                                 <div className="flex">
                                     {[...Array(5)].map((_, i) => (
                                         <Star
                                             key={i}
                                             className={cn(
                                                 "h-5 w-5",
-                                                i < review.rating ? 'text-yellow-400 fill-yellow-400' : 'text-gray-300'
+                                                i < review.rating
+                                                    ? 'text-yellow-400 fill-yellow-400'
+                                                    : 'text-gray-300'
                                             )}
                                         />
                                     ))}
                                 </div>
+
                                 <span className="text-sm text-muted-foreground">
-                                    {new Date(review.createdAt).toLocaleDateString()}
+                                    • {new Date(review.createdAt).toLocaleDateString()}
                                 </span>
+
+                                {review.user && (
+                                    <span className="text-sm font-medium text-gray-700 ml-auto">
+                                        {review.user.name || "Anonymous"}
+                                    </span>
+                                )}
                             </div>
-                            
-                            <p className={expandedReviews.includes(review._id) ? '' : 'line-clamp-3'}>
+
+                            {/* Review comment */}
+                            <p className={cn(
+                                "text-gray-800",
+                                expandedReviews.includes(review._id) ? '' : 'line-clamp-3'
+                            )}>
                                 {review.comment}
                             </p>
-                            
-                            {review.comment.length > 200 && (
+
+                            {/* Read more / less toggle */}
+                            {review.comment?.length > 200 && (
                                 <Button
                                     variant="link"
                                     className="p-0 h-auto text-sm"
                                     onClick={() => toggleExpandReview(review._id)}
                                 >
-                                    {expandedReviews.includes(review._id) ? 'Show less' : 'Read more'}
+                                    {expandedReviews.includes(review._id)
+                                        ? 'Show less'
+                                        : 'Read more'}
                                 </Button>
                             )}
                         </div>

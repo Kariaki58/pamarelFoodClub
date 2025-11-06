@@ -3,7 +3,7 @@ import { authOptions } from "../../auth/options";
 import connectToDatabase from "@/lib/dbConnect";
 import Order from "@/models/order";
 import Review from "@/models/Review";
-
+import Product from "@/models/product";
 
 export async function POST(req) {
   const session = await getServerSession(authOptions);
@@ -17,6 +17,9 @@ export async function POST(req) {
 
   try {
     const { orderId, itemId, productId, rating, comment } = await req.json();
+
+
+    console.log({ orderId, itemId, productId, rating, comment })
 
     // Validate input
     if (!orderId || !itemId || !productId || !rating) {
@@ -35,12 +38,17 @@ export async function POST(req) {
       orderStatus: 'delivered'
     });
 
+    console.log("passed line 41")
+
     if (!order) {
       return new Response(JSON.stringify({
         success: false,
         message: "Order not found or not delivered"
       }), { status: 404 });
     }
+
+    console.log("passed line 50")
+
 
     // Find the specific item in the order
     const orderItem = order.items.id(itemId);
@@ -50,6 +58,8 @@ export async function POST(req) {
         message: "Item not found in order"
       }), { status: 404 });
     }
+    console.log("passed line 61")
+
 
     // Check if already reviewed
     if (orderItem.isReviewed) {
@@ -58,6 +68,9 @@ export async function POST(req) {
         message: "This item has already been reviewed"
       }), { status: 400 });
     }
+
+    console.log("passed line 72")
+
 
     // Create the review
     const review = new Review({
@@ -71,9 +84,16 @@ export async function POST(req) {
 
     await review.save();
 
+    console.log("passed line 87")
+
+
     // Mark item as reviewed
     orderItem.isReviewed = true;
     await order.save();
+
+
+    console.log("passed line 95")
+
 
     return new Response(JSON.stringify({
       success: true,

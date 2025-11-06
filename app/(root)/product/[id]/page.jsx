@@ -18,6 +18,7 @@ import {
   Check,
   ArrowRight
 } from 'lucide-react';
+import { ProductReviews } from '@/components/ProductReviews';
 
 // Utility function to format currency
 const formatCurrency = (amount) => {
@@ -208,7 +209,6 @@ export default function ProductPage() {
   const [quantity, setQuantity] = useState(1);
   const [selectedVariants, setSelectedVariants] = useState({});
   const [activeTab, setActiveTab] = useState('description');
-  const [isWishlisted, setIsWishlisted] = useState(false);
 
   const { addItem, getItemQuantity } = useCartStore();
 
@@ -265,12 +265,6 @@ export default function ProductPage() {
     if (newQuantity >= 1 && newQuantity <= (product?.stock || 10)) {
       setQuantity(newQuantity);
     }
-  };
-
-  // Toggle wishlist
-  const toggleWishlist = () => {
-    setIsWishlisted(!isWishlisted);
-    // Implement wishlist functionality here
   };
 
   const handleAddToCart = () => {
@@ -365,7 +359,7 @@ export default function ProductPage() {
             </h1>
 
             {/* Ratings */}
-            <div className="flex items-center gap-4">
+            {/* <div className="flex items-center gap-4">
               <div className="flex items-center gap-2">
                 <div className="flex items-center gap-1">
                   {[1, 2, 3, 4, 5].map((star) => (
@@ -387,7 +381,7 @@ export default function ProductPage() {
               <span className="text-gray-600">
                 {product.ratings.count} reviews
               </span>
-            </div>
+            </div> */}
 
             {/* Price Section */}
             <div className="space-y-2">
@@ -591,8 +585,7 @@ export default function ProductPage() {
                 <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
                   <Star className="w-8 h-8 text-gray-400" />
                 </div>
-                <h3 className="text-xl font-semibold text-gray-900 mb-2">No Reviews Yet</h3>
-                <p className="text-gray-600">Be the first to review this product!</p>
+                <ProductReviews productId={productId}/>
               </div>
             )}
           </div>
