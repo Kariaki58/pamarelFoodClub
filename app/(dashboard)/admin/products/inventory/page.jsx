@@ -511,7 +511,7 @@ export default function InventoryDashboard() {
         </div>
 
         {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
           <div className="bg-white rounded-lg shadow p-6">
             <div className="flex items-center">
               <div className="p-2 bg-blue-50 rounded-lg">
@@ -536,7 +536,7 @@ export default function InventoryDashboard() {
             </div>
           </div>
 
-          <div className="bg-white rounded-lg shadow p-6">
+          {/* <div className="bg-white rounded-lg shadow p-6">
             <div className="flex items-center">
               <div className="p-2 bg-purple-50 rounded-lg">
                 <TrendingUp className="w-6 h-6 text-purple-600" />
@@ -546,7 +546,7 @@ export default function InventoryDashboard() {
                 <p className="text-2xl font-bold text-gray-900">{formatNumber(stats.totalSold)}</p>
               </div>
             </div>
-          </div>
+          </div> */}
 
           <div className="bg-white rounded-lg shadow p-6">
             <div className="flex items-center">
