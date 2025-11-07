@@ -511,7 +511,7 @@ export default function InventoryDashboard() {
         </div>
 
         {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
           <div className="bg-white rounded-lg shadow p-6">
             <div className="flex items-center">
               <div className="p-2 bg-blue-50 rounded-lg">
@@ -548,7 +548,7 @@ export default function InventoryDashboard() {
             </div>
           </div> */}
 
-          <div className="bg-white rounded-lg shadow p-6">
+          {/* <div className="bg-white rounded-lg shadow p-6">
             <div className="flex items-center">
               <div className="p-2 bg-yellow-50 rounded-lg">
                 <DollarSign className="w-6 h-6 text-yellow-600" />
@@ -558,7 +558,7 @@ export default function InventoryDashboard() {
                 <p className="text-2xl font-bold text-gray-900">{formatCurrency(stats.totalRevenue)}</p>
               </div>
             </div>
-          </div>
+          </div> */}
         </div>
 
         {/* Filters and Search */}
