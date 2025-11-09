@@ -54,7 +54,7 @@ export async function POST(request) {
     }
 
     const user = new User({
-      username,
+      username: username.trim(),
       email,
       phone,
       password: hashedPassword,

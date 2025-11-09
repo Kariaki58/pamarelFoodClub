@@ -28,6 +28,10 @@ export const authOptions = {
             throw new Error('your account is not yet activated please contact support.');
           }
 
+          if (user.status === "suspended") {
+            throw new Error("your account has been suspended, please contact support.")
+          }
+
           // 3. Verify password
           const isValid = await bcrypt.compare(credentials.password, user.password);
 
