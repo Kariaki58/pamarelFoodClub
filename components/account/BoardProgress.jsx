@@ -174,6 +174,7 @@ export default function BoardProgress({ userData, checkBoardProgress }) {
                     {getCurrentCounts(activeTab).current1} of {getCurrentCounts(activeTab).required1} completed
                   </p>
                   
+                  
                   <p className="mt-4">{getBoardRequirements(activeTab).requirements2}</p>
                   <div className="w-full bg-gray-200 rounded-full h-4 mt-2">
                     <div 

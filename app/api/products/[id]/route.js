@@ -94,6 +94,13 @@ export async function PUT(req, { params }) {
       );
     }
 
+    if (body.sellingPrice !== undefined && body.sellingPrice < 0) {
+      return NextResponse.json(
+        { error: "Selling Price must be a positive number" },
+        { status: 400 }
+      );
+    }
+
     if (body.stock !== undefined && body.stock < 0) {
       return NextResponse.json(
         { error: "Stock must be a positive number" },

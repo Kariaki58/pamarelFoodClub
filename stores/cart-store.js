@@ -28,7 +28,7 @@ export const useCartStore = create(
           const newItem = {
             id: product._id,
             name: product.name,
-            price: product.price,
+            price: product.sellingPrice,
             discountedPrice: product.discountedPrice || null,
             image: product.images[0],
             quantity,

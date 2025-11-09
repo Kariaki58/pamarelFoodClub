@@ -179,6 +179,7 @@ function EditProductModal({ product, isOpen, onClose, onUpdate }) {
         description: product.description || '',
         price: product.price || '',
         stock: product.stock || '',
+        sellingPrice: product.sellingPrice,
         featured: product.featured || false,
         tags: product.tags || [],
         flashSale: product.flashSale || {
@@ -275,6 +276,20 @@ function EditProductModal({ product, isOpen, onClose, onUpdate }) {
                 step="0.01"
                 value={formData.price}
                 onChange={(e) => setFormData(prev => ({ ...prev, price: e.target.value }))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Selling Price (₦) *
+              </label>
+              <input
+                type="number"
+                required
+                min="0"
+                step="0.01"
+                value={formData.sellingPrice}
+                onChange={(e) => setFormData(prev => ({ ...prev, sellingPrice: e.target.value }))}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500"
               />
             </div>
@@ -708,6 +723,9 @@ export default function InventoryDashboard() {
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm font-medium text-gray-900">
                           {formatCurrency(product.price)}
+                        </div>
+                        <div className="text-sm font-medium text-gray-900">
+                          {formatCurrency(product.sellingPrice)}
                         </div>
                         {flashSaleActive && (
                           <div className="text-sm text-red-600">

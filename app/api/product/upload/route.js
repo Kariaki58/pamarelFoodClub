@@ -46,7 +46,7 @@ export async function POST(req) {
     const body = await req.json();
 
     // Validate required fields
-    const requiredFields = ['name', 'section', 'category', 'price', 'images'];
+    const requiredFields = ['name', 'section', 'category', 'price', 'images', "discountPercentage"];
     const missingFields = requiredFields.filter(field => !body[field]);
 
     if (missingFields.length > 0) {
@@ -143,6 +143,7 @@ export async function POST(req) {
       section: body.section,
       category: body.category,
       price: parseFloat(body.price),
+      sellingPrice: body.price * (1 - body.discountPercentage / 100),
       slug: createSlug(body.name.trim()),
       images: body.images,
       stock: body.stock ? parseInt(body.stock) : 0,

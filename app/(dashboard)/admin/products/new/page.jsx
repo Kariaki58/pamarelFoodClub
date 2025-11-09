@@ -46,6 +46,7 @@ export default function UploadNewProduct() {
   const [currentTag, setCurrentTag] = useState('');
   const [currentVariant, setCurrentVariant] = useState({ name: '', options: [] });
   const [currentOption, setCurrentOption] = useState('');
+  const [Productdiscount, setProductDiscout] = useState(0)
   const [newCategory, setNewCategory] = useState({
     name: '',
     image: null,
@@ -354,6 +355,7 @@ export default function UploadNewProduct() {
         name: formData.name,
         description: formData.description,
         section: formData.section,
+        discountPercentage: Productdiscount,
         category: formData.category, // This should now have the correct category ID
         price: formData.price,
         images: formData.images,
@@ -400,6 +402,7 @@ export default function UploadNewProduct() {
           },
           tags: []
         });
+        setProductDiscout(0)
       } else {
         alert(data.error || 'Failed to upload product');
       }
@@ -456,6 +459,7 @@ export default function UploadNewProduct() {
                   <option value="gadget">Gadget</option>
                 </select>
               </div>
+              
 
               {/* Category Selection - Same as before */}
               <div className="md:col-span-2">
@@ -674,6 +678,22 @@ export default function UploadNewProduct() {
                     min="0"
                     value={formData.stock}
                     onChange={(e) => setFormData(prev => ({ ...prev, stock: e.target.value }))}
+                    className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
+                    placeholder="Enter stock quantity"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Percentage Off
+                </label>
+                <div className="relative">
+                  <Package className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                  <input
+                    type="number"
+                    min="0"
+                    value={Productdiscount}
+                    onChange={(e) => setProductDiscout(e.target.value)}
                     className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
                     placeholder="Enter stock quantity"
                   />

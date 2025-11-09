@@ -13,6 +13,7 @@ import {
   List
 } from 'lucide-react'
 import Link from 'next/link'
+import { formatPrice } from '@/lib/utils'
 
 // Mock product data - replace with actual API call
 const mockProducts = [
@@ -91,7 +92,7 @@ const ProductCard = ({ product }) => {
           </h3>
         </div>
 
-        <div className="flex items-center gap-1 mb-2">
+        {/* <div className="flex items-center gap-1 mb-2">
           {[1, 2, 3, 4, 5].map((star) => (
             <Star
               key={star}
@@ -105,7 +106,7 @@ const ProductCard = ({ product }) => {
           <span className="text-xs text-gray-500 ml-1">
             ({product.ratings.count})
           </span>
-        </div>
+        </div> */}
 
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -119,9 +120,14 @@ const ProductCard = ({ product }) => {
                 </span>
               </>
             ) : (
-              <span className="text-lg font-bold text-gray-900">
-                ₦{product.price.toLocaleString()}
-              </span>
+              <>
+                <span className="text-xl font-bold text-green-600">
+                  ₦{formatPrice(product.sellingPrice)}
+                </span>
+                <span className="text-sm text-gray-500 line-through">
+                  ₦{formatPrice(product.price)}
+                </span>
+              </>
             )}
           </div>
         </div>

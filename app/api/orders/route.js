@@ -96,7 +96,7 @@ export async function POST(req) {
     const orderItems = items.map((item) => ({
       product: item.product,
       name: item.name,
-      price: item.price || item.discountedPrice,
+      price: item.sellingPrice || item.discountedPrice,
       quantity: item.quantity,
       imageUrl: item.image || item.imageUrl || '',
       selectedVariants: item.selectedVariants || {},

@@ -17,6 +17,7 @@ const FlashSaleSchema = new Schema({
 const ProductSchema = new Schema({
   name: { type: String, required: true, trim: true },
   description: { type: String, trim: true },
+  sellingPrice: { type: Number, required: true, min: 0 },
   section: { 
     type: String, 
     enum: ["food", "gadget"], 

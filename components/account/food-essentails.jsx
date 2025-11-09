@@ -267,9 +267,17 @@ export default function FoodEnssentails() {
                               </span>
                             </>
                           ) : (
-                            <span className="text-xl font-bold text-gray-900">
-                              ₦{formatPrice(product.price)}
-                            </span>
+                            <>
+                              <span className="text-xl font-bold text-green-600">
+                                ₦{formatPrice(product.sellingPrice)}
+                              </span>
+                              <span className="text-sm text-gray-500 line-through">
+                                ₦{formatPrice(product.price)}
+                              </span>
+                            </>
+                            // <span className="text-xl font-bold text-gray-900">
+                            //   ₦{formatPrice(product.sellingPrice)}
+                            // </span>
                           )}
                         </div>
                         {flashSaleActive && (

@@ -183,9 +183,14 @@ const RelatedProducts = ({ products, currentProductId }) => {
                       </span>
                     </>
                   ) : (
-                    <span className="text-lg font-bold text-gray-900">
-                      {formatCurrency(product.price)}
-                    </span>
+                    <>
+                      <span className="text-xl font-bold text-green-600">
+                        ₦{formatCurrency(product.sellingPrice)}
+                      </span>
+                      <span className="text-sm text-gray-500 line-through">
+                        ₦{formatCurrency(product.price)}
+                      </span>
+                    </>
                   )}
                 </div>
               </div>
@@ -386,11 +391,21 @@ export default function ProductPage() {
             {/* Price Section */}
             <div className="space-y-2">
               <div className="flex items-center gap-3">
-                <span className={`text-3xl font-bold ${
+                {/* <span className={`text-3xl font-bold ${
                   product.isFlashSaleActive ? 'text-red-600' : 'text-gray-900'
                 }`}>
                   {formatCurrency(product.discountedPrice || product.price)}
-                </span>
+                </span> */}
+                <>
+                  <span className={`text-3xl font-bold ${
+                  product.isFlashSaleActive ? 'text-red-600' : 'text-gray-900'
+                }`}>
+                    {formatCurrency(product.sellingPrice)}
+                  </span>
+                  <span className="text-sm text-gray-500 line-through">
+                    {formatCurrency(product.price)}
+                  </span>
+                </>
                 
                 {product.isFlashSaleActive && (
                   <>
