@@ -91,12 +91,12 @@ const PamarelLandingPage = () => {
 
                 <div className="space-y-6">
                   <div className="bg-white p-6 rounded-xl shadow-lg border-l-4 border-yellow-400">
-                    <h3 className="text-2xl font-bold mb-3 text-gray-800">Become a Stockist or pickup Centre</h3>
+                    <h3 className="text-2xl font-bold mb-3 text-gray-800">Become a Stockist or Pickup Centre</h3>
                     <p className="text-gray-600 mb-4">
                       Partner with us to distribute products in your area and earn additional income.
                     </p>
                     <p>
-                      <strong>Note: Only available to deluxe plan members</strong>
+                      <strong>Note: Only available to deluxe Plan members</strong>
                     </p>
                     <Link href="/apply-stockist" className="inline-block px-6 py-2 bg-gray-800 hover:bg-gray-900 text-white font-medium rounded-lg transition-all">
                       Apply Here

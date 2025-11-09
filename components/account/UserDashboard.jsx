@@ -1,11 +1,16 @@
 'use client';
 import { useState, useEffect } from 'react';
 import BoardProgress from './BoardProgress';
+import { Check, Copy } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+
 
 export default function UserDashboard({ userId }) {
   const [userData, setUserData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [copied, setCopied] = useState(false);
+
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -56,6 +61,12 @@ export default function UserDashboard({ userId }) {
     }
   };
 
+  const handleCopy = () => {
+    navigator.clipboard.writeText(userData.referralCode);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000); // revert after 2s
+  };
+
   if (loading) return <div>Loading...</div>;
   if (error) return <div>Error: {error}</div>;
   if (!userData) return <div>No user data found</div>;
@@ -70,9 +81,41 @@ export default function UserDashboard({ userId }) {
           <p className="text-xl">{userData.currentBoard}</p>
         </div>
         
-        <div className="bg-white p-4 rounded shadow">
-          <h3 className="font-semibold">Referral Code</h3>
-          <p className="text-xl">{userData.referralCode}</p>
+        <div className="bg-white p-4 rounded shadow flex items-center justify-between">
+          <div>
+            <h3 className="font-semibold">Referral Code</h3>
+            <p className="text-xl font-mono tracking-wide">{userData.referralCode}</p>
+          </div>
+
+          <button
+            onClick={handleCopy}
+            className="ml-4 p-2 rounded-full bg-blue-500 hover:bg-blue-600 text-white transition-colors relative"
+            aria-label="Copy referral code"
+          >
+            <AnimatePresence mode="wait" initial={false}>
+              {copied ? (
+                <motion.span
+                  key="check"
+                  initial={{ scale: 0.5, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  exit={{ scale: 0.5, opacity: 0 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  <Check size={20} />
+                </motion.span>
+              ) : (
+                <motion.span
+                  key="copy"
+                  initial={{ scale: 0.5, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  exit={{ scale: 0.5, opacity: 0 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  <Copy size={20} />
+                </motion.span>
+              )}
+            </AnimatePresence>
+          </button>
         </div>
         
         <div className="bg-white p-4 rounded shadow">

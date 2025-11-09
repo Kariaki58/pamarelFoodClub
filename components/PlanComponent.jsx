@@ -86,6 +86,8 @@ export default function PlanComponent({ planType }) {
     );
   }
 
+  console.log(plan.boards)
+
   
 
   return (
@@ -218,9 +220,10 @@ export default function PlanComponent({ planType }) {
                     <div className="mb-5">
                       <h4 className="text-sm font-semibold text-gray-500 uppercase tracking-wider">Requirements</h4>
                       <p className="mt-1 text-gray-700 font-medium">{board.requirements1}</p>
-                      {board.requirement2 && (
-                        <p className="mt-1 text-gray-700 font-medium">{board.requirement2}</p>
-                      )}
+
+                      {/* {board.requirement2 && ( */}
+                        <p className="mt-1 text-gray-700 font-medium">{board.requirements2}</p>
+                      {/* )} */}
                     </div>
                     
                     <div>
