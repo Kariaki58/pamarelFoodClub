@@ -133,7 +133,7 @@ export default function ContactPage() {
                 </div>
                 <div>
                   <h3 className="font-semibold text-gray-800">Phone</h3>
-                  <p className="text-gray-600">08106042246</p>
+                  <p className="text-gray-600">09040498445</p>
                 </div>
               </div>
 

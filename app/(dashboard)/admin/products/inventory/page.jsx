@@ -19,6 +19,7 @@ import {
   Loader2,
   ShoppingCart
 } from 'lucide-react';
+import useRouter from "next/navigation"
 
 // View Product Modal Component
 function ViewProductModal({ product, isOpen, onClose }) {
@@ -331,6 +332,7 @@ function EditProductModal({ product, isOpen, onClose, onUpdate }) {
 export default function InventoryDashboard() {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const router = useRouter()
   const [stats, setStats] = useState({
     totalProducts: 0,
     activeProducts: 0,
@@ -851,7 +853,9 @@ export default function InventoryDashboard() {
                 : 'Get started by adding your first product.'
               }
             </p>
-            <button className="px-4 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 focus:outline-none focus:ring-2 focus:ring-yellow-500">
+            <button onClick={() => {
+              router.push("/admin/products/new")
+            }} className="px-4 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 focus:outline-none focus:ring-2 focus:ring-yellow-500">
               <Plus className="w-4 h-4 inline mr-2" />
               Add Product
             </button>
