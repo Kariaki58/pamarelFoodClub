@@ -122,35 +122,37 @@ export default function JoinMember() {
                     </div>
                     <div className="p-4 sm:p-6 bg-green-800">
                       <h3 className="text-sm sm:text-base font-bold text-gray-50">Basic</h3>
-                      <p className="text-xs sm:text-sm text-gray-50 font-medium mt-1">₦8,700</p>
+                      <p className="text-xs sm:text-sm text-gray-50 font-medium mt-1">₦1,250</p>
                     </div>
                     <div className="p-4 sm:p-6 bg-purple-800">
                       <h3 className="text-sm sm:text-base font-bold text-gray-50">Classic</h3>
-                      <p className="text-xs sm:text-sm text-gray-50 font-medium mt-1">₦88,000</p>
+                      <p className="text-xs sm:text-sm text-gray-50 font-medium mt-1">₦12,500</p>
                     </div>
                     <div className="p-4 sm:text-sm sm:p-6 bg-gray-800 text-white">
                       <h3 className="text-sm sm:text-base font-bold">Deluxe</h3>
-                      <p className="text-xs sm:text-sm text-gray-300 font-medium mt-1">₦200,000</p>
+                      <p className="text-xs sm:text-sm text-gray-300 font-medium mt-1">₦170,000</p>
                     </div>
                   </div>
 
                   {/* Comparison Rows */}
                   {[
-                    { feature: "Registration Fee", basic: "₦8,700", classic: "₦88,000", premium: "₦200,000" },
-                    { feature: "Max Earnings", basic: "₦14M", classic: "₦40M", premium: "₦120M" },
-                    { feature: "Bronze Board Earnings", basic: "₦20,000", classic: "₦200,000", premium: "₦400,000" },
-                    { feature: "Silver Board Earnings", basic: "₦200,000", classic: "₦2,000,000", premium: "₦5,000,000" },
-                    { feature: "Gold Board Earnings", basic: "₦14,000,000", classic: "₦40,000,000", premium: "₦120,000,000" },
+                    { feature: "Registration Fee", basic: "₦1,250", classic: "₦12,500", premium: "₦170,000" },
+                    { feature: "Total Gold Board Earnings", basic: "₦2.5M", classic: "₦20M", premium: "₦120M" },
+                    { feature: "Bronze Board Earnings", basic: "Foody Bag + Bonus", classic: "₦30,000 Foody Bag", premium: "₦300,000 Total" },
+                    { feature: "Silver Board Earnings", basic: "₦27,000 Total", classic: "₦280K-300K Total", premium: "₦4.4M Total" },
+                    { feature: "Gold Board Earnings", basic: "₦2.5M Total", classic: "₦20M Total", premium: "₦120M Total" },
                     { feature: "Food Wallet", basic: "✓", classic: "✓", premium: "✓" },
                     { feature: "Cash Wallet", basic: "✓", classic: "✓", premium: "✓" },
                     { feature: "Gadget Wallet", basic: "✓", classic: "✓", premium: "✓" },
-                    { feature: "Arising Leader Bonus", basic: "✓", classic: "✓", premium: "✓" },
-                    { feature: "Car Incentive", basic: "✓", classic: "✓", premium: "✓" },
+                    { feature: "Arising Leader Bonus", basic: "₦1,000 Cash", classic: "₦20,000 Foody Bag", premium: "₦87,500 Cash" },
+                    { feature: "Car Incentive", basic: "✗", classic: "₦10M Car", premium: "₦20M Car" },
                     { feature: "Travel Incentive", basic: "✗", classic: "African Trip", premium: "International Trip" },
-                    { feature: "Health Insurance", basic: "✓", classic: "✓", premium: "✓" },
-                    { feature: "Housing Support", basic: "✗", classic: "✗", premium: "✓" },
-                    { feature: "CSR Donation", basic: "✓", classic: "✓", premium: "✓" },
+                    { feature: "Health Insurance", basic: "✗", classic: "₦1M Coverage", premium: "✓" },
+                    { feature: "Housing Support", basic: "✗", classic: "✗", premium: "₦40M Support" },
+                    { feature: "CSR Donation", basic: "₦1,000", classic: "₦10,000", premium: "₦100,000" },
+                    { feature: "HSF Project", basic: "₦500,000", classic: "₦1,000,000", premium: "₦5,000,000" },
                     { feature: "Automatic Upgrade", basic: "→ Classic", classic: "→ Deluxe", premium: "✗" },
+                    { feature: "Requirements", basic: "7 people per level", classic: "7 people per level", premium: "7 people per level" },
                   ].map((row, index) => (
                     <div key={index} className="grid grid-cols-4 min-w-full border-t border-gray-200 hover:bg-gray-50 transition-colors">
                       <div className="p-3 sm:p-4 bg-gray-50 sticky left-0 z-10">
@@ -198,6 +200,10 @@ export default function JoinMember() {
               <div className="flex items-center">
                 <span className="mr-2">M</span>
                 <span>Million</span>
+              </div>
+              <div className="flex items-center">
+                <span className="mr-2">K</span>
+                <span>Thousand</span>
               </div>
               <div className="flex items-center">
                 <span className="mr-2">→</span>
