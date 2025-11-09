@@ -19,7 +19,7 @@ import {
   Loader2,
   ShoppingCart
 } from 'lucide-react';
-import useRouter from "next/navigation"
+import { useRouter } from 'next/navigation';
 
 // View Product Modal Component
 function ViewProductModal({ product, isOpen, onClose }) {
