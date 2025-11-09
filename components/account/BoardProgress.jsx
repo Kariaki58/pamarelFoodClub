@@ -170,21 +170,22 @@ export default function BoardProgress({ userData, checkBoardProgress }) {
                       style={{ width: `${Math.min(100, getCurrentCounts(activeTab).current1 / getCurrentCounts(activeTab).required1 * 100)}%` }}
                     ></div>
                   </div>
-                  <p className="text-sm mt-1">
+                  {/* <p className="text-sm mt-1">
                     {getCurrentCounts(activeTab).current1} of {getCurrentCounts(activeTab).required1} completed
                   </p>
+                   */}
                   
-                  
-                  <p className="mt-4">{getBoardRequirements(activeTab).requirements2}</p>
+                  <p className='mt-4'>7 x 7 (49) people</p>
+                  {/* <p className="mt-4">{getBoardRequirements(activeTab).requirements2}</p> */}
                   <div className="w-full bg-gray-200 rounded-full h-4 mt-2">
                     <div 
                       className="bg-yellow-500 h-4 rounded-full" 
                       style={{ width: `${Math.min(100, getCurrentCounts(activeTab).current2 / getCurrentCounts(activeTab).required2 * 100)}%` }}
                     ></div>
                   </div>
-                  <p className="text-sm mt-1">
+                  {/* <p className="text-sm mt-1">
                     {getCurrentCounts(activeTab).current2} of {getCurrentCounts(activeTab).required2} completed
-                  </p>
+                  </p> */}
                 </div>
               )}
               
