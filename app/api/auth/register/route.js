@@ -10,9 +10,7 @@ export async function POST(request) {
     const { username, email, phone, password, referralCode, planType } = await request.json();
 
     // Check if user already exists
-    const existingUser = await User.findOne({
-      $or: [{ email }, { username }]
-    });
+    const existingUser = await User.findOne({ username });
 
     console.log({ existingUser })
 

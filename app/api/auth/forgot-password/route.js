@@ -5,18 +5,18 @@ import User from "@/models/user";
 
 export async function POST(request) {
   try {
-    const { email, token } = await request.json();
+    const { username, token } = await request.json();
 
-    if (!email || !token) {
+    if (!username || !token) {
       return NextResponse.json(
-        { success: false, message: "Email and token are required" },
+        { success: false, message: "Username and token are required" },
         { status: 400 }
       );
     }
 
     await connectToDatabase();
 
-    const user = await User.findOne({ email });
+    const user = await User.findOne({ username });
 
     if (!user) {
       // Return generic success to avoid revealing registered emails
