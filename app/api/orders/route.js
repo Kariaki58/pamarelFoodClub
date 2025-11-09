@@ -125,9 +125,13 @@ export async function POST(req) {
     // ✅ Reduce product stock
     for (const item of items) {
       await Product.findByIdAndUpdate(item.product, {
-        $inc: { stock: -item.quantity },
-      })
+        $inc: {
+          stock: -item.quantity,
+          numberSold: item.quantity, // increment numberSold by quantity sold
+        },
+      });
     }
+
 
     return NextResponse.json(
       { message: 'Order created successfully', order },
