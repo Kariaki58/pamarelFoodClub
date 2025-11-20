@@ -4,6 +4,7 @@ import Product from "@/models/product";
 import { getServerSession } from "next-auth";
 import { authOptions } from "../../auth/options";
 import User from "@/models/user";
+import category from "@/models/category";
 
 
 export async function GET(req, { params }) {

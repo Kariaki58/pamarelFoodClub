@@ -33,7 +33,7 @@ export async function POST(req) {
         // Get bank name
         const banksResponse = await fetch('https://api.flutterwave.com/v3/banks/NG', {
             headers: {
-                'Authorization': `Bearer ${process.env.FLUTTERWAVE_SECRET_KEY}`,
+                'Authorization': `Bearer ${process.env.FLUTTERWAVE_SECRET_KEY_LIVE}`,
                 'Content-Type': 'application/json'
             }
         });
@@ -67,7 +67,7 @@ export async function POST(req) {
         const transferResponse = await fetch('https://api.flutterwave.com/v3/transfers', {
             method: 'POST',
             headers: {
-                'Authorization': `Bearer ${process.env.FLUTTERWAVE_SECRET_KEY}`,
+                'Authorization': `Bearer ${process.env.FLUTTERWAVE_SECRET_KEY_LIVE}`,
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({
@@ -83,6 +83,8 @@ export async function POST(req) {
         });
 
         const transferData = await transferResponse.json();
+
+        console.log({ transferData })
 
         if (transferData.status !== 'success') {
             return NextResponse.json({

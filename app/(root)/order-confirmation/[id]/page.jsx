@@ -3,7 +3,9 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/app/api/auth/options';
 import connectToDatabase from '@/lib/dbConnect';
 import Order from '@/models/order';
+import User from '@/models/user';
 import { formatPrice } from '@/lib/utils';
+import Link from 'next/link';
 
 
 export default async function OrderConfirmation({ params }) {
@@ -93,7 +95,11 @@ export default async function OrderConfirmation({ params }) {
             </div>
           </div>
         </div>
+        <Link href="/category" className="mt-6 inline-block bg-primary text-white px-6 py-3 rounded-md hover:bg-primary/90">
+          Continue Shopping
+        </Link>
       </div>
+
     </div>
   );
 }

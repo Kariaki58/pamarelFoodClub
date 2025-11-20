@@ -17,7 +17,7 @@ export default function MarketHub() {
             <NewArrivals />
             <FlashSales />
             <GadgetEssentails />
-            <FoodEnssentails />
+            {/* <FoodEnssentails /> */}
         </div>
     )
 }

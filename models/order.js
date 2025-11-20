@@ -26,13 +26,11 @@ const orderItemSchema = new mongoose.Schema({
     type: Boolean,
     default: false
   },
-  // Add selected variants to store the chosen options
   selectedVariants: {
     type: Map,
     of: String,
     default: {}
   },
-  // Optional: Store the variant SKU if available
   variantSku: {
     type: String
   }
@@ -49,14 +47,41 @@ const shippingInfoSchema = new mongoose.Schema({
   },
   address: {
     type: String,
-    required: true
+    // Not required for pickup orders
   },
   city: {
     type: String,
-    required: true
+    // Not required for pickup orders
   },
   zip: {
     type: String,
+  }
+});
+
+const pickupInfoSchema = new mongoose.Schema({
+  centerId: {
+    type: String,
+    required: true
+  },
+  centerName: {
+    type: String,
+    required: true
+  },
+  centerAddress: {
+    type: String,
+    required: true
+  },
+  phone: {
+    type: String,
+    required: true
+  },
+  hours: {
+    type: String,
+    default: 'Mon-Sat: 9am - 5pm'
+  },
+  daysOpen: {
+    type: String,
+    default: 'Monday - Saturday'
   }
 });
 
@@ -67,6 +92,7 @@ const orderSchema = new mongoose.Schema({
     required: true
   },
   shippingInfo: shippingInfoSchema,
+  pickupInfo: pickupInfoSchema, // New field for pickup orders
   items: [orderItemSchema],
   reviewId: {
     type: mongoose.Schema.Types.ObjectId,
@@ -79,7 +105,7 @@ const orderSchema = new mongoose.Schema({
   deliveryMethod: {
     type: String,
     required: true,
-    enum: ['standard', 'express']
+    enum: ['standard', 'express', 'pickup'] // Added 'pickup'
   },
   deliveryPrice: {
     type: Number,
@@ -108,7 +134,7 @@ const orderSchema = new mongoose.Schema({
   orderStatus: {
     type: String,
     required: true,
-    enum: ['processing', 'shipped', 'delivered', 'cancelled'],
+    enum: ['processing', 'shipped', 'delivered', 'cancelled', 'ready_for_pickup'], // Added 'ready_for_pickup'
     default: 'processing'
   },
   walletBalanceUsed: {
