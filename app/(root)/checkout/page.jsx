@@ -254,7 +254,6 @@ export default function CheckoutPage() {
       const orderData = {
         shippingInfo: {
           ...formData,
-          // For pickup orders, include pickup center info
           ...(deliveryMethod === 'pickup' && {
             pickupCenter: selectedPickupCenter,
             pickupCenterName: pickupCenters.find(center => center.id === selectedPickupCenter)?.name,

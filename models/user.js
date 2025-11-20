@@ -1,5 +1,32 @@
 import mongoose from 'mongoose';
 
+const boardProgressSchema = new mongoose.Schema({
+  boardType: {
+    type: String,
+    enum: ['bronze', 'silver', 'gold', 'platinum'],
+    required: true
+  },
+  directReferrals: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
+  }],
+  indirectReferrals: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
+  }],
+  completed: {
+    type: Boolean,
+    default: false
+  },
+  completionDate: Date,
+  rewardsClaimed: {
+    type: Boolean,
+    default: false
+  },
+  claimedOption: String,
+  claimedAt: Date
+});
+
 const userSchema = new mongoose.Schema({
   username: {
     type: String,
@@ -43,53 +70,37 @@ const userSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
   },
+  currentPlan: {
+    type: String,
+    enum: ['basic', 'classic', 'deluxe']
+  },
+  plan: { // Legacy field for backward compatibility
+    type: String,
+    enum: ['basic', 'classic', 'deluxe']
+  },
   currentBoard: {
     type: String,
-    enum: ['Bronze', 'Silver', 'Gold', 'Completed'],
-    default: 'Bronze'
+    enum: ['bronze', 'silver', 'gold', 'platinum'],
+    default: 'bronze',
+    set: function(value) {
+      // Convert to lowercase during assignment
+      return value ? value.toLowerCase() : 'bronze';
+    }
   },
-  boardProgress: {
-    Bronze: {
-      directReferrals: [{
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'User'
-      }],
-      completed: {
-        type: Boolean,
-        default: false
-      },
-      completionDate: Date
+  boardProgress: [boardProgressSchema],
+  wallets: {
+    food: {
+      type: Number,
+      default: 0
     },
-    Silver: {
-      level1Referrals: [{
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'User'
-      }],
-      level2Referrals: [{
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'User'
-      }],
-      completed: {
-        type: Boolean,
-        default: false
-      },
-      completionDate: Date
+    gadget: {
+      type: Number,
+      default: 0
     },
-    Gold: {
-      level3Referrals: [{
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'User'
-      }],
-      level4Referrals: [{
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'User'
-      }],
-      completed: {
-        type: Boolean,
-        default: false
-      },
-      completionDate: Date
-    },
+    cash: {
+      type: Number,
+      default: 0
+    }
   },
   earnings: {
     foodWallet: {
@@ -105,15 +116,48 @@ const userSchema = new mongoose.Schema({
       default: 0
     }
   },
-  plan: {
-    type: String,
-    enum: ['basic', 'classic', 'deluxe'],
-    required: true
-  },
+  downlines: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
+  }],
   createdAt: {
     type: Date,
     default: Date.now
   }
+});
+
+// Middleware to handle data migration and validation
+userSchema.pre('save', function(next) {
+  // Migrate plan to currentPlan if needed
+  if (this.plan && !this.currentPlan) {
+    this.currentPlan = this.plan;
+  }
+  
+  // Migrate earnings to wallets if needed
+  if (this.earnings && (!this.wallets || Object.keys(this.wallets).length === 0)) {
+    this.wallets = {
+      food: this.earnings.foodWallet || 0,
+      gadget: this.earnings.gadgetsWallet || 0,
+      cash: this.earnings.cashWallet || 0
+    };
+  }
+  
+  // Ensure currentBoard is lowercase
+  if (this.currentBoard && this.currentBoard !== this.currentBoard.toLowerCase()) {
+    this.currentBoard = this.currentBoard.toLowerCase();
+  }
+  
+  // Ensure boardProgress boardType is lowercase and valid
+  if (Array.isArray(this.boardProgress)) {
+    this.boardProgress = this.boardProgress.map(board => {
+      if (board.boardType && board.boardType !== board.boardType.toLowerCase()) {
+        board.boardType = board.boardType.toLowerCase();
+      }
+      return board;
+    });
+  }
+  
+  next();
 });
 
 userSchema.methods.generateReferralCode = function() {

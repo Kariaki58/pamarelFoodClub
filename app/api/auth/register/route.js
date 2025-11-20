@@ -16,7 +16,7 @@ export async function POST(request) {
 
     if (existingUser) {
       if (existingUser.status === "pending") {
-        existingUser.plan = planType;
+        existingUser.currentPlan = planType; // Use currentPlan instead of plan
 
         const hashedPassword = await bcrypt.hash(password, 12);
 
@@ -51,6 +51,7 @@ export async function POST(request) {
       }
     }
 
+    // Use the NEW array structure for boardProgress
     const user = new User({
       username: username.trim(),
       email,
@@ -58,23 +59,54 @@ export async function POST(request) {
       password: hashedPassword,
       referralCode: userReferralCode,
       referredBy,
-      plan: planType,
+      currentPlan: planType, // Use currentPlan instead of plan
       status: 'pending',
-      currentBoard: "Bronze",
+      currentBoard: "bronze", // lowercase
       createdAt: new Date(),
-      earnings: { foodWallet: 0, gadgetsWallet: 0, cashWallet: 0 },
-      boardProgress: {
-        Bronze: { directReferrals: [], completed: false },
-        Silver: { level1Referrals: [], level2Referrals: [], completed: false },
-        Gold: { level3Referrals: [], level4Referrals: [], completed: false },
+      wallets: { // Use wallets instead of earnings
+        food: 0,
+        gadget: 0,
+        cash: 0
       },
+      boardProgress: [ // NEW array structure
+        {
+          boardType: 'bronze',
+          directReferrals: [],
+          indirectReferrals: [],
+          completed: false,
+          rewardsClaimed: false
+        },
+        {
+          boardType: 'silver', 
+          directReferrals: [],
+          indirectReferrals: [],
+          completed: false,
+          rewardsClaimed: false
+        },
+        {
+          boardType: 'gold',
+          directReferrals: [],
+          indirectReferrals: [],
+          completed: false,
+          rewardsClaimed: false
+        }
+      ],
     });
 
     await user.save();
 
-    await User.findByIdAndUpdate(referredBy, {
-      $push: { "boardProgress.Bronze.directReferrals": user._id },
-    });
+    // Update referrer using the simpler approach
+    if (referredBy) {
+      const referrer = await User.findById(referredBy);
+      if (referrer && Array.isArray(referrer.boardProgress)) {
+        const bronzeBoard = referrer.boardProgress.find(b => b.boardType === 'bronze');
+        if (bronzeBoard) {
+          bronzeBoard.directReferrals.push(user._id);
+          await referrer.save();
+          console.log(`Added ${user.username} to referrer's bronze board direct referrals`);
+        }
+      }
+    }
 
     return NextResponse.json({
       success: true,

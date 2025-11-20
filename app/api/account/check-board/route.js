@@ -4,7 +4,6 @@ import { NextResponse } from 'next/server';
 import { PLANS } from '@/lib/plans';
 import User from '@/models/user';
 
-
 export async function POST(req) {
   try {
     const { userId } = await req.json();
@@ -17,16 +16,10 @@ export async function POST(req) {
 
     const results = {};
     
-    if (user.currentBoard === 'Bronze' && !user.boardProgress.Bronze.completed) {
-      results.Bronze = await checkBoardCompletion(userId, 'Bronze');
-    }
-    
-    if (user.currentBoard === 'Silver' && !user.boardProgress.Silver.completed) {
-      results.Silver = await checkBoardCompletion(userId, 'Silver');
-    }
-    
-    if (user.currentBoard === 'Gold' && !user.boardProgress.Gold.completed) {
-      results.Gold = await checkBoardCompletion(userId, 'Gold');
+    // Check current board for completion using new array structure
+    if (user.currentBoard && !user.currentBoard.completed) {
+      const currentBoardType = user.currentBoard.toLowerCase();
+      results[currentBoardType] = await checkBoardCompletion(userId, currentBoardType);
     }
 
     return NextResponse.json({ success: true, results });
@@ -36,124 +29,162 @@ export async function POST(req) {
   }
 }
 
-async function checkBoardCompletion(userId, board) {
+async function checkBoardCompletion(userId, boardType) {
   const user = await User.findById(userId).populate('referredBy');
-  const plan = PLANS[user.plan];
-  const boardData = plan.boards.find(b => b.name.includes(board));
+  const plan = PLANS[user.currentPlan || user.plan];
+  const boardData = plan.boards.find(b => b.name.toLowerCase().includes(boardType));
 
   let isCompleted = false;
   let updateData = {};
   let earnings = {};
 
-  switch (board) {
-    case 'Bronze':
-      if (user.boardProgress.Bronze.directReferrals.length >= 7) {
+  // Get the board progress from the array
+  const boardProgress = user.boardProgress?.find(b => b.boardType === boardType) || {};
+
+  switch (boardType) {
+    case 'bronze':
+      const bronzeDirectReferrals = boardProgress.directReferrals?.length || 0;
+      if (bronzeDirectReferrals >= 7) {
         isCompleted = true;
-        updateData = {
-          'boardProgress.Bronze.completed': true,
-          'boardProgress.Bronze.completionDate': new Date(),
-          currentBoard: 'Silver'
-        };
         
+        // Update the specific board in the array
+        updateData = {
+          $set: {
+            'boardProgress.$[bronzeElem].completed': true,
+            'boardProgress.$[bronzeElem].completionDate': new Date(),
+            currentBoard: 'silver'
+          }
+        };
+
         earnings = extractEarnings(boardData.earnings);
 
         if (user.referredBy) {
-          await updateUplineReferences(user.referredBy._id, userId, 'Silver', 1);
+          await updateUplineReferences(user.referredBy._id, userId, 'silver', 1);
         }
       }
       break;
 
-    case 'Silver':
-      if (user.boardProgress.Silver.level1Referrals.length >= 7 && 
-          user.boardProgress.Silver.level2Referrals.length >= 49) {
+    case 'silver':
+      const silverDirectReferrals = boardProgress.directReferrals?.length || 0;
+      const silverIndirectReferrals = boardProgress.indirectReferrals?.length || 0;
+      
+      if (silverDirectReferrals >= 7 && silverIndirectReferrals >= 49) {
         isCompleted = true;
-        updateData = {
-          'boardProgress.Silver.completed': true,
-          'boardProgress.Silver.completionDate': new Date(),
-          currentBoard: 'Gold'
-        };
         
+        updateData = {
+          $set: {
+            'boardProgress.$[silverElem].completed': true,
+            'boardProgress.$[silverElem].completionDate': new Date(),
+            currentBoard: 'gold'
+          }
+        };
+
         earnings = extractEarnings(boardData.earnings);
 
         if (user.referredBy) {
-          await updateUplineReferences(user.referredBy._id, userId, 'Gold', 3);
+          await updateUplineReferences(user.referredBy._id, userId, 'gold', 3);
         }
       }
       break;
 
-    case 'Gold':
-      if (user.boardProgress.Gold.level3Referrals.length >= 343 && 
-          user.boardProgress.Gold.level4Referrals.length >= 2401) {
+    case 'gold':
+      const goldDirectReferrals = boardProgress.directReferrals?.length || 0;
+      const goldIndirectReferrals = boardProgress.indirectReferrals?.length || 0;
+      
+      if (goldDirectReferrals >= 7 && goldIndirectReferrals >= 49) {
         isCompleted = true;
-        updateData = {
-          'boardProgress.Gold.completed': true,
-          'boardProgress.Gold.completionDate': new Date(),
-          currentBoard: 'Completed'
-        };
         
+        updateData = {
+          $set: {
+            'boardProgress.$[goldElem].completed': true,
+            'boardProgress.$[goldElem].completionDate': new Date(),
+            currentBoard: 'completed'
+          }
+        };
+
         earnings = extractEarnings(boardData.earnings);
 
         if (user.referredBy) {
-          await updateUplineReferences(user.referredBy._id, userId, 'Completed', 5);
+          await updateUplineReferences(user.referredBy._id, userId, 'completed', 5);
         }
       }
       break;
   }
 
   if (isCompleted) {
+    // Prepare array filters for updating the specific board in the array
+    const arrayFilters = [];
+    if (boardType === 'bronze') {
+      arrayFilters.push({ 'bronzeElem.boardType': 'bronze' });
+    } else if (boardType === 'silver') {
+      arrayFilters.push({ 'silverElem.boardType': 'silver' });
+    } else if (boardType === 'gold') {
+      arrayFilters.push({ 'goldElem.boardType': 'gold' });
+    }
+
+    // Update user with completion status and earnings
     await User.findByIdAndUpdate(userId, {
-      $set: updateData,
+      ...updateData,
       $inc: {
-        'earnings.foodWallet': earnings.foodWallet || 0,
-        'earnings.gadgetsWallet': earnings.gadgetsWallet || 0,
-        'earnings.cashWallet': earnings.cashWallet || 0
+        'wallets.food': earnings.food || 0,
+        'wallets.gadget': earnings.gadget || 0,
+        'wallets.cash': earnings.cash || 0
       }
-    });
+    }, { arrayFilters });
 
     // Record board completion
     const completionRecord = new BoardCompletion({
       user: userId,
-      board,
+      board: boardType,
       earnings
     });
     await completionRecord.save();
   }
 
-  return { completed: isCompleted, board, earnings };
+  return { completed: isCompleted, board: boardType, earnings };
 }
 
 async function updateUplineReferences(uplineId, userId, targetBoard, currentLevel) {
   const upline = await User.findById(uplineId);
   if (!upline || currentLevel > 6) return;
 
-  let updateField = '';
+  let boardTypeToUpdate = '';
+  let referralType = ''; // 'direct' or 'indirect'
   let shouldCheckCompletion = false;
 
   switch (upline.currentBoard) {
-    case 'Silver':
-      if (targetBoard === 'Silver') {
-        updateField = currentLevel === 1 
-          ? 'boardProgress.Silver.level1Referrals'
-          : 'boardProgress.Silver.level2Referrals';
+    case 'silver':
+      if (targetBoard === 'silver') {
+        boardTypeToUpdate = 'silver';
+        referralType = currentLevel === 1 ? 'direct' : 'indirect';
       }
       break;
 
-    case 'Gold':
-      if (targetBoard === 'Silver' && currentLevel >= 3) {
-        updateField = currentLevel === 3
-          ? 'boardProgress.Gold.level3Referrals'
-          : 'boardProgress.Gold.level4Referrals';
+    case 'gold':
+      if (targetBoard === 'silver' && currentLevel >= 3) {
+        boardTypeToUpdate = 'gold';
+        referralType = currentLevel === 3 ? 'direct' : 'indirect';
       }
       break;
   }
 
-  if (updateField) {
-    await User.findByIdAndUpdate(uplineId, {
-      $addToSet: { [updateField]: userId }
-    });
-    shouldCheckCompletion = true;
+  if (boardTypeToUpdate && referralType) {
+    // Update the specific board in the upline's array
+    const uplineBoard = upline.boardProgress?.find(b => b.boardType === boardTypeToUpdate);
+    if (uplineBoard) {
+      const updateField = `boardProgress.$[boardElem].${referralType === 'direct' ? 'directReferrals' : 'indirectReferrals'}`;
+      
+      await User.findByIdAndUpdate(uplineId, {
+        $addToSet: { [updateField]: userId }
+      }, {
+        arrayFilters: [{ 'boardElem.boardType': boardTypeToUpdate }]
+      });
+      
+      shouldCheckCompletion = true;
+    }
   }
 
+  // Recursively update further upline
   if (upline.referredBy) {
     await updateUplineReferences(
       upline.referredBy._id,
@@ -163,6 +194,7 @@ async function updateUplineReferences(uplineId, userId, targetBoard, currentLeve
     );
   }
 
+  // Check if upline's board is now completed
   if (shouldCheckCompletion) {
     await checkBoardCompletion(uplineId, upline.currentBoard);
   }
@@ -172,17 +204,17 @@ function extractEarnings(earningsArray) {
   const earnings = {};
   
   earningsArray.forEach(item => {
-    if (item.includes('Food Wallet') || item.includes('Foody Bag')) {
+    if (item.includes('Food Wallet') || item.includes('FOODY BAG') || item.toLowerCase().includes('food')) {
       const amount = item.match(/₦([\d,]+)/);
-      if (amount) earnings.foodWallet = parseFloat(amount[1].replace(/,/g, ''));
+      if (amount) earnings.food = parseInt(amount[1].replace(/,/g, ''));
     } 
-    else if (item.includes('Gadgets Wallet')) {
+    else if (item.includes('Gadgets Wallet') || item.toLowerCase().includes('gadget')) {
       const amount = item.match(/₦([\d,]+)/);
-      if (amount) earnings.gadgetsWallet = parseFloat(amount[1].replace(/,/g, ''));
+      if (amount) earnings.gadget = parseInt(amount[1].replace(/,/g, ''));
     } 
-    else if (item.includes('Cash Wallet')) {
+    else if (item.includes('Cash Wallet') || item.includes('CASH') || item.toLowerCase().includes('cash')) {
       const amount = item.match(/₦([\d,]+)/);
-      if (amount) earnings.cashWallet = parseFloat(amount[1].replace(/,/g, ''));
+      if (amount) earnings.cash = parseInt(amount[1].replace(/,/g, ''));
     }
   });
 
