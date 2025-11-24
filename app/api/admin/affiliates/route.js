@@ -9,7 +9,6 @@ export async function GET(req) {
   try {
     const session = await getServerSession(authOptions);
 
-
     if (!session) {
       return NextResponse.json({ error: "unauthenticated" }, { status: 400 })
     }
@@ -17,6 +16,7 @@ export async function GET(req) {
     if (session.user.role !== "admin") {
       return NextResponse.json({ error: "not Authorized" }, { status: 400 })
     }
+    
     await connectToDatabase();
 
     const findUserAdmin = await User.findOne({ _id: session.user.id })
@@ -59,12 +59,15 @@ export async function GET(req) {
     
     // Plan filter
     if (plan !== 'all') {
-      filter.plan = plan;
+      filter.$or = [
+        { plan: plan },
+        { currentPlan: plan }
+      ];
     }
     
     // Board filter
     if (board !== 'all') {
-      filter.currentBoard = board;
+      filter.currentBoard = board.toLowerCase();
     }
 
     // Build sort object
@@ -77,11 +80,8 @@ export async function GET(req) {
     // Fetch users with filtering, sorting and pagination
     const users = await User.find(filter)
       .populate('referredBy', 'username email referralCode')
-      .populate('boardProgress.Bronze.directReferrals', 'username email currentBoard')
-      .populate('boardProgress.Silver.level1Referrals', 'username email currentBoard')
-      .populate('boardProgress.Silver.level2Referrals', 'username email currentBoard')
-      .populate('boardProgress.Gold.level3Referrals', 'username email currentBoard')
-      .populate('boardProgress.Gold.level4Referrals', 'username email currentBoard')
+      .populate('boardProgress.directReferrals', 'username email currentBoard')
+      .populate('boardProgress.indirectReferrals', 'username email currentBoard')
       .sort(sort)
       .skip(skip)
       .limit(limit);
@@ -90,26 +90,8 @@ export async function GET(req) {
     const totalUsers = await User.countDocuments(filter);
     const totalPages = Math.ceil(totalUsers / limit);
 
-    // Transform user data with counts
+    // Transform user data with proper board progress structure
     const formattedUsers = users.map(user => {
-      const counts = {
-        Bronze: {
-          directReferrals: user.boardProgress.Bronze.directReferrals.length
-        },
-        Silver: {
-          level1: user.boardProgress.Silver.level1Referrals.length,
-          level2: user.boardProgress.Silver.level2Referrals.length,
-          total: user.boardProgress.Silver.level1Referrals.length +
-                 user.boardProgress.Silver.level2Referrals.length
-        },
-        Gold: {
-          level3: user.boardProgress.Gold.level3Referrals.length,
-          level4: user.boardProgress.Gold.level4Referrals.length,
-          total: user.boardProgress.Gold.level3Referrals.length +
-                 user.boardProgress.Gold.level4Referrals.length
-        },
-      };
-
       return {
         _id: user._id,
         username: user.username,
@@ -117,11 +99,11 @@ export async function GET(req) {
         phone: user.phone,
         referralCode: user.referralCode,
         currentBoard: user.currentBoard,
-        plan: user.plan,
+        plan: user.plan || user.currentPlan,
         earnings: user.earnings,
+        wallets: user.wallets,
         referredBy: user.referredBy,
-        counts,
-        boardProgress: user.boardProgress,
+        boardProgress: user.boardProgress, // Keep the original array structure
         createdAt: user.createdAt,
         status: user.status,
         role: user.role
@@ -139,6 +121,7 @@ export async function GET(req) {
     });
 
   } catch (error) {
+    console.error('Error fetching affiliates:', error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }

@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { FiSearch, FiFilter, FiChevronDown, FiChevronUp, FiUser, FiMail, FiPhone, FiDollarSign, FiAward, FiUsers, FiTrendingUp, FiEye, FiEdit, FiTrash2 } from 'react-icons/fi';
 import { toast } from 'react-hot-toast';
 
-const AffiliatesAdminPage = () => {
+const CustomerTable = () => {
   const [affiliates, setAffiliates] = useState([]);
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
@@ -26,6 +26,7 @@ const AffiliatesAdminPage = () => {
     status: '',
     role: ''
   });
+  const [networkProgress, setNetworkProgress] = useState({});
 
   // Fetch affiliates data
   const fetchAffiliates = async () => {
@@ -46,6 +47,13 @@ const AffiliatesAdminPage = () => {
       if (res.ok) {
         setAffiliates(data.users || []);
         setTotalPages(data.totalPages || 1);
+        
+        // Pre-fetch network data for all affiliates
+        if (data.users && data.users.length > 0) {
+          data.users.forEach(affiliate => {
+            fetchNetworkProgress(affiliate._id);
+          });
+        }
       } else {
         toast.error(data.error || 'Failed to fetch affiliates');
       }
@@ -55,6 +63,69 @@ const AffiliatesAdminPage = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  // Fetch network progress for a specific affiliate
+  const fetchNetworkProgress = async (userId) => {
+    try {
+      const res = await fetch(`/api/admin/users/${userId}/network`);
+      const data = await res.json();
+      
+      if (res.ok) {
+        setNetworkProgress(prev => ({
+          ...prev,
+          [userId]: data
+        }));
+      }
+    } catch (error) {
+      console.error('Error fetching network progress:', error);
+      // Use fallback data if network API fails
+      setNetworkProgress(prev => ({
+        ...prev,
+        [userId]: getFallbackProgressData(userId)
+      }));
+    }
+  };
+
+  // Fallback progress data with correct requirements
+  const getFallbackProgressData = (userId) => {
+    const affiliate = affiliates.find(a => a._id === userId);
+    if (!affiliate) return {};
+    
+    const boardProgress = affiliate.boardProgress || [];
+    const bronzeProgress = boardProgress.find(bp => bp.boardType === 'bronze') || {};
+    
+    return {
+      bronze: {
+        directReferrals: Array.isArray(bronzeProgress.directReferrals) ? bronzeProgress.directReferrals.length : 0,
+        completed: bronzeProgress.completed || false,
+        totalRequired: 7
+      },
+      silver: {
+        level1Referrals: 0,
+        level2Referrals: 0,
+        completed: false,
+        level1Required: 7,    // Fixed: 7 people for level 1 silver
+        level2Required: 49    // Fixed: 49 people for level 2 silver
+      },
+      gold: {
+        level3Referrals: 0,
+        level4Referrals: 0,
+        completed: false,
+        level3Required: 343,  // Fixed: 343 people for level 1 gold
+        level4Required: 2401  // Fixed: 2401 people for level 2 gold
+      },
+      platinum: {
+        completed: false,
+        totalRequired: 7      // Platinum requires 7 direct referrals
+      }
+    };
+  };
+
+  // Safe progress data getter
+  const getProgressData = (affiliate) => {
+    if (!affiliate) return {};
+    return networkProgress[affiliate._id] || getFallbackProgressData(affiliate._id);
   };
 
   useEffect(() => {
@@ -80,7 +151,6 @@ const AffiliatesAdminPage = () => {
   const sortedAffiliates = [...affiliates].sort((a, b) => {
     if (!sortConfig.key) return 0;
     
-    // Handle username sorting (replaces name sorting)
     if (sortConfig.key === 'username') {
       if (a.username < b.username) {
         return sortConfig.direction === 'asc' ? -1 : 1;
@@ -101,8 +171,14 @@ const AffiliatesAdminPage = () => {
   });
 
   // View affiliate details
-  const viewAffiliateDetails = (affiliate) => {
+  const viewAffiliateDetails = async (affiliate) => {
     setSelectedAffiliate(affiliate);
+    
+    // Ensure we have the latest network data
+    if (!networkProgress[affiliate._id]) {
+      await fetchNetworkProgress(affiliate._id);
+    }
+    
     setShowDetailModal(true);
   };
 
@@ -110,7 +186,7 @@ const AffiliatesAdminPage = () => {
   const openEditModal = (affiliate) => {
     setSelectedAffiliate(affiliate);
     setEditForm({
-      plan: affiliate.plan || '',
+      plan: affiliate.plan || affiliate.currentPlan || '',
       currentBoard: affiliate.currentBoard || '',
       status: affiliate.status || '',
       role: affiliate.role || ''
@@ -177,6 +253,7 @@ const AffiliatesAdminPage = () => {
 
   // Format date
   const formatDate = (dateString) => {
+    if (!dateString) return 'N/A';
     return new Date(dateString).toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'short',
@@ -186,6 +263,8 @@ const AffiliatesAdminPage = () => {
 
   // Status badge component
   const StatusBadge = ({ status }) => {
+    if (!status) return null;
+    
     let bgColor = '';
     switch (status) {
       case 'active':
@@ -209,6 +288,8 @@ const AffiliatesAdminPage = () => {
 
   // Plan badge component
   const PlanBadge = ({ plan }) => {
+    if (!plan) return null;
+    
     let bgColor = '';
     switch (plan) {
       case 'basic':
@@ -225,25 +306,31 @@ const AffiliatesAdminPage = () => {
     }
     return (
       <span className={`px-2 py-1 rounded-full text-xs font-medium ${bgColor}`}>
-        {plan ? plan.charAt(0).toUpperCase() + plan.slice(1) : 'None'}
+        {plan.charAt(0).toUpperCase() + plan.slice(1)}
       </span>
     );
   };
 
   // Board badge component
   const BoardBadge = ({ board }) => {
+    if (!board) return null;
+    
+    const boardLower = board.toLowerCase();
     let bgColor = '';
-    switch (board) {
-      case 'Bronze':
+    switch (boardLower) {
+      case 'bronze':
         bgColor = 'bg-amber-100 text-amber-800';
         break;
-      case 'Silver':
+      case 'silver':
         bgColor = 'bg-gray-100 text-gray-800';
         break;
-      case 'Gold':
+      case 'gold':
         bgColor = 'bg-yellow-100 text-yellow-800';
         break;
-      case 'Completed':
+      case 'platinum':
+        bgColor = 'bg-blue-100 text-blue-800';
+        break;
+      case 'completed':
         bgColor = 'bg-green-100 text-green-800';
         break;
       default:
@@ -251,7 +338,7 @@ const AffiliatesAdminPage = () => {
     }
     return (
       <span className={`px-2 py-1 rounded-full text-xs font-medium ${bgColor}`}>
-        {board ? board : 'None'}
+        {board.charAt(0).toUpperCase() + board.slice(1)}
       </span>
     );
   };
@@ -275,42 +362,31 @@ const AffiliatesAdminPage = () => {
     );
   };
 
-  // Calculate board requirements based on current board
-  const getBoardRequirements = (affiliate) => {
-    const { currentBoard, boardProgress } = affiliate;
+  // Get wallet balance - handles both old and new structures
+  const getWalletBalance = (affiliate, walletType) => {
+    if (!affiliate) return 0;
     
-    if (currentBoard === 'Bronze') {
-      return {
-        direct: 7,
-        currentDirect: boardProgress?.Bronze?.directReferrals?.length || 0,
-        completed: boardProgress?.Bronze?.completed || false
-      };
-    } else if (currentBoard === 'Silver') {
-      return {
-        level1: 49,
-        level2: 343,
-        currentLevel1: boardProgress?.Silver?.level1Referrals?.length || 0,
-        currentLevel2: boardProgress?.Silver?.level2Referrals?.length || 0,
-        completed: boardProgress?.Silver?.completed || false
-      };
-    } else if (currentBoard === 'Gold') {
-      return {
-        level3: 2401,
-        level4: 16807,
-        currentLevel3: boardProgress?.Gold?.level3Referrals?.length || 0,
-        currentLevel4: boardProgress?.Gold?.level4Referrals?.length || 0,
-        completed: boardProgress?.Gold?.completed || false
-      };
-    } else if (currentBoard === 'Completed') {
-      return { completed: true };
+    // Try new structure first
+    if (affiliate.wallets && affiliate.wallets[walletType] !== undefined) {
+      return affiliate.wallets[walletType] || 0;
     }
     
-    return {};
+    // Fallback to old structure
+    if (affiliate.earnings) {
+      switch (walletType) {
+        case 'food': return affiliate.earnings.foodWallet || 0;
+        case 'gadget': return affiliate.earnings.gadgetsWallet || 0;
+        case 'cash': return affiliate.earnings.cashWallet || 0;
+        default: return 0;
+      }
+    }
+    
+    return 0;
   };
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <h1 className="text-2xl font-bold mb-6 text-gray-800">Affiliates Management</h1>
+      <h1 className="text-2xl font-bold mb-6 text-gray-800">Customers Management</h1>
       
       {/* Search and Filters */}
       <div className="bg-white shadow rounded-lg p-4 mb-6">
@@ -374,10 +450,10 @@ const AffiliatesAdminPage = () => {
                 onChange={(e) => handleFilterChange('board', e.target.value)}
               >
                 <option value="all">All Boards</option>
-                <option value="Bronze">Bronze</option>
-                <option value="Silver">Silver</option>
-                <option value="Gold">Gold</option>
-                <option value="Completed">Completed</option>
+                <option value="bronze">Bronze</option>
+                <option value="silver">Silver</option>
+                <option value="gold">Gold</option>
+                <option value="platinum">Platinum</option>
               </select>
             </div>
           </div>
@@ -387,7 +463,7 @@ const AffiliatesAdminPage = () => {
       {/* Stats Summary */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
         <div className="bg-white p-4 rounded-lg shadow">
-          <div className="text-sm text-gray-500">Total Affiliates</div>
+          <div className="text-sm text-gray-500">Total Customers</div>
           <div className="text-2xl font-bold">{affiliates.length}</div>
         </div>
         <div className="bg-white p-4 rounded-lg shadow">
@@ -397,15 +473,15 @@ const AffiliatesAdminPage = () => {
           </div>
         </div>
         <div className="bg-white p-4 rounded-lg shadow">
-          <div className="text-sm text-gray-500">Completed Boards</div>
+          <div className="text-sm text-gray-500">Gold Level</div>
           <div className="text-2xl font-bold text-yellow-600">
-            {affiliates.filter(a => a.currentBoard === 'Completed').length}
+            {affiliates.filter(a => a.currentBoard?.toLowerCase() === 'gold').length}
           </div>
         </div>
         <div className="bg-white p-4 rounded-lg shadow">
-          <div className="text-sm text-gray-500">Gold Level</div>
-          <div className="text-2xl font-bold text-yellow-600">
-            {affiliates.filter(a => a.currentBoard === 'Gold').length}
+          <div className="text-sm text-gray-500">Total Earnings</div>
+          <div className="text-2xl font-bold text-green-600">
+            ₦{affiliates.reduce((total, a) => total + getWalletBalance(a, 'cash'), 0).toLocaleString()}
           </div>
         </div>
       </div>
@@ -427,7 +503,7 @@ const AffiliatesAdminPage = () => {
                       onClick={() => requestSort('username')}
                     >
                       <div className="flex items-center gap-1">
-                        Affiliate
+                        Customer
                         {sortConfig.key === 'username' && (
                           sortConfig.direction === 'asc' ? <FiChevronUp size={14} /> : <FiChevronDown size={14} />
                         )}
@@ -444,9 +520,6 @@ const AffiliatesAdminPage = () => {
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Referrals
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Board Progress
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Status
@@ -470,7 +543,7 @@ const AffiliatesAdminPage = () => {
                 <tbody className="bg-white divide-y divide-gray-200">
                   {sortedAffiliates.length > 0 ? (
                     sortedAffiliates.map((affiliate) => {
-                      const requirements = getBoardRequirements(affiliate);
+                      const progress = getProgressData(affiliate);
                       
                       return (
                         <tr key={affiliate._id} className="hover:bg-gray-50">
@@ -480,8 +553,12 @@ const AffiliatesAdminPage = () => {
                                 <FiUser className="text-gray-500" />
                               </div>
                               <div className="ml-4">
-                                <div className="text-sm font-medium text-gray-900">{affiliate.username}</div>
-                                <div className="text-sm text-gray-500">Ref: {affiliate.referralCode}</div>
+                                <div className="text-sm font-medium text-gray-900">
+                                  {affiliate.username || 'N/A'}
+                                </div>
+                                <div className="text-sm text-gray-500">
+                                  Ref: {affiliate.referralCode || 'N/A'}
+                                </div>
                                 {affiliate.role === 'admin' && (
                                   <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800">
                                     Admin
@@ -493,15 +570,15 @@ const AffiliatesAdminPage = () => {
                           <td className="px-6 py-4 whitespace-nowrap">
                             <div className="text-sm text-gray-900 flex items-center gap-1">
                               <FiMail />
-                              {affiliate.email}
+                              {affiliate.email || 'N/A'}
                             </div>
                             <div className="text-sm text-gray-500 flex items-center gap-1 mt-1">
                               <FiPhone />
-                              {affiliate.phone}
+                              {affiliate.phone || 'N/A'}
                             </div>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
-                            <PlanBadge plan={affiliate.plan} />
+                            <PlanBadge plan={affiliate.plan || affiliate.currentPlan} />
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
                             <BoardBadge board={affiliate.currentBoard} />
@@ -511,67 +588,53 @@ const AffiliatesAdminPage = () => {
                               <div className="flex items-center gap-1 text-sm">
                                 <FiUser className="text-yellow-500" />
                                 <span className="font-medium">
-                                  {affiliate.boardProgress?.Bronze?.directReferrals?.length || 0}
-                                </span> Direct
+                                  {progress.bronze?.directReferrals || 0}
+                                </span>/7 Direct
                               </div>
-                              {affiliate.currentBoard !== 'Bronze' && (
+                              
+                              {/* Silver Board Requirements */}
+                              {(affiliate.currentBoard === 'silver' || affiliate.currentBoard === 'gold' || affiliate.currentBoard === 'platinum') && (
                                 <>
                                   <div className="flex items-center gap-1 text-sm">
                                     <FiUsers className="text-purple-500" />
                                     <span className="font-medium">
-                                      {affiliate.boardProgress?.Silver?.level1Referrals?.length || 0}
-                                    </span> Level 1
+                                      {progress.silver?.level1Referrals || 0}
+                                    </span>/7 Level 1
                                   </div>
                                   <div className="flex items-center gap-1 text-sm">
                                     <FiTrendingUp className="text-green-500" />
                                     <span className="font-medium">
-                                      {affiliate.boardProgress?.Silver?.level2Referrals?.length || 0}
-                                    </span> Level 2
+                                      {progress.silver?.level2Referrals || 0}
+                                    </span>/49 Level 2
                                   </div>
                                 </>
                               )}
-                            </div>
-                          </td>
-                          <td className="px-6 py-4">
-                            <div className="space-y-2">
-                              {affiliate.currentBoard === 'Bronze' && (
-                                <ProgressBar 
-                                  current={requirements.currentDirect} 
-                                  total={requirements.direct} 
-                                  label="Direct Referrals" 
-                                />
-                              )}
-                              {affiliate.currentBoard === 'Silver' && (
+                              
+                              {/* Gold Board Requirements */}
+                              {(affiliate.currentBoard === 'gold' || affiliate.currentBoard === 'platinum') && (
                                 <>
-                                  <ProgressBar 
-                                    current={requirements.currentLevel1} 
-                                    total={requirements.level1} 
-                                    label="Level 1 Referrals" 
-                                  />
-                                  <ProgressBar 
-                                    current={requirements.currentLevel2} 
-                                    total={requirements.level2} 
-                                    label="Level 2 Referrals" 
-                                  />
+                                  <div className="flex items-center gap-1 text-sm">
+                                    <FiAward className="text-blue-500" />
+                                    <span className="font-medium">
+                                      {progress.gold?.level3Referrals || 0}
+                                    </span>/343 Level 3
+                                  </div>
+                                  <div className="flex items-center gap-1 text-sm">
+                                    <FiDollarSign className="text-red-500" />
+                                    <span className="font-medium">
+                                      {progress.gold?.level4Referrals || 0}
+                                    </span>/2401 Level 4
+                                  </div>
                                 </>
                               )}
-                              {affiliate.currentBoard === 'Gold' && (
-                                <>
-                                  <ProgressBar 
-                                    current={requirements.currentLevel3} 
-                                    total={requirements.level3} 
-                                    label="Level 3 Referrals" 
-                                  />
-                                  <ProgressBar 
-                                    current={requirements.currentLevel4} 
-                                    total={requirements.level4} 
-                                    label="Level 4 Referrals" 
-                                  />
-                                </>
-                              )}
-                              {affiliate.currentBoard === 'Completed' && (
-                                <div className="text-sm text-green-600 font-medium">
-                                  All boards completed
+                              
+                              {/* Platinum Board Requirements */}
+                              {affiliate.currentBoard === 'platinum' && (
+                                <div className="flex items-center gap-1 text-sm">
+                                  <FiAward className="text-purple-500" />
+                                  <span className="font-medium">
+                                    {progress.platinum?.completed ? 'Completed' : 'In Progress'}
+                                  </span> Platinum
                                 </div>
                               )}
                             </div>
@@ -611,8 +674,8 @@ const AffiliatesAdminPage = () => {
                     })
                   ) : (
                     <tr>
-                      <td colSpan="9" className="px-6 py-4 text-center text-sm text-gray-500">
-                        No affiliates found matching your criteria.
+                      <td colSpan="8" className="px-6 py-4 text-center text-sm text-gray-500">
+                        No customers found matching your criteria.
                       </td>
                     </tr>
                   )}
@@ -693,7 +756,7 @@ const AffiliatesAdminPage = () => {
           <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-screen overflow-y-auto">
             <div className="p-6">
               <div className="flex justify-between items-center border-b pb-4">
-                <h2 className="text-xl font-semibold">Affiliate Details</h2>
+                <h2 className="text-xl font-semibold">Customer Details</h2>
                 <button 
                   onClick={() => setShowDetailModal(false)}
                   className="text-gray-500 hover:text-gray-700"
@@ -706,14 +769,14 @@ const AffiliatesAdminPage = () => {
                 <div>
                   <h3 className="text-lg font-medium text-gray-900 mb-2">Personal Information</h3>
                   <div className="space-y-2">
-                    <p><span className="font-medium">Username:</span> {selectedAffiliate.username}</p>
-                    <p><span className="font-medium">Email:</span> {selectedAffiliate.email}</p>
-                    <p><span className="font-medium">Phone:</span> {selectedAffiliate.phone}</p>
-                    <p><span className="font-medium">Referral Code:</span> {selectedAffiliate.referralCode}</p>
-                    <p><span className="font-medium">Plan:</span> <PlanBadge plan={selectedAffiliate.plan} /></p>
+                    <p><span className="font-medium">Username:</span> {selectedAffiliate.username || 'N/A'}</p>
+                    <p><span className="font-medium">Email:</span> {selectedAffiliate.email || 'N/A'}</p>
+                    <p><span className="font-medium">Phone:</span> {selectedAffiliate.phone || 'N/A'}</p>
+                    <p><span className="font-medium">Referral Code:</span> {selectedAffiliate.referralCode || 'N/A'}</p>
+                    <p><span className="font-medium">Plan:</span> <PlanBadge plan={selectedAffiliate.plan || selectedAffiliate.currentPlan} /></p>
                     <p><span className="font-medium">Status:</span> <StatusBadge status={selectedAffiliate.status} /></p>
                     <p><span className="font-medium">Current Board:</span> <BoardBadge board={selectedAffiliate.currentBoard} /></p>
-                    <p><span className="font-medium">Role:</span> {selectedAffiliate.role}</p>
+                    <p><span className="font-medium">Role:</span> {selectedAffiliate.role || 'user'}</p>
                     <p><span className="font-medium">Joined:</span> {formatDate(selectedAffiliate.createdAt)}</p>
                     {selectedAffiliate.referredBy && (
                       <p>
@@ -727,69 +790,91 @@ const AffiliatesAdminPage = () => {
                 <div>
                   <h3 className="text-lg font-medium text-gray-900 mb-2">Board Progress</h3>
                   <div className="space-y-4">
-                    <div>
-                      <h4 className="font-medium mb-2">Bronze Board</h4>
-                      <ProgressBar 
-                        current={selectedAffiliate.boardProgress?.Bronze?.directReferrals?.length || 0} 
-                        total={7} 
-                        label="Direct Referrals" 
-                      />
-                      <p className="text-sm text-gray-500 mt-1">
-                        Status: {selectedAffiliate.boardProgress?.Bronze?.completed ? 'Completed' : 'In Progress'}
-                      </p>
-                    </div>
+                    {/* Bronze Board */}
+                    {getProgressData(selectedAffiliate).bronze && (
+                      <div>
+                        <h4 className="font-medium mb-2">Bronze Board</h4>
+                        <ProgressBar 
+                          current={getProgressData(selectedAffiliate).bronze.directReferrals} 
+                          total={getProgressData(selectedAffiliate).bronze.totalRequired} 
+                          label="Direct Referrals (7 required)" 
+                        />
+                        <p className="text-sm text-gray-500 mt-1">
+                          Status: {getProgressData(selectedAffiliate).bronze.completed ? 'Completed' : 'In Progress'}
+                        </p>
+                      </div>
+                    )}
                     
-                    <div>
-                      <h4 className="font-medium mb-2">Silver Board</h4>
-                      <ProgressBar 
-                        current={selectedAffiliate.boardProgress?.Silver?.level1Referrals?.length || 0} 
-                        total={49} 
-                        label="Level 1 Referrals" 
-                      />
-                      <ProgressBar 
-                        current={selectedAffiliate.boardProgress?.Silver?.level2Referrals?.length || 0} 
-                        total={343} 
-                        label="Level 2 Referrals" 
-                      />
-                      <p className="text-sm text-gray-500 mt-1">
-                        Status: {selectedAffiliate.boardProgress?.Silver?.completed ? 'Completed' : 'In Progress'}
-                      </p>
-                    </div>
+                    {/* Silver Board */}
+                    {getProgressData(selectedAffiliate).silver && (
+                      <div>
+                        <h4 className="font-medium mb-2">Silver Board</h4>
+                        <ProgressBar 
+                          current={getProgressData(selectedAffiliate).silver.level1Referrals} 
+                          total={getProgressData(selectedAffiliate).silver.level1Required} 
+                          label="Level 1 Referrals (7 required)" 
+                        />
+                        <ProgressBar 
+                          current={getProgressData(selectedAffiliate).silver.level2Referrals} 
+                          total={getProgressData(selectedAffiliate).silver.level2Required} 
+                          label="Level 2 Referrals (49 required)" 
+                        />
+                        <p className="text-sm text-gray-500 mt-1">
+                          Status: {getProgressData(selectedAffiliate).silver.completed ? 'Completed' : 'In Progress'}
+                        </p>
+                      </div>
+                    )}
                     
-                    <div>
-                      <h4 className="font-medium mb-2">Gold Board</h4>
-                      <ProgressBar 
-                        current={selectedAffiliate.boardProgress?.Gold?.level3Referrals?.length || 0} 
-                        total={2401} 
-                        label="Level 3 Referrals" 
-                      />
-                      <ProgressBar 
-                        current={selectedAffiliate.boardProgress?.Gold?.level4Referrals?.length || 0} 
-                        total={16807} 
-                        label="Level 4 Referrals" 
-                      />
-                      <p className="text-sm text-gray-500 mt-1">
-                        Status: {selectedAffiliate.boardProgress?.Gold?.completed ? 'Completed' : 'In Progress'}
-                      </p>
-                    </div>
+                    {/* Gold Board */}
+                    {getProgressData(selectedAffiliate).gold && (
+                      <div>
+                        <h4 className="font-medium mb-2">Gold Board</h4>
+                        <ProgressBar 
+                          current={getProgressData(selectedAffiliate).gold.level3Referrals} 
+                          total={getProgressData(selectedAffiliate).gold.level3Required} 
+                          label="Level 3 Referrals (343 required)" 
+                        />
+                        <ProgressBar 
+                          current={getProgressData(selectedAffiliate).gold.level4Referrals} 
+                          total={getProgressData(selectedAffiliate).gold.level4Required} 
+                          label="Level 4 Referrals (2401 required)" 
+                        />
+                        <p className="text-sm text-gray-500 mt-1">
+                          Status: {getProgressData(selectedAffiliate).gold.completed ? 'Completed' : 'In Progress'}
+                        </p>
+                      </div>
+                    )}
+                    
+                    {/* Platinum Board */}
+                    {getProgressData(selectedAffiliate).platinum && (
+                      <div>
+                        <h4 className="font-medium mb-2">Platinum Board</h4>
+                        <p className="text-sm text-gray-600">
+                          Requires 7 direct referrals on Platinum board
+                        </p>
+                        <p className="text-sm text-gray-500 mt-1">
+                          Status: {getProgressData(selectedAffiliate).platinum.completed ? 'Completed' : 'In Progress'}
+                        </p>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
               
               <div className="mt-6">
-                <h3 className="text-lg font-medium text-gray-900 mb-2">Earnings</h3>
+                <h3 className="text-lg font-medium text-gray-900 mb-2">Earnings & Wallets</h3>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div className="bg-gray-50 p-3 rounded">
                     <p className="font-medium">Food Wallet</p>
-                    <p className="text-xl">₦{selectedAffiliate.earnings?.foodWallet || 0}</p>
+                    <p className="text-xl">₦{getWalletBalance(selectedAffiliate, 'food').toLocaleString()}</p>
                   </div>
                   <div className="bg-gray-50 p-3 rounded">
                     <p className="font-medium">Gadgets Wallet</p>
-                    <p className="text-xl">₦{selectedAffiliate.earnings?.gadgetsWallet || 0}</p>
+                    <p className="text-xl">₦{getWalletBalance(selectedAffiliate, 'gadget').toLocaleString()}</p>
                   </div>
                   <div className="bg-gray-50 p-3 rounded">
                     <p className="font-medium">Cash Wallet</p>
-                    <p className="text-xl">₦{selectedAffiliate.earnings?.cashWallet || 0}</p>
+                    <p className="text-xl">₦{getWalletBalance(selectedAffiliate, 'cash').toLocaleString()}</p>
                   </div>
                 </div>
               </div>
@@ -847,10 +932,10 @@ const AffiliatesAdminPage = () => {
                     className="w-full border rounded-lg p-2 focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500"
                   >
                     <option value="">Select Board</option>
-                    <option value="Bronze">Bronze</option>
-                    <option value="Silver">Silver</option>
-                    <option value="Gold">Gold</option>
-                    <option value="Completed">Completed</option>
+                    <option value="bronze">Bronze</option>
+                    <option value="silver">Silver</option>
+                    <option value="gold">Gold</option>
+                    <option value="platinum">Platinum</option>
                   </select>
                 </div>
                 
@@ -906,4 +991,4 @@ const AffiliatesAdminPage = () => {
   );
 };
 
-export default AffiliatesAdminPage;
+export default CustomerTable;
