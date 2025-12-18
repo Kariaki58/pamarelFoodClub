@@ -52,6 +52,23 @@ export async function GET(request) {
             // user.earnings[walletType + 'Wallet'] = currentBalance + amount;
             await user.save();
 
+            // ACTIVATE AFFILIATE STATUS: Add to referrer's board
+            if (user.referredBy) {
+              const referrer = await User.findById(user.referredBy);
+              if (referrer && Array.isArray(referrer.boardProgress)) {
+                const bronzeBoard = referrer.boardProgress.find(b => b.boardType === 'bronze');
+                if (bronzeBoard) {
+                  // Check if not already added (idempotency)
+                  const isAlreadyReferral = bronzeBoard.directReferrals.some(ref => ref.toString() === userId);
+                  if (!isAlreadyReferral) {
+                    bronzeBoard.directReferrals.push(userId);
+                    await referrer.save();
+                    console.log(`Added ${user.username} to referrer's bronze board direct referrals after payment`);
+                  }
+                }
+              }
+            }
+
           }
           
           // Update transaction

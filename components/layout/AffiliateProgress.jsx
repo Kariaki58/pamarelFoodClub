@@ -196,40 +196,64 @@ const StatCard = ({ title, value, description, icon, isCurrency = false }) => {
   );
 };
 
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Label } from "@/components/ui/label";
+
+// ... existing imports ...
+
+// ... BoardCard component ... (no major changes needed inside BoardCard itself, logic is in parent)
+
 export const AffiliateProgress = () => {
   const { data: session } = useSession();
   const [affiliateData, setAffiliateData] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isClaiming, setIsClaiming] = useState(null);
+  
+  // Modal State
+  const [showClaimModal, setShowClaimModal] = useState(false);
+  const [claimingBoard, setClaimingBoard] = useState(null);
+  const [rewardOptions, setRewardOptions] = useState([]);
+  const [selectedOption, setSelectedOption] = useState('');
 
-  useEffect(() => {
-    const fetchAffiliateData = async () => {
-      try {
-        const response = await fetch('/api/affiliate/board');
-        const data = await response.json();
-        
-        if (!response.ok) throw new Error(data.error || 'Failed to fetch data');
-        
-        setAffiliateData(data);
-      } catch (error) {
-        toast.error(error.message);
-      } finally {
-        setIsLoading(false);
-      }
-    };
+  // ... fetchAffiliateData ...
 
-    if (session) fetchAffiliateData();
-  }, [session]);
+  const handleClaimClick = (boardType) => {
+    // 1. Get rewards for this board
+    const plan = PLANS[affiliateData.currentPlan?.toLowerCase().split(' ')[0]] || PLANS.basic;
+    const boardData = plan.boards.find(b => b.name.toLowerCase().includes(boardType));
+    const earnings = boardData?.earnings || [];
 
-  const handleClaimReward = async (boardType) => {
+    // 2. Check for OR options
+    const orEarning = earnings.find(e => e.includes('OR'));
+    
+    if (orEarning) {
+      // 3. Parse options
+      const options = orEarning.split('OR').map(opt => opt.trim());
+      setRewardOptions(options);
+      setClaimingBoard(boardType);
+      setSelectedOption(options[0]); // Default to first
+      setShowClaimModal(true);
+    } else {
+      // 4. No options, direct claim
+      executeClaim(boardType, 'auto');
+    }
+  };
+
+  const executeClaim = async (boardType, option) => {
     setIsClaiming(boardType);
+    setShowClaimModal(false); // Close if open
+    
     try {
-      const response = await fetch('/api/affiliate/reward/claim', {
+      const response = await fetch('/api/affiliate/claim-reward', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ boardType })
+        body: JSON.stringify({ 
+          boardType,
+          rewardOption: option 
+        })
       });
 
       const data = await response.json();
@@ -237,6 +261,7 @@ export const AffiliateProgress = () => {
       if (!response.ok) throw new Error(data.error || 'Claim failed');
       
       toast.success(data.message);
+      
       // Refresh data
       const updatedResponse = await fetch('/api/affiliate/board');
       const updatedData = await updatedResponse.json();
@@ -245,6 +270,8 @@ export const AffiliateProgress = () => {
       toast.error(error.message);
     } finally {
       setIsClaiming(null);
+      setClaimingBoard(null);
+      setRewardOptions([]);
     }
   };
 
@@ -276,111 +303,155 @@ export const AffiliateProgress = () => {
   const planColor = planColorMap[affiliateData.currentPlan?.toLowerCase().split(' ')[0]] || 'green';
 
   return (
-    <Card className="mb-6 border-0 shadow-lg">
-      <CardHeader className="pb-2 sm:pb-3">
-        <CardTitle className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
-          <div className="flex items-center">
-            <Users className="w-5 h-5 sm:w-6 sm:h-6 mr-2 text-primary" />
-            <span className="text-xl sm:text-2xl font-bold">Affiliate Dashboard</span>
-          </div>
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-4">
-            <Badge 
-              variant="outline" 
-              className={cn(
-                "px-2 py-0.5 sm:px-3 sm:py-1 text-xs sm:text-sm capitalize w-full sm:w-auto text-center",
-                `bg-${planColor}-100 text-${planColor}-800 border-${planColor}-300`
-              )}
-            >
-              {affiliateData.currentPlan}
-            </Badge>
-            <ReferralLink code={affiliateData.referralCode} />
-          </div>
-        </CardTitle>
-      </CardHeader>
-      
-      <CardContent className="space-y-8">
-        {/* Wallet Balances */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <StatCard 
-            title="Cash Wallet"
-            value={affiliateData.wallets?.cash || 0}
-            description="Available cash balance for withdrawals"
-            icon={<Wallet className="w-5 h-5 text-green-500" />}
-            isCurrency
-          />
-          <StatCard 
-            title="Food Wallet"
-            value={affiliateData.wallets?.food || 0}
-            description="Food credits for purchasing food items"
-            icon={<Gift className="w-5 h-5 text-amber-500" />}
-            isCurrency
-          />
-          <StatCard 
-            title="Gadget Wallet"
-            value={affiliateData.wallets?.gadget || 0}
-            description="Credits for purchasing gadgets"
-            icon={<Gift className="w-5 h-5 text-blue-500" />}
-            isCurrency
-          />
-        </div>
-
-        {/* Board Progression */}
-        <div>
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold flex items-center">
-              <Trophy className="w-5 h-5 mr-2 text-primary" />
-              Board Progression
-            </h3>
-            <div className="text-sm text-muted-foreground">
-              Lifetime: {affiliateData.lifetimeStats?.totalRecruits || 0} recruits • 
-              {affiliateData.lifetimeStats?.rewardsClaimed || 0} rewards claimed
+    <>
+      <Card className="mb-6 border-0 shadow-lg">
+        {/* ... existing CardHeader ... */}
+        <CardHeader className="pb-2 sm:pb-3">
+            <CardTitle className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
+            <div className="flex items-center">
+                <Users className="w-5 h-5 sm:w-6 sm:h-6 mr-2 text-primary" />
+                <span className="text-xl sm:text-2xl font-bold">Affiliate Dashboard</span>
             </div>
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-2">
-            {['bronze', 'silver', 'gold', 'platinum'].map(board => (
-              <BoardCard 
-                key={board}
-                board={board}
-                data={affiliateData.boards[board]}
-                isCurrent={affiliateData.currentBoard === board}
-                isClaiming={isClaiming === board}
-                onClaim={handleClaimReward}
-                planColor={planColor}
-                currentPlan={affiliateData.currentPlan}
-              />
-            ))}
-          </div>
-        </div>
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-4">
+                <Badge 
+                variant="outline" 
+                className={cn(
+                    "px-2 py-0.5 sm:px-3 sm:py-1 text-xs sm:text-sm capitalize w-full sm:w-auto text-center",
+                    `bg-${planColor}-100 text-${planColor}-800 border-${planColor}-300`
+                )}
+                >
+                {affiliateData.currentPlan}
+                </Badge>
+                <ReferralLink code={affiliateData.referralCode} />
+            </div>
+            </CardTitle>
+        </CardHeader>
 
-        {/* Team Stats */}
-        <div className="bg-gradient-to-r from-blue-50 to-purple-50 p-6 rounded-xl">
-          <h3 className="text-lg font-semibold mb-4 flex items-center">
-            <Users className="w-5 h-5 mr-2 text-primary" />
-            Current Board Team Overview ({affiliateData.currentBoard})
-          </h3>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <CardContent className="space-y-8">
+            {/* ... Wallets ... */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <StatCard 
-              title="Direct Team"
-              value={currentBoardData?.current?.direct || 0}
-              description="Members you personally recruited in current board"
-              icon={<Users className="w-5 h-5 text-blue-500" />}
+                title="Cash Wallet"
+                value={affiliateData.wallets?.cash || 0}
+                description="Available cash balance for withdrawals"
+                icon={<Wallet className="w-5 h-5 text-green-500" />}
+                isCurrency
             />
             <StatCard 
-              title="Network Team"
-              value={currentBoardData?.current?.indirect || 0}
-              description="Your team's indirect recruits in current board"
-              icon={<Users className="w-5 h-5 text-purple-500" />}
+                title="Food Wallet"
+                value={affiliateData.wallets?.food || 0}
+                description="Food credits for purchasing food items"
+                icon={<Gift className="w-5 h-5 text-amber-500" />}
+                isCurrency
             />
             <StatCard 
-              title="Total Team"
-              value={(currentBoardData?.current?.direct || 0) + (currentBoardData?.current?.indirect || 0)}
-              description="Your complete team in current board"
-              icon={<Users className="w-5 h-5 text-green-500" />}
+                title="Gadget Wallet"
+                value={affiliateData.wallets?.gadget || 0}
+                description="Credits for purchasing gadgets"
+                icon={<Gift className="w-5 h-5 text-blue-500" />}
+                isCurrency
             />
+            </div>
+
+            {/* ... Board Progression ... */}
+            <div>
+            <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold flex items-center">
+                <Trophy className="w-5 h-5 mr-2 text-primary" />
+                Board Progression
+                </h3>
+                <div className="text-sm text-muted-foreground">
+                Lifetime: {affiliateData.lifetimeStats?.totalRecruits || 0} recruits • 
+                {affiliateData.lifetimeStats?.rewardsClaimed || 0} rewards claimed
+                </div>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-2">
+                {['bronze', 'silver', 'gold', 'platinum'].map(board => (
+                <BoardCard 
+                    key={board}
+                    board={board}
+                    data={affiliateData.boards[board]}
+                    isCurrent={affiliateData.currentBoard === board}
+                    isClaiming={isClaiming === board}
+                    onClaim={handleClaimClick} // Changed to handleClaimClick
+                    planColor={planColor}
+                    currentPlan={affiliateData.currentPlan}
+                />
+                ))}
+            </div>
+            </div>
+
+            {/* ... Team Stats ... */}
+            <div className="bg-gradient-to-r from-blue-50 to-purple-50 p-6 rounded-xl">
+            <h3 className="text-lg font-semibold mb-4 flex items-center">
+                <Users className="w-5 h-5 mr-2 text-primary" />
+                Current Board Team Overview ({affiliateData.currentBoard})
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <StatCard 
+                title="Direct Team"
+                value={currentBoardData?.current?.direct || 0}
+                description="Members you personally recruited in current board"
+                icon={<Users className="w-5 h-5 text-blue-500" />}
+                />
+                <StatCard 
+                title="Network Team"
+                value={currentBoardData?.current?.indirect || 0}
+                description="Your team's indirect recruits in current board"
+                icon={<Users className="w-5 h-5 text-purple-500" />}
+                />
+                <StatCard 
+                title="Total Team"
+                value={(currentBoardData?.current?.direct || 0) + (currentBoardData?.current?.indirect || 0)}
+                description="Your complete team in current board"
+                icon={<Users className="w-5 h-5 text-green-500" />}
+                />
+            </div>
+            </div>
+        </CardContent>
+      </Card>
+
+      {/* Claim Reward Modal */}
+      <Dialog open={showClaimModal} onOpenChange={setShowClaimModal}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Select Your Reward</DialogTitle>
+            <DialogDescription>
+              Please choose one of the available reward options for completing this board.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <RadioGroup value={selectedOption} onValueChange={setSelectedOption}>
+              {rewardOptions.map((option, index) => (
+                <div key={index} className="flex items-center space-x-2 border p-3 rounded-lg hover:bg-gray-50 cursor-pointer" onClick={() => setSelectedOption(option)}>
+                  <RadioGroupItem value={option} id={`option-${index}`} />
+                  <Label htmlFor={`option-${index}`} className="flex-1 cursor-pointer font-medium">
+                    {option}
+                  </Label>
+                </div>
+              ))}
+            </RadioGroup>
           </div>
-        </div>
-      </CardContent>
-    </Card>
+          <DialogFooter className="sm:justify-end">
+             <Button
+              type="button"
+              variant="secondary"
+              onClick={() => setShowClaimModal(false)}
+            >
+              Cancel
+            </Button>
+            <Button 
+              type="submit" 
+              onClick={() => executeClaim(claimingBoard, selectedOption)}
+              disabled={!selectedOption}
+              className="bg-green-600 hover:bg-green-700"
+            >
+              Confirm Claim
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 };

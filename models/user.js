@@ -83,7 +83,6 @@ const userSchema = new mongoose.Schema({
     enum: ['bronze', 'silver', 'gold', 'platinum'],
     default: 'bronze',
     set: function(value) {
-      // Convert to lowercase during assignment
       return value ? value.toLowerCase() : 'bronze';
     }
   },

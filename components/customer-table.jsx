@@ -20,6 +20,8 @@ const CustomerTable = () => {
   const [selectedAffiliate, setSelectedAffiliate] = useState(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [userRewards, setUserRewards] = useState([]);
+  const [loadingRewards, setLoadingRewards] = useState(false);
   const [editForm, setEditForm] = useState({
     plan: '',
     currentBoard: '',
@@ -182,6 +184,24 @@ const CustomerTable = () => {
     }
     
     setShowDetailModal(true);
+
+    // Fetch detailed rewards history
+    setLoadingRewards(true);
+    setUserRewards([]);
+    try {
+      const res = await fetch(`/api/admin/users/${affiliate._id}/rewards`);
+      const data = await res.json();
+      if (data.success) {
+        setUserRewards(data.rewards);
+      } else {
+        setUserRewards([]);
+      }
+    } catch (error) {
+      console.error("Error fetching rewards:", error);
+      setUserRewards([]);
+    } finally {
+      setLoadingRewards(false);
+    }
   };
 
   // Open edit modal
@@ -833,14 +853,14 @@ const CustomerTable = () => {
                       <div>
                         <h4 className="font-medium mb-2">Gold Board</h4>
                         <ProgressBar 
-                          current={getProgressData(selectedAffiliate).gold.level3Referrals} 
-                          total={getProgressData(selectedAffiliate).gold.level3Required} 
-                          label="Level 3 Referrals (343 required)" 
+                          current={getProgressData(selectedAffiliate).gold.level1Referrals} 
+                          total={getProgressData(selectedAffiliate).gold.level1Required} 
+                          label="Level 1 Referrals (343 required)" 
                         />
                         <ProgressBar 
-                          current={getProgressData(selectedAffiliate).gold.level4Referrals} 
-                          total={getProgressData(selectedAffiliate).gold.level4Required} 
-                          label="Level 4 Referrals (2401 required)" 
+                          current={getProgressData(selectedAffiliate).gold.level2Referrals} 
+                          total={getProgressData(selectedAffiliate).gold.level2Required} 
+                          label="Level 2 Referrals (2401 required)" 
                         />
                         <p className="text-sm text-gray-500 mt-1">
                           Status: {getProgressData(selectedAffiliate).gold.completed ? 'Completed' : 'In Progress'}
@@ -849,7 +869,7 @@ const CustomerTable = () => {
                     )}
                     
                     {/* Platinum Board */}
-                    {getProgressData(selectedAffiliate).platinum && (
+                    {/* {getProgressData(selectedAffiliate).platinum && (
                       <div>
                         <h4 className="font-medium mb-2">Platinum Board</h4>
                         <p className="text-sm text-gray-600">
@@ -859,9 +879,86 @@ const CustomerTable = () => {
                           Status: {getProgressData(selectedAffiliate).platinum.completed ? 'Completed' : 'In Progress'}
                         </p>
                       </div>
-                    )}
+                    )} */}
                   </div>
                 </div>
+              
+              {/* Claimed Rewards Section */}
+              <div className="mt-6 border-t pt-4">
+                 <h3 className="text-lg font-medium text-gray-900 mb-2">Claimed Rewards History</h3>
+                 
+                 {loadingRewards ? (
+                   <p className="text-sm text-gray-500">Loading rewards...</p>
+                 ) : (
+                   <div className="space-y-3">
+                      {userRewards.length > 0 ? (
+                        userRewards.map((reward, idx) => (
+                          <div key={idx} className="bg-gray-50 p-3 rounded border border-gray-100">
+                             <div className="flex justify-between items-center mb-2">
+                               <span className="font-semibold text-yellow-700 capitalize">{reward.board} Board</span>
+                               <span className="text-xs text-gray-500">
+                                 {new Date(reward.completionDate).toLocaleDateString()}
+                               </span>
+                             </div>
+                             
+                             <div className="text-sm space-y-1">
+                               {reward.earnings.cash && (
+                                 <div className="flex gap-2">
+                                    <span className="font-medium min-w-[60px]">Cash:</span>
+                                    <span className="text-gray-700">
+                                      {Array.isArray(reward.earnings.cash) 
+                                        ? reward.earnings.cash.join(', ') 
+                                        : reward.earnings.cash}
+                                    </span>
+                                 </div>
+                               )}
+                               
+                               {reward.earnings.food && (
+                                 <div className="flex gap-2">
+                                    <span className="font-medium min-w-[60px]">Food:</span>
+                                    <span className="text-gray-700">
+                                      {Array.isArray(reward.earnings.food) 
+                                        ? reward.earnings.food.join(', ') 
+                                        : reward.earnings.food}
+                                    </span>
+                                 </div>
+                               )}
+                               
+                               {reward.earnings.gadget && (
+                                 <div className="flex gap-2">
+                                    <span className="font-medium min-w-[60px]">Gadget:</span>
+                                    <span className="text-gray-700">
+                                      {Array.isArray(reward.earnings.gadget) 
+                                        ? reward.earnings.gadget.join(', ') 
+                                        : reward.earnings.gadget}
+                                    </span>
+                                 </div>
+                               )}
+                               
+                               {reward.earnings.other && (
+                                  <div className="mt-1 pt-1 border-t border-gray-200">
+                                    <span className="font-medium block mb-1">Items/Other:</span>
+                                    <ul className="list-disc pl-5 text-gray-600">
+                                      {Array.isArray(reward.earnings.other) ? (
+                                        reward.earnings.other.map((item, i) => (
+                                          <li key={i}>{item}</li>
+                                        ))
+                                      ) : (
+                                        <li>{reward.earnings.other}</li>
+                                      )}
+                                    </ul>
+                                  </div>
+                               )}
+                             </div>
+                          </div>
+                        ))
+                      ) : (
+                        <p className="text-sm text-gray-500 italic">No detailed reward history found.</p>
+                      )}
+                   </div>
+                 )}
+              </div>
+              
               </div>
               
               <div className="mt-6">

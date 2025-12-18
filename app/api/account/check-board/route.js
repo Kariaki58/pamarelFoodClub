@@ -122,23 +122,11 @@ async function checkBoardCompletion(userId, boardType) {
       arrayFilters.push({ 'goldElem.boardType': 'gold' });
     }
 
-    // Update user with completion status and earnings
-    await User.findByIdAndUpdate(userId, {
-      ...updateData,
-      $inc: {
-        'wallets.food': earnings.food || 0,
-        'wallets.gadget': earnings.gadget || 0,
-        'wallets.cash': earnings.cash || 0
-      }
-    }, { arrayFilters });
+    // Update user with completion status ONLY - NO wallet crediting here
+    await User.findByIdAndUpdate(userId, updateData, { arrayFilters });
 
-    // Record board completion
-    const completionRecord = new BoardCompletion({
-      user: userId,
-      board: boardType,
-      earnings
-    });
-    await completionRecord.save();
+    // Note: BoardCompletion record is now created in claim-reward route
+    // Note: Wallets are now credited in claim-reward route
   }
 
   return { completed: isCompleted, board: boardType, earnings };

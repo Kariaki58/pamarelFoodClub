@@ -95,18 +95,9 @@ export async function POST(request) {
 
     await user.save();
 
-    // Update referrer using the simpler approach
-    if (referredBy) {
-      const referrer = await User.findById(referredBy);
-      if (referrer && Array.isArray(referrer.boardProgress)) {
-        const bronzeBoard = referrer.boardProgress.find(b => b.boardType === 'bronze');
-        if (bronzeBoard) {
-          bronzeBoard.directReferrals.push(user._id);
-          await referrer.save();
-          console.log(`Added ${user.username} to referrer's bronze board direct referrals`);
-        }
-      }
-    }
+    await user.save();
+
+    // Referrer update logic moved to payment verification to ensure payment before activation
 
     return NextResponse.json({
       success: true,

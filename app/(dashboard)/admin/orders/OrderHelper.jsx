@@ -171,7 +171,7 @@ const OrderDetailsModal = ({ order, onClose, onUpdate }) => {
               <h3 className="font-medium text-gray-900">Customer Information</h3>
               <div className="mt-2 space-y-1 text-sm">
                 <div className="flex items-center gap-2">
-                  <p className="font-medium">{order.user.firstName} {order.user.lastName}</p>
+                  <p className="font-medium">{order.user.username}</p>
                   <CustomerTypeBadge isMlm={!!order.user.referralCode} />
                 </div>
                 <p className="text-gray-500">{order.user.email}</p>
@@ -792,7 +792,7 @@ export default function Orders() {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm font-medium">
-                          {order.user.firstName} {order.user.lastName}
+                          {order.user.username}
                         </div>
                         <div className="text-xs text-gray-500">{order.user.email}</div>
                       </td>

@@ -1,3 +1,5 @@
+export const runtime = 'nodejs';
+
 import { getServerSession } from 'next-auth';
 import { authOptions } from '../../auth/options';
 import { NextResponse } from 'next/server';
@@ -33,12 +35,15 @@ export async function POST(req) {
         // Get bank name
         const banksResponse = await fetch('https://api.flutterwave.com/v3/banks/NG', {
             headers: {
-                'Authorization': `Bearer ${process.env.FLUTTERWAVE_SECRET_KEY_LIVE}`,
+                'Authorization': `Bearer ${process.env.FLUTTERWAVE_SECRET_KEY}`,
                 'Content-Type': 'application/json'
             }
         });
 
+
         const banksData = await banksResponse.json();
+
+        console.log({banksData})
         const bank = banksData.data.find(b => b.code === bankCode);
         const bankName = bank ? bank.name : 'Unknown Bank';
 
@@ -61,37 +66,34 @@ export async function POST(req) {
             }
         }
 
-        // Initiate transfer with Flutterwave
-        const reference = `WDR-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-        
-        const transferResponse = await fetch('https://api.flutterwave.com/v3/transfers', {
+        // Initiate transfer with new service
+        const transferResponse = await fetch('https://api.neondentalprosthetic.com/api/withdrawals', { // TODO: CHANGED THIS TO USE PAMAREL WHEN IT HAS PROPERGATE
             method: 'POST',
             headers: {
-                'Authorization': `Bearer ${process.env.FLUTTERWAVE_SECRET_KEY_LIVE}`,
+                'X-API-Key': process.env.FLUTTERWAVE_WITHDRAWAL_API_KEY,
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({
                 account_bank: bankCode,
                 account_number: accountNumber,
                 amount: amount,
-                narration: `Withdrawal from ${walletType} wallet`,
                 currency: 'NGN',
-                reference,
-                callback_url: `${process.env.NEXTAUTH_URL}/api/wallets/withdraw-webhook`,
-                debit_currency: 'NGN'
+                narration: `Withdrawal from ${walletType} wallet`
             })
         });
 
         const transferData = await transferResponse.json();
 
-        console.log({ transferData })
+        console.log({ transferData });
 
         if (transferData.status !== 'success') {
             return NextResponse.json({
                 success: false,
-                error: transferData.message || 'Transfer failed'
+                error: transferData.message || 'Withdrawal failed'
             }, { status: 400 });
         }
+
+        const reference = transferData.data.reference;
 
         // Create withdrawal transaction record
         const transaction = new Transaction({
@@ -105,7 +107,7 @@ export async function POST(req) {
             currency: 'NGN',
             planType: 'wallet_withdraw',
             planName: `${walletType.toUpperCase()} Wallet Withdrawal`,
-            status: 'pending',
+            status: 'pending', // The response says status: "NEW", usually maps to pending
             paymentStatus: 'pending',
             paymentMethod: 'bank_transfer',
             meta: {
@@ -114,21 +116,25 @@ export async function POST(req) {
                 bankName,
                 accountNumber,
                 accountName,
-                transferId: transferData.data.id
+                transferId: reference, // Using reference as transferId since ID isn't in example
+                responseStatus: transferData.data.status,
+                completeMessage: transferData.data.complete_message
             }
         });
 
         await transaction.save();
 
-        // Deduct from user's wallet (will be confirmed via webhook)
+        // Deduct from user's wallet
+        // Note: Logic assumes successful initiation means we deduct.
+        // Webhook might still be needed for final confirmation if specific status updates happen later,
+        // but for now we follow the existing pattern: deduct on success.
         user.earnings[`${walletType}Wallet`] = currentBalance - amount;
         await user.save();
 
         return NextResponse.json({
             success: true,
-            message: 'Withdrawal initiated successfully',
-            reference,
-            transferId: transferData.data.id
+            message: transferData.message,
+            data: transferData.data
         });
 
     } catch (error) {
