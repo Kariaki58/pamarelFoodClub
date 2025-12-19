@@ -38,13 +38,14 @@ export async function GET(req) {
 
     // Category filter (using slug to find category ID)
     if (categorySlug) {
-      // First find the category by slug
-      const category = await Category.findOne({ 
-        name: { $regex: new RegExp(`^${categorySlug}$`, 'i') } 
+      const categorySlugs = categorySlug.split(',');
+      // Find all categories matching the slugs
+      const categories = await Category.find({ 
+        name: { $in: categorySlugs.map(slug => new RegExp(`^${slug}$`, 'i')) } 
       });
       
-      if (category) {
-        filter.category = category._id;
+      if (categories.length > 0) {
+        filter.category = { $in: categories.map(cat => cat._id) };
       }
     }
 
@@ -191,16 +192,31 @@ export async function POST(req) {
 
     // Category filter
     if (category) {
-      // Handle both category ID and slug
-      if (mongoose.Types.ObjectId.isValid(category)) {
-        filter.category = category;
-      } else {
-        const categoryDoc = await Category.findOne({ 
-          name: { $regex: new RegExp(`^${category}$`, 'i') } 
-        });
-        if (categoryDoc) {
-          filter.category = categoryDoc._id;
+      let categoryFilter = {};
+      
+      // Handle comma-separated string or array
+      const categoryInput = Array.isArray(category) ? category : category.split(',');
+      
+      const categoryIds = [];
+      const categorySlugs = [];
+
+      categoryInput.forEach(cat => {
+        if (mongoose.Types.ObjectId.isValid(cat)) {
+          categoryIds.push(cat);
+        } else {
+          categorySlugs.push(cat);
         }
+      });
+
+      if (categorySlugs.length > 0) {
+          const categories = await Category.find({ 
+             name: { $in: categorySlugs.map(slug => new RegExp(`^${slug}$`, 'i')) } 
+          });
+          categories.forEach(cat => categoryIds.push(cat._id));
+      }
+      
+      if (categoryIds.length > 0) {
+          filter.category = { $in: categoryIds };
       }
     }
 

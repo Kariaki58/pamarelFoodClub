@@ -244,7 +244,7 @@ export default function CategoryPage() {
         
         // Add category filter if selected
         if (selectedCategories.length > 0) {
-          params.append('category', selectedCategories[0])
+          params.append('category', selectedCategories.join(','))
         }
         
         // Add search query if exists
@@ -299,11 +299,9 @@ export default function CategoryPage() {
   
   // Handle category selection
   const handleCategoryChange = (categorySlug, checked) => {
-    if (checked) {
-      setSelectedCategories([categorySlug])
-    } else {
-      setSelectedCategories([])
-    }
+    setSelectedCategories(prev =>
+      checked ? [...prev, categorySlug] : prev.filter(c => c !== categorySlug)
+    )
     setCurrentPage(1)
   }
 

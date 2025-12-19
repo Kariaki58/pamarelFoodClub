@@ -204,7 +204,7 @@ const OrderDetailsModal = ({ order, onClose, onUpdate }) => {
                     <div className="flex-1">
                       <p className="font-medium">{item.name}</p>
                       <p className="text-sm text-gray-500">
-                        {item.product?.category || 'Product'} • Qty: {item.quantity}
+                        Qty: {item.quantity}
                       </p>
                       
                       {/* Display variants if available */}
