@@ -1,6 +1,7 @@
 "use client";
 import { IconTrendingDown, IconTrendingUp } from "@tabler/icons-react";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   Card,
   CardAction,
@@ -10,6 +11,8 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { useEffect, useState } from "react";
+import { useSession } from "next-auth/react";
+import { WithdrawFlutterwaveModal } from "./withdraw-flutterwave-modal";
 
 export const formatCurrency = (amount) => {
   return new Intl.NumberFormat('en-NG', {
@@ -21,6 +24,7 @@ export const formatCurrency = (amount) => {
 };
 
 const WalletCard = () => {
+  const { data: session } = useSession();
   const [balance, setBalance] = useState({
     available_balance: 0,
     ledger_balance: 0,
@@ -29,6 +33,9 @@ const WalletCard = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [growthRate, setGrowthRate] = useState(0);
+  const [showWithdrawModal, setShowWithdrawModal] = useState(false);
+  
+  const isAdmin = session?.user?.role === 'admin';
 
   useEffect(() => {
     const fetchWalletBalance = async () => {
@@ -61,54 +68,99 @@ const WalletCard = () => {
     return <div className="text-sm text-gray-500">Loading wallet...</div>;
   if (error) return <div className="text-sm text-red-500">{error}</div>;
 
+  const handleWithdrawSuccess = () => {
+    setShowWithdrawModal(false);
+    // Refetch balance after successful withdrawal
+    const fetchWalletBalance = async () => {
+      try {
+        const response = await fetch("/api/flutterwave/balance");
+        if (response.ok) {
+          const data = await response.json();
+          setBalance({
+            available_balance: data.available_balance || 0,
+            ledger_balance: data.ledger_balance || 0,
+            currency: data.currency || "NGN",
+          });
+        }
+      } catch (err) {
+        console.error("Failed to refresh balance:", err);
+      }
+    };
+    fetchWalletBalance();
+  };
+
   return (
-    <Card className="@container/card">
-      <CardHeader>
-        <CardDescription>Wallet Balance ({balance.currency})</CardDescription>
-        <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
-          {formatCurrency(balance.available_balance)}
-        </CardTitle>
-        <CardAction>
-          <Badge variant="outline" className="flex items-center gap-1">
-            {growthRate > 0 ? (
-              <IconTrendingUp className="size-3" />
-            ) : (
-              <IconTrendingDown className="size-3" />
+    <>
+      <Card className="@container/card">
+        <CardHeader>
+          <div className="flex items-start justify-between">
+            <div className="flex-1">
+              <CardDescription>Wallet Balance ({balance.currency})</CardDescription>
+              <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
+                {formatCurrency(balance.available_balance)}
+              </CardTitle>
+            </div>
+            {isAdmin && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowWithdrawModal(true)}
+                className="ml-2"
+              >
+                Withdraw
+              </Button>
             )}
-            {growthRate > 0 ? "+" : ""}
-            {growthRate}%
-          </Badge>
-        </CardAction>
-      </CardHeader>
-
-      <CardFooter className="flex-col items-start gap-1.5 text-sm">
-        <div className="line-clamp-1 flex items-center gap-2 font-medium">
-          {growthRate > 0 ? (
-            <>
-              <span>Growing steadily</span>
-              <IconTrendingUp className="size-4 text-green-500" />
-            </>
-          ) : (
-            <>
-              <span>Decreased balance</span>
-              <IconTrendingDown className="size-4 text-red-500" />
-            </>
-          )}
-        </div>
-
-        {/* 💰 Show Ledger and Available Balances */}
-        <div className="text-xs text-gray-500 mt-2">
-          <div>
-            <span className="font-medium text-gray-700">Ledger Balance:</span>{" "}
-            {formatCurrency(balance.ledger_balance)}
           </div>
-          <div>
-            <span className="font-medium text-gray-700">Available Balance:</span>{" "}
-            {formatCurrency(balance.available_balance)}
+          <CardAction>
+            <Badge variant="outline" className="flex items-center gap-1">
+              {growthRate > 0 ? (
+                <IconTrendingUp className="size-3" />
+              ) : (
+                <IconTrendingDown className="size-3" />
+              )}
+              {growthRate > 0 ? "+" : ""}
+              {growthRate}%
+            </Badge>
+          </CardAction>
+        </CardHeader>
+
+        <CardFooter className="flex-col items-start gap-1.5 text-sm">
+          <div className="line-clamp-1 flex items-center gap-2 font-medium">
+            {growthRate > 0 ? (
+              <>
+                <span>Growing steadily</span>
+                <IconTrendingUp className="size-4 text-green-500" />
+              </>
+            ) : (
+              <>
+                <span>Decreased balance</span>
+                <IconTrendingDown className="size-4 text-red-500" />
+              </>
+            )}
           </div>
-        </div>
-      </CardFooter>
-    </Card>
+
+          {/* 💰 Show Ledger and Available Balances */}
+          <div className="text-xs text-gray-500 mt-2">
+            <div>
+              <span className="font-medium text-gray-700">Ledger Balance:</span>{" "}
+              {formatCurrency(balance.ledger_balance)}
+            </div>
+            <div>
+              <span className="font-medium text-gray-700">Available Balance:</span>{" "}
+              {formatCurrency(balance.available_balance)}
+            </div>
+          </div>
+        </CardFooter>
+      </Card>
+
+      {showWithdrawModal && isAdmin && (
+        <WithdrawFlutterwaveModal
+          balance={balance.available_balance}
+          onClose={() => setShowWithdrawModal(false)}
+          onSuccess={handleWithdrawSuccess}
+        />
+      )}
+    </>
   );
 };
 
