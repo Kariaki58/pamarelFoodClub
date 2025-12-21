@@ -31,6 +31,23 @@ const statusMap = {
 
 const fetcher = (url) => fetch(url).then((res) => res.json());
 
+const formatOrderDate = (dateString) => {
+  if (!dateString) return 'N/A';
+  try {
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) return 'N/A';
+    
+    // Use a consistent format that works on both server and client
+    const year = date.getFullYear();
+    const month = date.toLocaleString('en-US', { month: 'short' });
+    const day = date.getDate();
+    
+    return `${day} ${month} ${year}`;
+  } catch (error) {
+    return 'N/A';
+  }
+};
+
 const OrderStatusBadge = ({ status }) => {
   const StatusIcon = statusMap[status]?.icon || Clock;
   const statusInfo = statusMap[status] || { color: 'bg-gray-100 text-gray-800' };
@@ -155,7 +172,7 @@ const OrderDetailsModal = ({ order, onClose, onUpdate }) => {
             <div>
               <h2 className="text-xl font-semibold">Order #{order._id.toString().slice(-6).toUpperCase()}</h2>
               <p className="text-sm text-gray-500">
-                Placed on {new Date(order.createdAt).toLocaleDateString()}
+                Placed on {formatOrderDate(order.createdAt)}
               </p>
             </div>
             <button 
@@ -171,11 +188,11 @@ const OrderDetailsModal = ({ order, onClose, onUpdate }) => {
               <h3 className="font-medium text-gray-900">Customer Information</h3>
               <div className="mt-2 space-y-1 text-sm">
                 <div className="flex items-center gap-2">
-                  <p className="font-medium">{order.user.username}</p>
-                  <CustomerTypeBadge isMlm={!!order.user.referralCode} />
+                  <p className="font-medium">{order.user?.username || 'N/A'}</p>
+                  <CustomerTypeBadge isMlm={!!order.user?.referralCode} />
                 </div>
-                <p className="text-gray-500">{order.user.email}</p>
-                {order.user.referralCode && (
+                <p className="text-gray-500">{order.user?.email || 'N/A'}</p>
+                {order.user?.referralCode && (
                   <>
                     <p className="text-gray-500">Member ID: {order.user.referralCode}</p>
                     {/* You can add level indicator if available */}
@@ -787,17 +804,17 @@ export default function Orders() {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm text-gray-500">
-                          {new Date(order.createdAt).toLocaleDateString()}
+                          {formatOrderDate(order.createdAt)}
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm font-medium">
-                          {order.user.username}
+                          {order.user?.username || 'N/A'}
                         </div>
-                        <div className="text-xs text-gray-500">{order.user.email}</div>
+                        <div className="text-xs text-gray-500">{order.user?.email || 'N/A'}</div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <CustomerTypeBadge isMlm={!!order.user.referralCode} />
+                        <CustomerTypeBadge isMlm={!!order.user?.referralCode} />
                       </td>
                       <td className="px-6 py-4">
                         <ProductWithVariants item={order.items[0]} />
@@ -809,7 +826,7 @@ export default function Orders() {
                             currency: 'NGN'
                           }).format(order.total)}
                         </div>
-                        {order.user.referralCode && (
+                        {order.user?.referralCode && (
                           <div className="text-xs text-purple-600">
                             +{new Intl.NumberFormat('en-NG', {
                               style: 'currency',

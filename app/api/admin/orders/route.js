@@ -46,7 +46,7 @@ export async function GET(request) {
     
     // Get orders with pagination and populate necessary fields
     const orders = await Order.find(query)
-      .populate('user', 'firstName lastName email phone referralCode')
+      .populate('user', 'username firstName lastName email phone referralCode')
       .populate('items.product', 'name category price imageUrl')
       .sort({ createdAt: -1 })
       .skip((page - 1) * limit)
@@ -95,7 +95,7 @@ export async function PUT(request) {
       orderId,
       { orderStatus: status },
       { new: true }
-    ).populate('user', 'firstName lastName email phone referralCode')
+    ).populate('user', 'username firstName lastName email phone referralCode')
      .populate('items.product', 'name category price imageUrl');
     
     if (!updatedOrder) {
