@@ -71,7 +71,7 @@ export async function GET(request) {
       .populate('userId', 'username email name phone referralCode', User)
       .sort({ createdAt: -1 })
       .skip((page - 1) * limit)
-      .limit(5)
+      .limit(limit)
       .lean();
     
     // Format transactions for response
