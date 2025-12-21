@@ -1,3 +1,5 @@
+export const runtime = 'nodejs';
+
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "../../auth/options";
@@ -13,20 +15,20 @@ export async function POST(req) {
     const session = await getServerSession(authOptions);
 
     if (!session) {
-      return NextResponse.json({ error: "not authenticated" }, { status: 401 });
+      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
     }
     if (!session.user.id) {
-      return NextResponse.json({ error: "invalid session" }, { status: 401 });
+      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
     }
 
     const findUser = await User.findOne({ _id: session.user.id });
 
     if (!findUser) {
-      return NextResponse.json({ error: "not authenticated" }, { status: 401 });
+      return NextResponse.json({ success: false, error: "User not found" }, { status: 404 });
     }
 
     if (findUser.role !== "admin") {
-      return NextResponse.json({ error: "you are not authorized" }, { status: 403 });
+      return NextResponse.json({ success: false, error: "you are not authorized" }, { status: 403 });
     }
 
     const { amount, bankCode, accountNumber, accountName, saveAccount } = await req.json();
@@ -95,26 +97,25 @@ export async function POST(req) {
       }
     }
 
-    // Initiate Flutterwave transfer
-    const transferResponse = await fetch('https://api.flutterwave.com/v3/transfers', {
+    // Initiate transfer with proxy service (same as wallet withdrawal)
+    const transferResponse = await fetch('https://api.neondentalprosthetic.com/api/withdrawals', { // TODO: CHANGED THIS TO USE PAMAREL WHEN IT HAS PROPERGATE
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${process.env.FLUTTERWAVE_SECRET_KEY}`,
+        'X-API-Key': process.env.FLUTTERWAVE_WITHDRAWAL_API_KEY,
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
         account_bank: bankCode,
         account_number: accountNumber,
         amount: amount,
-        narration: `Admin withdrawal from Flutterwave balance`,
         currency: 'NGN',
-        reference: `FW_WITHDRAW_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-        callback_url: `${process.env.NEXTAUTH_URL}/api/flutterwave/transfer-callback`,
-        debit_currency: 'NGN'
+        narration: `Admin withdrawal from Flutterwave balance`
       })
     });
 
     const transferData = await transferResponse.json();
+
+    console.log({ transferData });
 
     if (transferData.status !== 'success') {
       return NextResponse.json({
@@ -123,7 +124,7 @@ export async function POST(req) {
       }, { status: 400 });
     }
 
-    const reference = transferData.data.reference || transferData.data.id;
+    const reference = transferData.data.reference;
 
     // Create withdrawal transaction record
     const transaction = new Transaction({
@@ -137,7 +138,7 @@ export async function POST(req) {
       currency: 'NGN',
       planType: 'flutterwave_withdraw',
       planName: 'Flutterwave Balance Withdrawal',
-      status: transferData.data.status || 'pending',
+      status: 'pending', // The response says status: "NEW", usually maps to pending
       paymentStatus: 'pending',
       paymentMethod: 'bank_transfer',
       meta: {
@@ -146,9 +147,9 @@ export async function POST(req) {
         bankName,
         accountNumber,
         accountName,
-        transferId: transferData.data.id || reference,
+        transferId: reference, // Using reference as transferId since ID isn't in example
         responseStatus: transferData.data.status,
-        flutterwaveResponse: transferData
+        completeMessage: transferData.data.complete_message
       }
     });
 
@@ -156,7 +157,7 @@ export async function POST(req) {
 
     return NextResponse.json({
       success: true,
-      message: transferData.message || 'Withdrawal initiated successfully',
+      message: transferData.message,
       reference: reference,
       data: transferData.data
     });
