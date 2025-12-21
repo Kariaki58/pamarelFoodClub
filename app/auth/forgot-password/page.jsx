@@ -50,10 +50,6 @@ export default function ForgotPassword() {
       }
       const findEmail = await request.json();
 
-
-      console.log({ findEmail })
-
-
       const templateParams = {
         link: resetLink,
         email: findEmail.email,

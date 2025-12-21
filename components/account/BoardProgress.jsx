@@ -14,15 +14,11 @@ export default function BoardProgress({ userData, checkBoardProgress }) {
   
   // Debug: Log the user data to see what's happening
   useEffect(() => {
-    console.log('User Data:', userData);
-    console.log('Board Progress:', userData.boardProgress);
-    console.log('Current Board:', userData.currentBoard);
     
     // Log counts for each board
     ['bronze', 'silver', 'gold'].forEach(board => {
       const counts = getCurrentCounts(board);
       const completed = isBoardCompleted(board);
-      console.log(`${board} board - Counts:`, counts, 'Completed:', completed);
     });
   }, [userData]);
 
@@ -90,9 +86,7 @@ export default function BoardProgress({ userData, checkBoardProgress }) {
   const getCurrentCounts = (board) => {
     const boardType = board.toLowerCase();
     const boardProgress = getBoardProgress(boardType);
-    
-    console.log(`Getting counts for ${boardType}:`, boardProgress);
-    
+        
     switch (boardType) {
       case 'bronze':
         return {
@@ -126,17 +120,14 @@ export default function BoardProgress({ userData, checkBoardProgress }) {
   const getBoardProgress = (boardType) => {
     if (Array.isArray(userData.boardProgress)) {
       const progress = userData.boardProgress.find(b => b.boardType === boardType.toLowerCase());
-      console.log(`Found board progress for ${boardType}:`, progress);
       return progress || {};
     }
-    console.log('Board progress is not an array:', userData.boardProgress);
     return {};
   };
 
   const isBoardCompleted = (board) => {
     const boardProgress = getBoardProgress(board);
     const completed = boardProgress.completed || false;
-    console.log(`Is ${board} completed?`, completed, 'Progress:', boardProgress);
     return completed;
   };
 

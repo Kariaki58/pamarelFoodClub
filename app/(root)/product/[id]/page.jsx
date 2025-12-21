@@ -277,12 +277,6 @@ export default function ProductPage() {
     
     addItem(product, quantity, selectedVariants);
     
-    // Show success message or notification
-    console.log('Added to cart:', {
-      product: product.name,
-      quantity,
-      variants: selectedVariants
-    });
     
     // Optional: Open cart slider after adding
     // You might want to pass a ref or use a global state to control the cart slider

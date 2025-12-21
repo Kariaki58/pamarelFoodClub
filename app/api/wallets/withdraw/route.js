@@ -43,7 +43,6 @@ export async function POST(req) {
 
         const banksData = await banksResponse.json();
 
-        console.log({banksData})
         const bank = banksData.data.find(b => b.code === bankCode);
         const bankName = bank ? bank.name : 'Unknown Bank';
 
@@ -84,7 +83,6 @@ export async function POST(req) {
 
         const transferData = await transferResponse.json();
 
-        console.log({ transferData });
 
         if (transferData.status !== 'success') {
             return NextResponse.json({

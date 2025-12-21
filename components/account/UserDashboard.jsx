@@ -45,8 +45,6 @@ export default function UserDashboard({ userId }) {
       });
       
       const data = await response.json();
-
-      console.log('Board progress check response:', data);
       
       if (!response.ok) {
         throw new Error(data.error || 'Failed to check board progress');

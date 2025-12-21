@@ -32,10 +32,6 @@ export function CartSheet() {
   const cartTotal = getCartTotal(items);
   const router = useRouter();
 
-  console.log('Cart Items:', items);
-  console.log('Computed Cart Count:', cartCount);
-  console.log('Computed Cart Total:', cartTotal);
-
   // Function to render variant information
   const renderVariantInfo = (item) => {
     if (!item.selectedVariants || Object.keys(item.selectedVariants).length === 0) {
@@ -54,7 +50,6 @@ export function CartSheet() {
   };
 
   const handleCheckout = () => {
-    console.log('Proceeding to checkout with items:', items);
 
     router.push("/checkout")
     

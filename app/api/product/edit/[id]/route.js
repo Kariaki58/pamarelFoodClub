@@ -30,7 +30,6 @@ export async function GET(req, { params }) {
             return NextResponse.json({ error: "Product not found" }, { status: 404 });
         }
 
-        console.log({ product })
 
         return NextResponse.json({ product }, { status: 200 });
 

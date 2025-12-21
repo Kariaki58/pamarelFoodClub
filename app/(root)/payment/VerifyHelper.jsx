@@ -13,7 +13,6 @@ export default function PaymentVerify() {
   const status = searchParams.get("status");
   const reference = searchParams.get("reference");
 
-  console.log({ transaction_id, tx_ref, status, reference })
 
   useEffect(() => {
     const verifyPayment = async () => {
@@ -21,17 +20,14 @@ export default function PaymentVerify() {
         // Use the transaction_id and tx_ref from Flutterwave redirect
         const paymentReference = transaction_id || tx_ref || reference;
 
-        console.log({ paymentReference })
 
         if (!paymentReference) {
-          console.log("line 23")
           setVerificationStatus("failed");
           router.push("/payment/failed?error=no_reference");
           return;
         }
 
 
-        console.log({ status })
         // If we have status from Flutterwave redirect, use it directly
         if (status) {
           if (status === 'completed') {
@@ -39,7 +35,6 @@ export default function PaymentVerify() {
             const response = await fetch(
               `/api/payment/verify?transaction_id=${transaction_id}&tx_ref=${tx_ref}&status=${status}`
             );
-            console.log("->>>>>>>>>>>>>>>>>-")
 
             if (response.ok) {
               setVerificationStatus("success");

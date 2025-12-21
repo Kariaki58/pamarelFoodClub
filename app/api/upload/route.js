@@ -40,8 +40,6 @@ export async function POST(req) {
     return NextResponse.json({ message: "Uploaded successfully", urls: uploads }, { status: 200 });
 
   } catch (error) {
-    console.log("---------------------------------------")
-    console.error("Upload Error:", error);
     return NextResponse.json({ error: "Something went wrong" }, { status: 500 });
   }
 }

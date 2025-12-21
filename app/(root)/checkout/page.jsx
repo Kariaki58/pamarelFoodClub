@@ -133,7 +133,6 @@ export default function CheckoutPage() {
           newPrices.pickup = 0
           setDeliveryPrices(newPrices)
 
-          console.log({ deliveryOptions })
         }
       } catch (error) {
         console.error('Error calculating shipping:', error)
@@ -296,11 +295,9 @@ export default function CheckoutPage() {
       const result = await response.json();
       clearCart()
       toast.success("Order placed successfully!")
-      console.log({ result })
       router.push(`/order-confirmation/${result.order._id}`)
       
     } catch (err) {
-      console.error('Failed to place order:', err)
       setError(err.message || 'Failed to place order. Please try again.')
       toast.error(err.message || 'Failed to place order. Please try again.')
     } finally {
@@ -417,7 +414,6 @@ export default function CheckoutPage() {
 
   const paymentValidation = validateSelectedWallet()
 
-  console.log({ deliveryOptions })
 
   // Loading state
   if (status === 'loading' || walletLoading) {

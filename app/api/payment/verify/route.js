@@ -21,7 +21,6 @@ export async function GET(request) {
     }
 
     if ((status === 'successful' || status === 'completed') && tx_ref) {
-      console.log("inside line 29")
       // Verify with Flutterwave
       const verifyResponse = await fetch(
         `https://api.flutterwave.com/v3/transactions/${transaction_id}/verify`,
@@ -42,8 +41,6 @@ export async function GET(request) {
           const walletType = txRefParts[4];
           const amount = parseFloat(verificationData.data.amount);
           
-          console.log({ userId })
-          console.log({txRefParts})
           const user = await User.findById(userId);
 
           if (user) {
@@ -63,7 +60,6 @@ export async function GET(request) {
                   if (!isAlreadyReferral) {
                     bronzeBoard.directReferrals.push(userId);
                     await referrer.save();
-                    console.log(`Added ${user.username} to referrer's bronze board direct referrals after payment`);
                   }
                 }
               }

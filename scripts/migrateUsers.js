@@ -75,11 +75,8 @@ export async function migrateUsers() {
       if (needsUpdate) {
         await user.save();
         migratedCount++;
-        console.log(`Migrated user: ${user.username}`);
       }
     }
-
-    console.log(`Migration completed. ${migratedCount} users migrated.`);
   } catch (error) {
     console.error('Migration error:', error);
   }

@@ -16,7 +16,6 @@ export function ProductReviews({ productId }) {
                 const response = await fetch(`/api/reviews/product/${productId}`);
                 const data = await response.json();
 
-                console.log({ data });
 
                 if (data.success) {
                     setReviews(data.reviews);
@@ -24,7 +23,7 @@ export function ProductReviews({ productId }) {
                     throw new Error(data.message);
                 }
             } catch (error) {
-                console.error("Error loading reviews:", error);
+                console.error("Error loading reviews:");
             } finally {
                 setLoading(false);
             }

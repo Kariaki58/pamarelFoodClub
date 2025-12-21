@@ -7,7 +7,6 @@ export default function FoodSuppliesLanding() {
   const handleSubmit = (e) => {
     e.preventDefault();
     // Handle form submission
-    console.log('Email submitted:', email);
     setEmail('');
     alert('Thank you for your interest! We\'ll contact you soon.');
   };

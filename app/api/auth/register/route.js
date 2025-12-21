@@ -12,7 +12,6 @@ export async function POST(request) {
     // Check if user already exists
     const existingUser = await User.findOne({ username });
 
-    console.log({ existingUser })
 
     if (existingUser) {
       if (existingUser.status === "pending") {

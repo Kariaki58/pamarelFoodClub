@@ -33,7 +33,6 @@ const ProductEditDashboard = () => {
   const router = useRouter();
   const { id } = useParams();
 
-  console.log({ id })
 
   // State management
   const [productName, setProductName] = useState('');

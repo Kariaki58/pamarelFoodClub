@@ -67,7 +67,6 @@ export async function POST(req) {
         return NextResponse.json({ message: fileList });
 
     } catch (error) {
-        console.log(error)
         return NextResponse.json({ error: "Error occurred" }, { status: 500 });
     }
 }

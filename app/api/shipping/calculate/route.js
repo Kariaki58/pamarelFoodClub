@@ -15,8 +15,6 @@ export async function POST(req) {
       )
     }
 
-    console.log({ state, city })
-
     // Find specific rate for city first, then state, then fallback to default
     let shippingRate = await ShippingRate.findOne({
       $or: [
@@ -47,8 +45,6 @@ export async function POST(req) {
         description: '1-2 business days'
       }
     ]
-
-    console.log({ rates })
 
     return NextResponse.json({
       success: true,

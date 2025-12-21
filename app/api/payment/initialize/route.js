@@ -31,7 +31,6 @@ export async function POST(request) {
         userPhone = user.phone || phone || '';
       }
     } catch (userError) {
-      console.log('User fetch error, using provided data:', userError);
       // Continue with provided data
     }
 

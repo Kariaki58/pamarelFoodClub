@@ -72,8 +72,6 @@ const CustomerTable = () => {
     try {
       const res = await fetch(`/api/admin/users/${userId}/network`);
       const data = await res.json();
-
-      console.log('Network progress data:', data);
       
       if (res.ok) {
         setNetworkProgress(prev => ({
@@ -82,7 +80,6 @@ const CustomerTable = () => {
         }));
       }
     } catch (error) {
-      console.error('Error fetching network progress:', error);
       // Use fallback data if network API fails
       setNetworkProgress(prev => ({
         ...prev,
@@ -367,7 +364,6 @@ const CustomerTable = () => {
 
   // Progress bar component
   const ProgressBar = ({ current, total, label }) => {
-    console.log({ current, total, label });
     const percentage = total > 0 ? Math.min(100, Math.round((current / total) * 100)) : 0;
     return (
       <div className="w-full">

@@ -25,7 +25,6 @@ export function Header() {
   const { cartCount } = useCart();
 
 
-  console.log({ cartCount })
 
   const handleSearch = (e) => {
     e.preventDefault();

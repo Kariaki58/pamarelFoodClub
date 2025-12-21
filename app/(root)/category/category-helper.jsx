@@ -195,7 +195,6 @@ export default function CategoryPage() {
   const initialCategory = searchParams.get('cat')
   const initialSearchQuery = searchParams.get('q')
 
-  console.log({initialCategory})
 
   const [selectedCategories, setSelectedCategories] = useState(initialCategory ? ['new category'] : [])
   const [priceRange, setPriceRange] = useState({ min: '', max: '' })

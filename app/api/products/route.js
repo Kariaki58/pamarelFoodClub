@@ -12,7 +12,6 @@ export async function GET(req) {
     const limit = parseInt(searchParams.get('limit')) || 20;
     const skip = (page - 1) * limit;
 
-    console.log({ searchParams })
 
     // Build filter object
     const filter = {};
@@ -62,7 +61,6 @@ export async function GET(req) {
       .skip(skip)
       .limit(limit);
 
-    console.log({ products })
 
     const total = await Product.countDocuments(filter);
 

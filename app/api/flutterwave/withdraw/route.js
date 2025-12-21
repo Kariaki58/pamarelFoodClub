@@ -115,7 +115,6 @@ export async function POST(req) {
 
     const transferData = await transferResponse.json();
 
-    console.log({ transferData });
 
     if (transferData.status !== 'success') {
       return NextResponse.json({

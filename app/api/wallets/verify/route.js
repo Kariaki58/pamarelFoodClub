@@ -61,9 +61,6 @@ export async function GET(req) {
       const userId = txRefParts[3];
       const walletType = txRefParts[4];
 
-      console.log({ userId })
-      console.log({ walletType })
-
       // Verify user matches session
       if (userId !== session.user.id) {
         return NextResponse.json(
@@ -75,20 +72,13 @@ export async function GET(req) {
       // Find user
       const user = await User.findById(userId);
 
-      console.log({ user })
       if (!user) {
         return NextResponse.json(
           { success: false, error: 'User not found' },
           { status: 404 }
         );
       }
-
-      console.log({ user })
-
-      console.log({money: user.earnings})
-
-      console.log({walletType})
-
+      
       // Update the appropriate wallet
       const currentBalance = user.earnings.cashWallet || 0;
       user.earnings.cashWallet = currentBalance + amount;

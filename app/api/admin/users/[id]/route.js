@@ -25,11 +25,9 @@ export async function GET(request, { params }) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    console.log({ user })
     
     return NextResponse.json({ user });
   } catch (error) {
-    console.error(error);
     return NextResponse.json({ error: 'Server error' }, { status: 500 });
   }
 }

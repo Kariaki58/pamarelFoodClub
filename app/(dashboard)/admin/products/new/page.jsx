@@ -90,7 +90,6 @@ export default function UploadNewProduct() {
     const validFiles = [];
     const newErrors = {};
 
-    console.log({fileArray})
 
     // Client-side validation
     fileArray.forEach((file, index) => {
