@@ -91,14 +91,14 @@ const WalletCard = () => {
 
   return (
     <>
-      <Card className="@container/card">
-        <CardHeader>
+    <Card className="@container/card">
+      <CardHeader>
           <div className="flex items-start justify-between">
             <div className="flex-1">
-              <CardDescription>Wallet Balance ({balance.currency})</CardDescription>
-              <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
-                {formatCurrency(balance.available_balance)}
-              </CardTitle>
+        <CardDescription>Wallet Balance ({balance.currency})</CardDescription>
+        <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
+          {formatCurrency(balance.available_balance)}
+        </CardTitle>
             </div>
             {isAdmin && (
               <Button
@@ -111,47 +111,47 @@ const WalletCard = () => {
               </Button>
             )}
           </div>
-          <CardAction>
-            <Badge variant="outline" className="flex items-center gap-1">
-              {growthRate > 0 ? (
-                <IconTrendingUp className="size-3" />
-              ) : (
-                <IconTrendingDown className="size-3" />
-              )}
-              {growthRate > 0 ? "+" : ""}
-              {growthRate}%
-            </Badge>
-          </CardAction>
-        </CardHeader>
-
-        <CardFooter className="flex-col items-start gap-1.5 text-sm">
-          <div className="line-clamp-1 flex items-center gap-2 font-medium">
+        <CardAction>
+          <Badge variant="outline" className="flex items-center gap-1">
             {growthRate > 0 ? (
-              <>
-                <span>Growing steadily</span>
-                <IconTrendingUp className="size-4 text-green-500" />
-              </>
+              <IconTrendingUp className="size-3" />
             ) : (
-              <>
-                <span>Decreased balance</span>
-                <IconTrendingDown className="size-4 text-red-500" />
-              </>
+              <IconTrendingDown className="size-3" />
             )}
-          </div>
+            {growthRate > 0 ? "+" : ""}
+            {growthRate}%
+          </Badge>
+        </CardAction>
+      </CardHeader>
 
-          {/* 💰 Show Ledger and Available Balances */}
-          <div className="text-xs text-gray-500 mt-2">
-            <div>
-              <span className="font-medium text-gray-700">Ledger Balance:</span>{" "}
-              {formatCurrency(balance.ledger_balance)}
-            </div>
-            <div>
-              <span className="font-medium text-gray-700">Available Balance:</span>{" "}
-              {formatCurrency(balance.available_balance)}
-            </div>
+      <CardFooter className="flex-col items-start gap-1.5 text-sm">
+        <div className="line-clamp-1 flex items-center gap-2 font-medium">
+          {growthRate > 0 ? (
+            <>
+              <span>Growing steadily</span>
+              <IconTrendingUp className="size-4 text-green-500" />
+            </>
+          ) : (
+            <>
+              <span>Decreased balance</span>
+              <IconTrendingDown className="size-4 text-red-500" />
+            </>
+          )}
+        </div>
+
+        {/* 💰 Show Ledger and Available Balances */}
+        <div className="text-xs text-gray-500 mt-2">
+          <div>
+            <span className="font-medium text-gray-700">Ledger Balance:</span>{" "}
+            {formatCurrency(balance.ledger_balance)}
           </div>
-        </CardFooter>
-      </Card>
+          <div>
+            <span className="font-medium text-gray-700">Available Balance:</span>{" "}
+            {formatCurrency(balance.available_balance)}
+          </div>
+        </div>
+      </CardFooter>
+    </Card>
 
       {showWithdrawModal && isAdmin && (
         <WithdrawFlutterwaveModal

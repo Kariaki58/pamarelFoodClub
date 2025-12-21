@@ -132,6 +132,11 @@ const data = {
       icon: IconUsers,
       // badge: "New",
     },
+    {
+      title: "Transactions",
+      url: "/admin/transactions",
+      icon: IconCashBanknote,
+    },
     // {
     //   title: "Marketing",
     //   url: "/admin/marketing",
