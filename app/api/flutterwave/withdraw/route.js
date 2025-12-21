@@ -136,7 +136,7 @@ export async function POST(req) {
       userPhone: findUser.phone,
       amount: amount,
       currency: 'NGN',
-      planType: 'flutterwave_withdraw',
+      planType: 'wallet_withdraw',
       planName: 'Flutterwave Balance Withdrawal',
       status: 'pending', // The response says status: "NEW", usually maps to pending
       paymentStatus: 'pending',
