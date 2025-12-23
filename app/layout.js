@@ -7,8 +7,8 @@ const inter = Inter({ subsets: ['latin'], variable: '--font-sans' });
 
 
 export const metadata = {
-  title: 'pamarel - Your one-stop shop',
-  description: 'pamarel - Your one-stop shop for everything.',
+  title: 'pamarel - Shop, save and earn on essential foodstuff',
+  description: 'pamarel - discover 20% food and gadget discount, and earn while building your network',
 };
 
 export default function RootLayout({ children }) {
