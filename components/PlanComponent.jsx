@@ -108,8 +108,8 @@ export default function PlanComponent({ planType }) {
             transition={{ delay: 0.3, duration: 0.6 }}
             className="mt-4 text-xl text-gray-600 max-w-3xl mx-auto"
           >
-            {planType === 'basic' ? 'Progress through our 4-board system to unlock increasing rewards' :
-             planType === 'classic' ? 'Gold-tier rewards with our 4-level compensation plan' :
+            {planType === 'basic' ? 'Progress through our 3-board system to unlock increasing rewards' :
+             planType === 'classic' ? 'Gold-tier rewards with our 3-level compensation plan' :
              'Black-tier elite rewards with our highest compensation plan'}
           </motion.p>
         </div>
