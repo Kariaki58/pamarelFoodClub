@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/app/api/auth/options';
 import User from '@/models/user';
+import Transaction from '@/models/Transaction';
 import connectToDatabase from '@/lib/dbConnect';
 
 // GET user by ID
@@ -51,6 +52,10 @@ export async function PUT(request, { params }) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
     
+    // Check if status is being changed to 'active'
+    const wasPending = user.status === 'pending';
+    const isBeingActivated = status === 'active' && wasPending;
+    
     // Update fields if they are provided
     if (plan) user.plan = plan;
     if (currentBoard) user.currentBoard = currentBoard;
@@ -58,6 +63,31 @@ export async function PUT(request, { params }) {
     if (role) user.role = role;
     
     await user.save();
+    
+    // If user status is being changed to active, update all pending transactions to successful
+    if (isBeingActivated) {
+      try {
+        const updatedTransactions = await Transaction.updateMany(
+          { 
+            userId: user._id,
+            status: 'pending'
+          },
+          {
+            $set: {
+              status: 'successful',
+              paymentStatus: 'successful',
+              paidAt: new Date(),
+              updatedAt: new Date()
+            }
+          }
+        );
+        
+        console.log(`Updated ${updatedTransactions.modifiedCount} pending transactions to successful for user ${user._id}`);
+      } catch (transactionError) {
+        console.error('Error updating transactions:', transactionError);
+        // Don't fail the user update if transaction update fails, but log it
+      }
+    }
     
     return NextResponse.json({ 
       message: 'User updated successfully', 

@@ -125,6 +125,12 @@ export async function POST(req) {
 
     const reference = transferData.data.reference;
 
+    // Check the actual transfer status from the response
+    // If the transfer was successfully initiated, mark as successful
+    const transferStatus = transferData.data?.status?.toLowerCase() || '';
+    const isSuccessful = transferData.status === 'success' && 
+                        (transferStatus === 'successful' || transferStatus === 'new' || transferStatus === 'pending');
+
     // Create withdrawal transaction record
     const transaction = new Transaction({
       transactionId: reference,
@@ -135,18 +141,19 @@ export async function POST(req) {
       userPhone: findUser.phone,
       amount: amount,
       currency: 'NGN',
-      planType: 'wallet_withdraw',
+      planType: 'flutterwave_withdraw',
       planName: 'Flutterwave Balance Withdrawal',
-      status: 'pending', // The response says status: "NEW", usually maps to pending
-      paymentStatus: 'pending',
+      status: isSuccessful ? 'successful' : 'pending',
+      paymentStatus: isSuccessful ? 'successful' : 'pending',
       paymentMethod: 'bank_transfer',
+      paidAt: isSuccessful ? new Date() : undefined,
       meta: {
         walletType: 'flutterwave',
         bankCode,
         bankName,
         accountNumber,
         accountName,
-        transferId: reference, // Using reference as transferId since ID isn't in example
+        transferId: reference,
         responseStatus: transferData.data.status,
         completeMessage: transferData.data.complete_message
       }
